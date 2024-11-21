@@ -1,3 +1,3 @@
-<div style="text-align: center" ><img src="icon.png" /></center>
+<p align="center"><img src="icon.png" /></p>
 
 # Woodstock
