@@ -1,2 +1,2 @@
-![Car Image](icon.png)
+<center>![Car Image](icon.png)</center>
 # Woodstock
