@@ -1,2 +1,3 @@
-<center>![Car Image](icon.png)</center>
+<div style="text-align: center" ><img src="icon.png" /></center>
+
 # Woodstock
