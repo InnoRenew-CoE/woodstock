@@ -3,4 +3,9 @@ name = "woodstock"
 version = "0.1.0"
 edition = "2021"
 
+authors = [
+    "Mihael Berčič <mihael.bercic@innorenew.eu>",
+    "Domen Vake <domen.vake@innorenew.eu>",
+]
+
 [dependencies]
