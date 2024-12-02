@@ -1,0 +1,1 @@
+import{a as t,t as n}from"../chunks/disclose-version.D9e69vLd.js";import"../chunks/legacy.BGQypLu4.js";var p=n('<div class="bg-blue-100 min-h-[400px] h-full"><a href="account/login">Go to account</a></div>');function r(a){var o=p();t(a,o)}export{r as component};
