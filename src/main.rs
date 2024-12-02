@@ -1,4 +1,5 @@
 use actix_web::{get, web, App, HttpServer, Responder};
+use actix_web_lab::web::spa;
 
 #[get("/hello/{name}")]
 async fn greet(name: web::Path<String>) -> impl Responder {
@@ -7,10 +8,17 @@ async fn greet(name: web::Path<String>) -> impl Responder {
 
 #[actix_web::main] // or #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| App::new().service(greet))
-        .bind(("127.0.0.1", 8080))?
-        .run()
-        .await
+    HttpServer::new(|| {
+        App::new().service(
+            spa()
+                .index_file("public/index.html")
+                .static_resources_location("public/")
+                .finish(),
+        )
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await
 }
 
 // TODO: Static Files:      https://github.com/actix/examples/blob/master/basics/static-files/src/main.rs
