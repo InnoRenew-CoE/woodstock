@@ -1,3 +1,9 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities'
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@layer components {
+    .primary-button {
+        @apply bg-primary text-white rounded-md p-3 hover:bg-accent transition ease-in-out duration-200;
+    }
+}

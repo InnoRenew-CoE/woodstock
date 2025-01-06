@@ -22,8 +22,8 @@
     });
 </script>
 
-<div id="layout" bind:this={layout_component}>
+<div id="layout" bind:this={layout_component} class="bg-light-background text-sm">
     <div bind:this={header_component}><Header /></div>
-    <div>{@render children()}</div>
+    <div class="h-full">{@render children()}</div>
     <div bind:this={footer_component}><Footer /></div>
 </div>
