@@ -1,3 +1,3 @@
-<div class="bg-blue-100 min-h-[400px] h-full">
+<div class="bg-blue-100 h-full">
     <a href="account/login">Go to account </a>
 </div>
