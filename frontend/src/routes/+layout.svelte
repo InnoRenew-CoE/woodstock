@@ -2,7 +2,9 @@
     import Footer from "$lib/footer/Footer.svelte";
     import Header from "$lib/header/Header.svelte";
     import "../app.css";
+
     let { children } = $props();
+
     let header_component: HTMLDivElement | undefined = $state(undefined);
     let footer_component: HTMLDivElement | undefined = $state(undefined);
     let layout_component: HTMLDivElement | undefined = $state(undefined);
