@@ -7,56 +7,46 @@
     let width = $state(0);
     let isSmall = $derived(width < 640);
     let isVisible = $state(false);
+
+    const paths: { link: string; text: string }[] = [
+        { link: "/app", text: "Home" },
+        { link: "/app/search", text: "Search" },
+        { link: "/app/contribute", text: "Contribute" },
+        { link: "/app/notifications", text: "Notifications" },
+    ];
+    let notificationCount = $state(0);
 </script>
 
 <svelte:window bind:innerWidth={width} />
 
-<div class="p-5 h-full bg-dark-background">
-    <div class="grid {isSmall ? 'pt-16' : 'grid-cols-[minmax(250px,10%)_auto]'} h-full gap-5">
-        <div class="absolute top-0 left-0 right-0 rounded-b-xl px-5 sm:px-0 sm:relative sm:rounded-xl sm:border py-5 sm:bg-light-background">
-            <div id="logo" class="flex items-center justify-between sm:block">
-                <div class="sm:w-full items-center justify-center flex">
-                    <img src="../woodstock.svg" alt="logo" class="h-14 rounded-full" />
-                </div>
+<div class="p-2 sm:p-5 h-full bg-dark-background font-nunito">
+    <div class="flex flex-col items-end sm:items-center h-full gap-5">
+        <div class="sm:relative sm:rounded-2xl sm:border sm:bg-primary text-white sm:flex sm:p-3">
+            <div class="bg-black rounded-xl p-2 sm:bg-transparent sm:border-transparent sm:rounded-none sm:p-0 flex gap-5 items-center justify-end w-full">
                 {#if isSmall}
-                    {$page.url.pathname}
                     <button on:click={() => (isVisible = !isVisible)}>
-                        <img src="../menu.svg" alt="menu" class="w-5" />
+                        <MaskedIcon src="../menu.svg" class="w-10 p-3 bg-white" />
                     </button>
                 {/if}
                 {#if isVisible || !isSmall}
-                    <div in:slide out:slide={{ duration: 100 }} class="absolute bottom-0 translate-y-full bg-secondary text-white right-0 left-0 p-3 sm:relative sm:translate-y-0 sm:bg-transparent sm:text-primary sm:p-5">
-                        <p class="font-sans uppercase text-xs opacity-20">Dashboard</p>
-                        <ul class="py-4 grid gap-3 sm:gap-3" on:click={() => (isVisible = false)}>
-                            <li>
-                                <a class="border px-3 py-1 rounded-md bg-secondary/5 border-secondary/10 sm:text-secondary flex items-center gap-3 sm:hover:text-secondary" href="/app/home">
-                                    <MaskedIcon src="../home.svg" class={isSmall ? "bg-white" : "bg-secondary"} />
-                                    Home
-                                </a>
-                            </li>
-                            <li>
-                                <a class="border border-transparent px-3 py-1 rounded-md group sm:hover:pl-5 transition-all ease-in-out flex items-center gap-3 sm:hover:text-secondary" href="/app/search">
-                                    <MaskedIcon src="../search.svg" class={isSmall ? "bg-white" : "sm:group-hover:bg-secondary"} />
-                                    Search
-                                </a>
-                            </li>
-                            <li>
-                                <a class="border border-transparent px-3 py-1 rounded-md group sm:hover:pl-5 transition-all ease-in-out flex items-center gap-3 sm:hover:text-secondary" href="/app/contribute">
-                                    <MaskedIcon src="../box.svg" class={isSmall ? "bg-white" : "sm:group-hover:bg-secondary"} />
-                                    Contribute
-                                </a>
-                            </li>
-                            <li>
-                                <a class="border border-transparent px-3 py-1 rounded-md group sm:hover:pl-5 transition-all ease-in-out flex items-center gap-3 sm:hover:text-secondary" href="/app/notifications">
-                                    <MaskedIcon src="../inbox.svg" class={isSmall ? "bg-white" : "sm:group-hover:bg-secondary"} />
-                                    Notifications
-                                </a>
-                            </li>
+                    <div in:slide out:slide={{ duration: 100 }} class="top-20 left-0 right-0 bg-black absolute text-white p-5 sm:relative sm:top-0 sm:translate-y-0 sm:p-0">
+                        <ul class="grid sm:flex gap-3 sm:gap-3" on:click={() => (isVisible = false)}>
+                            {#each paths as { link, text }}
+                                {@const isSelected = link == $page.url.pathname}
+                                <li>
+                                    <a class="flex items-center gap-2 border border-transparent px-5 py-1 rounded-lg transition-all sm:hover:bg-light-background/30 sm:hover:border-white/10 {isSelected ? 'bg-light-background/20 border border-white/10' : ''}" href={link}>
+                                        {#if text === "Notifications"}
+                                            <div class="inline-block rounded-full text-xs bg-secondary/90 border-secondary border p-0.5 animate-pulse"></div>
+                                        {/if}
+                                        {text}
+                                    </a>
+                                </li>
+                            {/each}
                         </ul>
                     </div>
                 {/if}
             </div>
         </div>
-        <div class="rounded-xl p-10 border bg-light-background">{@render children()}</div>
+        <div class="rounded-xl p-10 border bg-light-background w-full flex-1">{@render children()}</div>
     </div>
 </div>
