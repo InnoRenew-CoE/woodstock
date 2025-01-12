@@ -1,8 +1,8 @@
 <script lang="ts">
-    let { src = undefined, class: className = "" } = $props();
+    let { src = undefined, class: className = "w-4 h-4 bg-primary" } = $props();
 </script>
 
-<div style="mask-image: url({src});" class="w-4 h-4 bg-primary {className}"></div>
+<div style="mask-image: url({src});" class="h-full {className}"></div>
 
 <style>
     div {

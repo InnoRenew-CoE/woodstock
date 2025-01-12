@@ -3,7 +3,6 @@ import { get, writable, type Writable } from "svelte/store";
 
 export const questionsStore: Writable<Question[]> = writable([
   { level: 0, title: "File upload" },
-
   { level: 0, title: "Submission" },
 ]);
 

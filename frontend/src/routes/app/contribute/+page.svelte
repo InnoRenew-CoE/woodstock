@@ -1,4 +1,5 @@
 <script lang="ts">
+    import MaskedIcon from "$lib/common/MaskedIcon.svelte";
     import Spacer from "$lib/common/Spacer.svelte";
     import { findParentQuestionIndex, questionsStore } from "$lib/stores/questions";
     import { fade, slide } from "svelte/transition";
@@ -29,10 +30,12 @@
             <ul class="p-5">
                 {#each $questionsStore as question, i}
                     {@const parentIndex = findParentQuestionIndex(question) ?? -1}
-                    {#if question.level < 2 || (currentStep > parentIndex.min && currentStep < parentIndex.max)}
-                        <li in:slide out:slide class="transition-all pl-{question.level * 5} {currentStep >= i ? 'font-semibold' : 'opacity-30'}">
+                    {@const isSelected = currentStep >= i}
+                    {#if question.level < 2 || (currentStep >= parentIndex.min && currentStep < parentIndex.max)}
+                        <li in:slide out:slide style="padding-left: {question.level * 1.25}rem;" class="transition-all {currentStep >= i ? 'font-semibold' : 'opacity-30'}">
                             <div class="flex justify-between items-center">
-                                <div>
+                                <div class="grid grid-cols-[1rem_auto] gap-1 items-center">
+                                    <MaskedIcon src={currentStep < parentIndex.min && currentStep > parentIndex.max ? "../circle-filled.svg" : "../circle.svg"} class="w-2.5 bg-accent" />
                                     {question.title}
                                 </div>
                             </div>
