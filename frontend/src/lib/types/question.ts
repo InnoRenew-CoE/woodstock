@@ -13,6 +13,7 @@ export enum QuestionType {
 }
 
 export type Answer = {
+  question_id?: number;
   id: number;
   value: any;
 };

@@ -3,15 +3,21 @@
     import Spacer from "$lib/common/Spacer.svelte";
     import { filesStore, questionsStore } from "$lib/stores/questions";
     import { fade, slide } from "svelte/transition";
+    import QuestionComponent from "./QuestionComponent.svelte";
+    import type { Question } from "$lib/types/question";
 
     let windowSize = $state(0);
-    let currentStep = $state(0);
+    let currentStep = $state(1);
     let lastStep = $derived(1 + $questionsStore.length * $filesStore.length);
+    let currentQuestion: Question | undefined = $derived($questionsStore[(currentStep - 1) % $questionsStore.length]);
+    let currentFile: string | undefined = $derived($filesStore[Math.ceil(currentStep / $questionsStore.length) - 1]);
 
-    $effect(() => {
-        currentStep = Math.min(Math.max(currentStep, 0), 1 + $questionsStore.length * $filesStore.length);
-    });
-
+    function step(forwards: boolean) {
+        if (currentStep !== 0 && currentStep !== lastStep) {
+            console.log(`Previous question: ${currentQuestion?.title} @ \t\t${currentFile}`);
+        }
+        currentStep = Math.min(Math.max(currentStep + (forwards ? 1 : -1), 0), 1 + $questionsStore.length * $filesStore.length);
+    }
     const addQuestions = (index: number) => {};
 
     // let direction = true;
@@ -31,9 +37,8 @@
         <div class="bg-dark-background border p-3 rounded-lg">
             <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep + 1} / {lastStep + 1}</p>
             <div class="flex justify-between gap-5">
-                <button class="p-1 text-xs flex-1 bg-light-background border rounded-lg" onclick={() => currentStep--}>-1</button>
-                <button class="p-1 text-xs flex-1 bg-light-background border rounded-lg" onclick={() => addQuestions(1)}>Add</button>
-                <button class="p-1 text-xs flex-1 bg-light-background border rounded-lg" onclick={() => currentStep++}>+1</button>
+                <button class="p-1 text-xs flex-1 bg-light-background border rounded-lg" onclick={() => step(false)}>-1</button>
+                <button class="p-1 text-xs flex-1 bg-light-background border rounded-lg" onclick={() => step(true)}>+1</button>
             </div>
             <ul class="p-5">
                 <li class="flex items-center gap-3 {currentStep >= 0 ? 'font-bold' : ''}">
@@ -74,7 +79,7 @@
             {:else}
                 <div>File: {Math.ceil(currentStep / $questionsStore.length)}</div>
                 <div>Name: {$filesStore[Math.ceil(currentStep / $questionsStore.length) - 1]}</div>
-                <div>Question: {$questionsStore[(currentStep - 1) % $questionsStore.length]?.title}</div>
+                <QuestionComponent question={currentQuestion} />
             {/if}
         </div>
     </div>
