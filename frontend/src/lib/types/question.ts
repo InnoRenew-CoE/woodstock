@@ -1,15 +1,18 @@
 export type Question = {
-  level: number;
+  id: number;
   title: string;
-  file_id?: number;
-  text?: string;
-  progress?: string;
-  possibleAnswers?: string[];
-  answers?: string[];
-  type?: QuestionType;
+  text: string;
+  possible_answers: Answer[];
+  type: QuestionType;
 };
 
 export enum QuestionType {
   Text,
   Select,
+  MultiSelect,
 }
+
+export type Answer = {
+  id: number;
+  value: any;
+};
