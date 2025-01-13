@@ -19,7 +19,6 @@ impl From<String> for Questiton {
     }
 }
 
-
 impl From<&str> for Questiton {
     fn from(value: &str) -> Self {
         Self {
@@ -30,7 +29,6 @@ impl From<&str> for Questiton {
         }
     }
 }
-
 
 impl Into<GenerationRequest> for Questiton {
     fn into(self) -> GenerationRequest {

@@ -5,6 +5,7 @@ use ollama_rs::{error::OllamaError, generation::completion::GenerationResponse, 
 use super::models::question::Questiton;
 
 
+#[derive(Debug)]
 pub struct OllamaClient {
     ollama: Ollama,
 }
@@ -20,7 +21,6 @@ impl Default for OllamaClient {
         }
     }
 }
-
 
 impl OllamaClient {
     pub async fn generate(&self, question: Questiton) -> Result<GenerationResponse, OllamaError> {
