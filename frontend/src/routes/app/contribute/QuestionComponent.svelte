@@ -1,20 +1,28 @@
 <script lang="ts">
+    import Checkbox from "$lib/common/Checkbox.svelte";
     import { QuestionType, type Answer, type Question } from "$lib/types/question";
-    import { onDestroy } from "svelte";
 
-    let { question, answers = $bindable() }: { question: Question; answers: Answer[] } = $props();
+    let { question = $bindable(), proceed = $bindable(false) }: { question: Question; proceed: boolean } = $props();
+    let answers = $state(question.answers);
+    let text_answer = $state(question.text_answer);
+    $effect(() => {
+        question.answers = answers;
+        question.text_answer = text_answer;
 
-    /*
-    Text => string
-    Selection => array
-    */
+        proceed = (answers?.length ?? 0) > 0 || (text_answer?.length ?? 0) > 0;
+    });
 </script>
 
-{#if question.type === QuestionType.Text}
-    <textarea></textarea>
-{:else}
-    {#each question.possible_answers as answer}
-        <input id={answer.id.toString()} type="checkbox" value={answer.id} />
-        <label for={answer.id.toString()}>{answer.value}</label>
-    {/each}
-{/if}
+<div>
+    <div class="text-lg font-semibold">{question.title}</div>
+    <div>{question.text}</div>
+    <div class="mt-5 flex gap-5 items-center justify-center">
+        {#if question.type === QuestionType.Text}
+            <textarea placeholder="Answer here..." class="p-5 min-h-[100px] resize-none w-full rounded border" bind:value={text_answer}></textarea>
+        {:else}
+            {#each question.possible_answers as answer}
+                <Checkbox bind:group={answers} label={answer.value} value={answer.id} />
+            {/each}
+        {/if}
+    </div>
+</div>
