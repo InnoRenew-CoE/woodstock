@@ -16,12 +16,12 @@
 <div>
     <div class="text-lg font-semibold">{question.title}</div>
     <div>{question.text}</div>
-    <div class="mt-5 flex gap-5 items-center justify-center">
+    <div class="mt-5 flex gap-5 items-center justify-center flex-wrap">
         {#if question.type === QuestionType.Text}
             <textarea placeholder="Answer here..." class="p-5 min-h-[100px] resize-none w-full rounded border" bind:value={text_answer}></textarea>
         {:else}
             {#each question.possible_answers as answer}
-                <Checkbox bind:group={answers} label={answer.value} value={answer.id} />
+                <Checkbox bind:group={answers} label={answer.value} value={answer.id} multiple={question.type === QuestionType.MultiSelect} />
             {/each}
         {/if}
     </div>

@@ -6,11 +6,12 @@
     import QuestionComponent from "./QuestionComponent.svelte";
     import type { Question } from "$lib/types/question";
     import FileUpload from "./FileUpload.svelte";
+    import Submission from "./Submission.svelte";
 
     let windowSize = $state(0);
     let proceed = $state(false);
-    let currentStep = $state(0);
     let lastStep = $derived(1 + $questionsStore.length * ($filesStore?.length ?? 1));
+    let currentStep = $state(0);
     let questions: Question[] = $derived(
         Array.from($filesStore ?? []).flatMap((file) => {
             return $questionsStore.map((q) => ({
@@ -27,16 +28,6 @@
             proceed = false;
         }
     }
-
-    // let direction = true;
-    // setInterval(() => {
-    //     if (currentStep === 0) {
-    //         direction = true;
-    //     } else if (currentStep === 1 + $questionsStore.length * $filesStore.length) {
-    //         direction = false;
-    //     }
-    //     currentStep += direction ? 1 : -1;
-    // }, 250);
 </script>
 
 <svelte:window bind:innerWidth={windowSize} />
@@ -79,8 +70,7 @@
             {#if currentStep === 0}
                 <FileUpload bind:proceed />
             {:else if currentStep === lastStep}
-                Submissssssion
-                {console.log(Object.groupBy(questions, (a) => a.file_id!))}
+                <Submission {questions} />
             {:else}
                 {#key currentStep}
                     <div in:fade>
@@ -107,7 +97,7 @@
                     {:else}
                         <span class="text-secondary font-nunito flex items-center gap-2">
                             <MaskedIcon src="../chevron-right.svg" class="size-3 bg-secondary animate-pulse" />
-                            Kindly complete the question to continue.
+                            Required
                         </span>
                     {/if}
                 {/if}

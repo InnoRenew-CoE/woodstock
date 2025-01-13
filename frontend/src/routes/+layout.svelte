@@ -1,7 +1,11 @@
 <script lang="ts">
     import Footer from "$lib/footer/Footer.svelte";
     import Header from "$lib/header/Header.svelte";
+    import { notificationsStore, pushNotification } from "$lib/stores/notifications";
+    import { onDestroy } from "svelte";
     import "../app.css";
+    import MaskedIcon from "$lib/common/MaskedIcon.svelte";
+    import { fade, slide } from "svelte/transition";
 
     let { children } = $props();
 
@@ -26,6 +30,21 @@
 
 <div id="layout" bind:this={layout_component} class="bg-light-background text-sm">
     <div bind:this={header_component}><Header /></div>
-    <div class="h-full">{@render children()}</div>
+    <div class="h-full relative">
+        {@render children()}
+        <div class="absolute right-0 bottom-0 top-0 flex flex-col justify-end gap-5 p-10">
+            {#each $notificationsStore as notification, i}
+                <div in:slide out:slide class="p-2 min-w-[250px] bg-dark-background border border-accent/80 rounded-xl shadow-lg shadow-accent/30">
+                    <div class="border border-accent/10 bg-light-background rounded-lg px-4 py-2 flex items-center gap-3">
+                        <MaskedIcon src="../bell.svg" class="size-5 bg-accent" />
+                        <div>
+                            <div class="font-bold">{notification.title}</div>
+                            <div class="font-light">{notification.body}</div>
+                        </div>
+                    </div>
+                </div>
+            {/each}
+        </div>
+    </div>
     <div bind:this={footer_component}><Footer /></div>
 </div>
