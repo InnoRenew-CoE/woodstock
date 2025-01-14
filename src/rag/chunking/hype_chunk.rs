@@ -97,22 +97,21 @@ fn generate_hype_chunks(chunks: &[Chunk], hype_questions: Vec<String>) -> Vec<Hy
 }
 
 fn generate_hype_prompt_questions(summary: String, file: &ChunkedFile<Chunk>) -> Vec<Question> {
-    let question = "With the help of a summary, analyze the context text and generate essential questions that, when answered, capture the main points and core meaning of the text. \
+    let question = format!("You will be given a passage from a document, that talks about: {}\n Your task is to analyze the context text (passage) and \
+        generate essential questions that, when answered, capture the main points and core meaning of the text. \
         The questions should be exhaustive and understandable without context. When possible, named entities should be referenced by their full name. \
         However add questions that are diverse in topic. \
-        It is extremely important that you only answer with questions and each question should be written in its own line (separated by newline) with no prefix.";
+        It is extremely important that you only answer with questions and each question should be written in its own line (separated by newline) with no prefix.\
+        And finally the answer to each question has to be found in the final context passage.", 
+        summary);
     let system_prompt = "You are an agent specialized to only answer in form of questions.";
 
     file
         .chunks
         .iter()
-        .map(|c| Question::from(question)
+        .map(|c| Question::from(question.clone())
             .set_system_prompt(&system_prompt)
-            .set_context(vec![format!(
-                "DOCUMENT:\n{}\n\nCONTEXT TEXT:\n{}",
-                summary,
-                c.text
-            )])
+            .set_context(vec![format!("\nCONTEXT PASSAGE:\n{}", c.text)])
         )
         .collect()
 }
