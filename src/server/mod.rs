@@ -1,9 +1,16 @@
 use std::{
     collections::HashMap,
+    fs::Metadata,
     sync::{Arc, LazyLock, Mutex},
 };
 
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_cors::Cors;
+use actix_multipart::form::{json::Json, tempfile::TempFile, MultipartForm};
+use actix_web::{
+    get, post,
+    web::{self, Form},
+    App, HttpResponse, HttpServer, Responder,
+};
 use actix_web_lab::web::spa;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::{Client, NoTls};
@@ -23,16 +30,42 @@ async fn fetch_questions(state: web::Data<AppState>) -> impl Responder {
     };
     HttpResponse::Ok().json(json)
 }
+#[derive(Debug, MultipartForm)]
+struct SubmissionForm {
+    files: Vec<TempFile>,
+    // answers: Json<Vec<FileAnswer>>,
+}
+
+#[post("/answers")]
+async fn submit_answers(
+    state: web::Data<AppState>,
+    MultipartForm(form): MultipartForm<SubmissionForm>,
+) -> impl Responder {
+    println!("Data {:?}", form);
+
+    let Ok(client) = &mut state.client.lock() else {
+        return HttpResponse::InternalServerError().finish();
+    };
+
+    todo!()
+}
 
 pub async fn start_server() {
     let state = web::Data::new(AppState {
         client: Mutex::new(build_db_client().await),
     });
     println!("DB Client setup.");
+
     let _ = HttpServer::new(move || {
+        let cors = Cors::permissive();
         App::new()
+            .wrap(cors)
             .app_data(state.clone())
-            .service(web::scope("/api").service(fetch_questions))
+            .service(
+                web::scope("/api")
+                    .service(submit_answers)
+                    .service(fetch_questions),
+            )
             .service(
                 spa()
                     .index_file("public/index.html")
@@ -115,8 +148,13 @@ pub struct SelectionAnswer {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Answer {
-    id: i32,
     question_id: i32,
     text: Option<String>,
     selection: Vec<i32>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileAnswer {
+    file: String,
+    answers: Vec<Answer>,
 }

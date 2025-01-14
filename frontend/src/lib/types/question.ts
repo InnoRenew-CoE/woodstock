@@ -1,21 +1,31 @@
-export type Question = {
-  id: number;
-  file_id?: string;
-  title: string;
-  text: string;
-  possible_answers: Answer[];
-  answers?: number[];
-  text_answer?: string;
-  type: QuestionType;
-};
-
 export enum QuestionType {
-  Text = "Text",
-  Select = "Select",
-  MultiSelect = "MultiSelect",
+  Text,
+  Select,
+  MultiSelect,
 }
 
-export type Answer = {
+export type Question = {
   id: number;
-  value: any;
+  title: string;
+  text: string;
+  question_type: QuestionType;
+  possible_answers: SelectionAnswer[];
+};
+
+export type SelectionAnswer = {
+  id: number;
+  question_id: number;
+  value: string;
+};
+
+export type Answer = {
+  id?: number;
+  question_id: number;
+  text: string;
+  selection: number[];
+};
+
+export type FileAnswer = {
+  file: string;
+  answers: Answer[];
 };

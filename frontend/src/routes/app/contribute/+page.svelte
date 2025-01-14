@@ -1,26 +1,45 @@
 <script lang="ts">
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
     import Spacer from "$lib/common/Spacer.svelte";
-    import { filesStore, questionsStore } from "$lib/stores/questions";
+    import { fetchQuestions, filesStore, questionsStore, submitAnswers } from "$lib/stores/questions";
     import { fade, slide } from "svelte/transition";
     import QuestionComponent from "./QuestionComponent.svelte";
-    import type { Question } from "$lib/types/question";
+    import type { Answer, FileAnswer, Question } from "$lib/types/question";
     import FileUpload from "./FileUpload.svelte";
     import Submission from "./Submission.svelte";
+    import { onMount } from "svelte";
+
+    onMount(async () => {
+        await fetchQuestions();
+    });
 
     let windowSize = $state(0);
     let proceed = $state(false);
     let lastStep = $derived(1 + $questionsStore.length * ($filesStore?.length ?? 1));
     let currentStep = $state(0);
-    let questions: Question[] = $derived(
+    let fileAnswers: FileAnswer[] = $derived(
         Array.from($filesStore ?? []).flatMap((file) => {
-            return $questionsStore.map((q) => ({
-                file_id: file.name,
-                ...q,
+            const answers: Answer[] = $questionsStore.map((q) => ({
+                question_id: q.id,
+                text: "",
+                selection: [],
             }));
+            return {
+                file: file.name,
+                answers: answers,
+            };
         }),
     );
-    let question: Question | undefined = $derived(questions[currentStep - 1]);
+
+    $effect(() => {
+        const files = $filesStore;
+        if (files && files.length > 0) {
+            submitAnswers(files);
+        }
+    });
+
+    let file: FileAnswer | undefined = $derived(fileAnswers[Math.floor((currentStep - 1) / $questionsStore.length)]);
+    let answer: Answer | undefined = $derived(file?.answers[(currentStep - 1) % $questionsStore.length]);
 
     function step(forwards: boolean) {
         if ($filesStore) {
@@ -34,7 +53,7 @@
 {#if windowSize > 640}
     <div class="grid gap-5 grid-cols-[minmax(min-content,300px)_auto] h-full">
         <div class="select-none bg-dark-background border p-3 rounded-lg">
-            <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep + 1} / {lastStep + 1}</p>
+            <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep} / {lastStep}</p>
             <ul class="p-5">
                 <li class="flex items-center gap-3 {currentStep >= 0 ? 'font-bold' : ''}">
                     <MaskedIcon src="../{currentStep >= 0 ? 'checkmark.svg' : 'circle.svg'}" class="w-2 h-2 bg-secondary" />
@@ -70,19 +89,20 @@
             {#if currentStep === 0}
                 <FileUpload bind:proceed />
             {:else if currentStep === lastStep}
-                <Submission {questions} />
+                {JSON.stringify(fileAnswers)}
             {:else}
+                {@const question = $questionsStore.filter((x) => x.id === answer?.question_id)[0]}
                 {#key currentStep}
                     <div in:fade>
                         <div class="text-center">
-                            <div class="font-bold">{question?.file_id}</div>
+                            <div class="font-bold">{file?.file}</div>
                             <div>
                                 <span class="text-accent">{((currentStep - 1) % $questionsStore.length) + 1}</span>
                                 |
                                 <span class="opacity-30">{$questionsStore.length}</span>
                             </div>
                         </div>
-                        <QuestionComponent bind:proceed {question} />
+                        <QuestionComponent bind:proceed {question} {answer} />
                     </div>
                 {/key}
             {/if}

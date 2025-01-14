@@ -1,56 +1,61 @@
-import { QuestionType, type Answer, type Question } from "$lib/types/question";
+import { PUBLIC_API_BASE_URL } from "$env/static/public";
+import { QuestionType, type Answer, type FileAnswer, type Question } from "$lib/types/question";
 import { get, writable, type Writable } from "svelte/store";
+import { pushNotification } from "./notifications";
 
 export const answersStore: Writable<Answer[]> = writable([]);
 export const filesStore: Writable<FileList | undefined> = writable();
-export const questionsStore: Writable<Question[]> = writable([
-  {
-    id: 4,
-    title: "Description",
-    possible_answers: [],
-    answers: [],
-    text: "Please describe the file in a few short sentences.",
-    type: QuestionType.Text,
-  },
-  {
-    id: 1,
-    title: "Confidentiality",
-    possible_answers: [
-      { id: 0, value: "Public" },
-      { id: 1, value: "Internal only" },
-      { id: 2, value: "Restricted" },
-    ],
-    answers: [],
-    text: "Please specify how you'd like this file to be considered in the system.",
-    type: QuestionType.Select,
-  },
-  {
-    id: 0,
-    title: "Primary purpose",
-    possible_answers: [
-      { id: 0, value: "Informational" },
-      { id: 1, value: "Instructional" },
-      { id: 2, value: "Analytical" },
-      { id: 3, value: "Educational" },
-      { id: 4, value: "Technical Reference" },
-    ],
-    answers: [],
-    text: "",
-    type: QuestionType.MultiSelect,
-  },
-  {
-    id: 2,
-    title: "Topics",
-    possible_answers: [
-      { id: 1, value: "Marketing" },
-      { id: 2, value: "Finance" },
-      { id: 3, value: "Technology" },
-      { id: 4, value: "Human Resources" },
-      { id: 5, value: "Education" },
-      { id: 6, value: "Design" },
-    ],
-    answers: [],
-    text: "What topics or categories does this file belong to?",
-    type: QuestionType.MultiSelect,
-  },
-]);
+export const questionsStore: Writable<Question[]> = writable([]);
+
+export async function fetchQuestions() {
+  const request = await fetch(`${PUBLIC_API_BASE_URL}/api/questions`);
+  const json = await request.json();
+  const questions: Question[] = JSON.parse(json);
+  questionsStore.set(questions);
+}
+
+export async function submitAnswers(files: FileList) {
+  const data = [
+    {
+      file: "CustomGauge.swift",
+      answers: [
+        { question_id: 1, text: "AET", selection: [] },
+        { question_id: 2, text: "", selection: [2] },
+      ],
+    },
+    {
+      file: "LogListView.swift",
+      answers: [
+        { question_id: 1, text: "AE", selection: [] },
+        { question_id: 2, text: "", selection: [1] },
+      ],
+    },
+    {
+      file: "StatisticsView.swift",
+      answers: [
+        { question_id: 1, text: "AER", selection: [] },
+        { question_id: 2, text: "", selection: [3] },
+      ],
+    },
+    {
+      file: "TripListView.swift",
+      answers: [
+        { question_id: 1, text: "SA", selection: [] },
+        { question_id: 2, text: "", selection: [2] },
+      ],
+    },
+  ];
+
+  const formData = new FormData();
+  formData.append("answers", "[]");
+  for (let x of files) {
+    formData.append(x.name, x);
+  }
+
+  const response = await fetch(`${PUBLIC_API_BASE_URL}/api/answers`, {
+    method: "POST",
+    body: formData,
+  });
+
+  pushNotification({ title: "Success", body: "Submission successful." });
+}

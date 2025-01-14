@@ -6,14 +6,13 @@ export function pushNotification(notification: Notification) {
   notificationsStore.update((data) => [...data, notification]);
 
   const index = get(notificationsStore).indexOf(notification);
-  console.log(index);
   setTimeout(() => {
     notificationsStore.update((data) => data.filter((_, i) => i !== index));
   }, 3000);
 }
 
 export type Notification = {
-  class: string;
+  class?: string;
   title: string;
   body: string;
 };
