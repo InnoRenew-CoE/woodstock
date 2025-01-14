@@ -4,7 +4,11 @@ use super::{chunk::Chunk, chunked_file::ChunkedFile, ChunkOverlap, ChunkSize,};
 
 
 
-pub fn simple_word_chunking(file: LoadedFile, chunk_size: &ChunkSize, overlap: &ChunkOverlap) -> ChunkedFile {
+pub fn simple_word_chunking(
+    file: LoadedFile, 
+    chunk_size: &ChunkSize, 
+    overlap: &ChunkOverlap
+) -> ChunkedFile<Chunk> {
     let chunk_size = *chunk_size as usize;
     let overlap = *overlap as usize;
 
@@ -13,7 +17,7 @@ pub fn simple_word_chunking(file: LoadedFile, chunk_size: &ChunkSize, overlap: &
     let mut chunks = Vec::new();
     let mut start_index = 0;
     let mut chunk_id = 0;
-
+ 
     while start_index < words.len() {
         let end_index = std::cmp::min(start_index + chunk_size, words.len());
         let chunk_words = &words[start_index..end_index];
