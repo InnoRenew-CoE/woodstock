@@ -1,25 +1,19 @@
-<<<<<<< HEAD
-use actix_web::{get, web, App, HttpServer, Responder};
-use actix_web_lab::web::spa;
-
-#[get("/hello/{name}")]
-async fn greet(name: web::Path<String>) -> impl Responder {
-    format!("Hello {}!", name)
-=======
 // use rag::comm::ollama::OllamaClient;
 
+use actix_web::{web, App, HttpServer, Route};
+use actix_web_lab::web::spa;
+use anyhow::Result;
 use chrono::NaiveDateTime;
 use rag::Rag;
 use serde_json::json;
 use shared::file::{Answer, WoodstockFileData};
-use anyhow::Result;
 
 pub mod rag;
+mod server;
 pub mod shared;
 
-
 #[tokio::main]
-async fn main()-> Result<()> {
+async fn main() -> Result<()> {
     if let Err(e) = dotenv::dotenv() {
         return Err(e.into());
     }
@@ -84,24 +78,8 @@ async fn main()-> Result<()> {
 
     println!("{:#?}", rag.insert(dummy_instance));
 
+    server::start_server().await;
     Ok(())
-
->>>>>>> origin/rag-lib
-}
-
-#[actix_web::main] // or #[tokio::main]
-async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
-        App::new().service(
-            spa()
-                .index_file("public/index.html")
-                .static_resources_location("public/")
-                .finish(),
-        )
-    })
-    .bind(("localhost", 8080))?
-    .run()
-    .await
 }
 
 // TODO: Static Files:      https://github.com/actix/examples/blob/master/basics/static-files/src/main.rs

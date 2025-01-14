@@ -21,3 +21,5 @@ serde = { version = "1.0.217", features = ["derive"] }
 chrono = { version = "0.4.39", features = ["serde"] }
 serde_json = "1.0.135"
 lopdf = { version = "0.30.0", features = ["pom", "pom_parser"] }
+# postgres = { version = "0.19.9" }
+tokio-postgres = "*"
