@@ -1,5 +1,7 @@
 // use rag::comm::ollama::OllamaClient;
 
+use std::time::Instant;
+
 use chrono::NaiveDateTime;
 use rag::Rag;
 use serde_json::json;
@@ -73,9 +75,10 @@ async fn main()-> Result<()> {
     //     date_of_submission: NaiveDateTime::from_timestamp_opt(1736784000, 0)
     //         .unwrap_or_else(|| NaiveDateTime::from_timestamp_opt(0, 0).unwrap()),
     // };
-
-    println!("{:#?}", rag.insert(dummy_instance));
-
+    let start_time = Instant::now();
+    println!("{:#?}", rag.insert(dummy_instance).await);
+    let duration = start_time.elapsed();
+    println!("Time taken: {:?}", duration);
     Ok(())
 
 }

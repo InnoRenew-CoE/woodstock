@@ -7,10 +7,10 @@ use ollama_rs::{
     }, 
     Ollama
 };
-use question::Questiton;
+use question::Question;
 
 pub mod embedding;
-mod question;
+pub mod question;
 
 #[derive(Debug)]
 pub struct OllamaClient {
@@ -30,7 +30,7 @@ impl Default for OllamaClient {
 }
 
 impl OllamaClient {
-    pub async fn generate(&self, question: Questiton) -> Result<GenerationResponse, OllamaError> {
+    pub async fn generate(&self, question: Question) -> Result<GenerationResponse, OllamaError> {
         self.ollama.generate(question.into()).await
     }
 
