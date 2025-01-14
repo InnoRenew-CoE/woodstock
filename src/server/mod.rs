@@ -40,7 +40,7 @@ pub async fn start_server() {
                     .finish(),
             )
     })
-    .bind(("localhost", 8080))
+    .bind(("localhost", 6969))
     .expect("Unable to start the server")
     .run()
     .await;
