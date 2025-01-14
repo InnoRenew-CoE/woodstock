@@ -8,4 +8,3 @@ pub struct LoadedFile {
     pub answers: Vec<Answer>,
     pub tags: Option<Vec<String>>,
 }
-

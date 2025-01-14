@@ -2,7 +2,7 @@ use std::{fs::File, io::{BufReader, Read}};
 use anyhow::Result;
 use crate::shared::file::WoodstockFileData;
 
-use super::{loaded_data::LoadedFile, loader::FileLoader};
+use super::{loaded_data::LoadedFile, FileLoader};
 
 pub struct MarkdownFileLoader;
 
