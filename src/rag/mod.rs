@@ -1,4 +1,4 @@
-use chunking::{chunk, hype_chunk::hype, prepare::prepare_for_upload};
+use processing::{chunk, dedup_embeddings::dedup, hype_chunk::hype, prepare::prepare_for_upload, search_result::SearchResult};
 use comm::{embedding::EmbeddingVector, qdrant::{insert_chunks_to_qdrant, vector_search}, OllamaClient};
 use anyhow::{Result, anyhow};
 use loading::load_file;
@@ -7,7 +7,7 @@ use crate::shared::file::WoodstockFileData;
 
 pub mod comm;
 mod loading;
-mod chunking;
+mod processing;
 
 #[derive(Debug, Default)]
 pub struct Rag {
@@ -18,7 +18,7 @@ pub struct Rag {
 impl Rag {
     pub async fn insert(&self, file: WoodstockFileData) -> Result<()>{
         let loaded_file = load_file(&file)?;
-        let chunked_file = chunk(loaded_file, chunking::ChunkingStrategy::Word(250, 30));
+        let chunked_file = chunk(loaded_file, processing::ChunkingStrategy::Word(250, 30));
         let enriched_file = hype(chunked_file, &self.ollama).await;
         let embedded_chunks = prepare_for_upload(enriched_file, &self.ollama).await?;
         insert_chunks_to_qdrant(embedded_chunks).await
@@ -35,6 +35,7 @@ impl Rag {
             Err(e) => return Err(anyhow!(format!("Failed embedding the query: {}", e))),
         };
         let resp = vector_search(embedding).await?;
+        let resp = dedup(resp);
         println!("{:#?}", resp);
         Ok(())
     }

@@ -9,6 +9,9 @@ pub mod chunk;
 pub mod hype_chunk;
 pub mod embedd_file;
 pub mod prepare;
+pub mod dedup_embeddings;
+pub mod result_chunk;
+pub mod search_result;
 mod simple;
 
 type ChunkSize = i32;
