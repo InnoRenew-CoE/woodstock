@@ -15,47 +15,22 @@ export async function fetchQuestions() {
 }
 
 export async function submitAnswers(files: FileList) {
-  const data = [
-    {
-      file: "CustomGauge.swift",
-      answers: [
-        { question_id: 1, text: "AET", selection: [] },
-        { question_id: 2, text: "", selection: [2] },
-      ],
-    },
-    {
-      file: "LogListView.swift",
-      answers: [
+  for (let file of Array.from(files)) {
+    const formData = new FormData();
+    formData.append(
+      "answers",
+      JSON.stringify([
         { question_id: 1, text: "AE", selection: [] },
-        { question_id: 2, text: "", selection: [1] },
-      ],
-    },
-    {
-      file: "StatisticsView.swift",
-      answers: [
-        { question_id: 1, text: "AER", selection: [] },
-        { question_id: 2, text: "", selection: [3] },
-      ],
-    },
-    {
-      file: "TripListView.swift",
-      answers: [
-        { question_id: 1, text: "SA", selection: [] },
-        { question_id: 2, text: "", selection: [2] },
-      ],
-    },
-  ];
+        { question_id: 2, selection: [1] },
+      ]),
+    );
+    formData.append("file", file, file.name);
 
-  const formData = new FormData();
-  formData.append("answers", "[]");
-  for (let x of files) {
-    formData.append(x.name, x);
+    const response = await fetch(`${PUBLIC_API_BASE_URL}/api/answers`, {
+      method: "POST",
+      body: formData,
+    });
   }
-
-  const response = await fetch(`${PUBLIC_API_BASE_URL}/api/answers`, {
-    method: "POST",
-    body: formData,
-  });
 
   pushNotification({ title: "Success", body: "Submission successful." });
 }

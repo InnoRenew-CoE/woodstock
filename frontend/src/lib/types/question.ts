@@ -21,7 +21,7 @@ export type SelectionAnswer = {
 export type Answer = {
   id?: number;
   question_id: number;
-  text: string;
+  text?: string;
   selection: number[];
 };
 

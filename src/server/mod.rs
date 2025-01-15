@@ -5,7 +5,10 @@ use std::{
 };
 
 use actix_cors::Cors;
-use actix_multipart::form::{json::Json, tempfile::TempFile, MultipartForm};
+use actix_multipart::{
+    form::{json::Json, tempfile::TempFile, text::Text, MultipartForm},
+    Multipart,
+};
 use actix_web::{
     get, post,
     web::{self, Form},
@@ -32,8 +35,8 @@ async fn fetch_questions(state: web::Data<AppState>) -> impl Responder {
 }
 #[derive(Debug, MultipartForm)]
 struct SubmissionForm {
-    files: Vec<TempFile>,
-    // answers: Json<Vec<FileAnswer>>,
+    file: TempFile,
+    answers: Text<String>,
 }
 
 #[post("/answers")]
@@ -41,13 +44,24 @@ async fn submit_answers(
     state: web::Data<AppState>,
     MultipartForm(form): MultipartForm<SubmissionForm>,
 ) -> impl Responder {
-    println!("Data {:?}", form);
+    let Ok(answers) = serde_json::from_str::<Vec<Answer>>(&form.answers) else {
+        return HttpResponse::BadRequest().finish();
+    };
+
+    println!(
+        "------------------------ {:?} ---------------------",
+        form.file.file_name
+    );
+
+    for answer in answers {
+        println!("\t{:?}", answer);
+    }
 
     let Ok(client) = &mut state.client.lock() else {
         return HttpResponse::InternalServerError().finish();
     };
 
-    todo!()
+    HttpResponse::Ok().finish()
 }
 
 pub async fn start_server() {

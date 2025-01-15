@@ -21,7 +21,6 @@
         Array.from($filesStore ?? []).flatMap((file) => {
             const answers: Answer[] = $questionsStore.map((q) => ({
                 question_id: q.id,
-                text: "",
                 selection: [],
             }));
             return {
