@@ -1,6 +1,9 @@
 use std::fs;
 use std::io::Write;
 use std::time::Instant;
+use rayon::result;
+use tokio::io::{self, AsyncWriteExt};
+use tokio_stream::StreamExt;
 
 use chrono::NaiveDateTime;
 use anyhow::Result;
@@ -22,11 +25,24 @@ async fn main() -> Result<()> {
 
     let rag = Rag::default();
 
-    let _  = rag.search("Which substance provides mechanical strength and determines the stiffness of wood along different directions?".into()).await;
-    
+    let _ = prompt(&rag, "Did Mihael Berčič provided any scientific knowledge in the field of wood densification?").await;
+   
     Ok(())
 }
 
+
+async fn prompt(rag: &Rag, question: &str) -> Result<()> {
+    let mut result = rag.search(question.into()).await?;
+    let mut stdout = io::stdout();
+    while let Some(res) = result.stream.next().await {
+        let responses = res.unwrap();
+        for resp in responses {
+            stdout.write_all(resp.response.as_bytes()).await.unwrap();
+            stdout.flush().await.unwrap();
+        }
+    }
+    Ok(())
+}
 
 async fn embed_all(rag: &Rag) -> Result<()> {
     // Directory containing files to process

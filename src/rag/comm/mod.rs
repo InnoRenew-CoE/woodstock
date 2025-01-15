@@ -2,7 +2,7 @@ use std::env;
 use ollama_rs::{
     error::OllamaError, 
     generation::{
-        completion::GenerationResponse, 
+        completion::{GenerationResponse, GenerationResponseStream}, 
         embeddings::{request::GenerateEmbeddingsRequest, GenerateEmbeddingsResponse}
     }, 
     Ollama
@@ -33,6 +33,10 @@ impl Default for OllamaClient {
 impl OllamaClient {
     pub async fn generate(&self, question: Question) -> Result<GenerationResponse, OllamaError> {
         self.ollama.generate(question.into()).await
+    }
+
+    pub async fn generate_stream(&self, question: Question) -> Result<GenerationResponseStream, OllamaError> {
+        self.ollama.generate_stream(question.into()).await
     }
 
     pub async fn embed(&self, req: GenerateEmbeddingsRequest) -> Result<GenerateEmbeddingsResponse, OllamaError> {

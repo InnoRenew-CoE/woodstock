@@ -12,6 +12,7 @@ pub mod prepare;
 pub mod dedup_embeddings;
 pub mod result_chunk;
 pub mod search_result;
+pub mod prompt;
 mod simple;
 
 type ChunkSize = i32;
