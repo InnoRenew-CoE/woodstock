@@ -1,4 +1,4 @@
-use crate::rag::comm::{embedding::Embeddable, OllamaClient};
+use crate::rag::comm::{embedding::{Embeddable, EmbeddingVector}, OllamaClient};
 use anyhow::{Result, anyhow};
 use ollama_rs::generation::embeddings::request::GenerateEmbeddingsRequest;
 use super::chunked_file::ChunkedFile;
@@ -19,7 +19,7 @@ pub async fn embedd_file<T>(mut file: ChunkedFile<T>, ollama: &OllamaClient) -> 
         return Err(anyhow!("Not all embeddings were successful."));
     }
 
-    let chunks_with_embeddings: Vec<(&mut T, Vec<Vec<f32>>)> = file
+    let chunks_with_embeddings: Vec<(&mut T, Vec<EmbeddingVector>)> = file
         .chunks
         .iter_mut()
         .zip(all_embeddings.into_iter())
@@ -33,7 +33,7 @@ pub async fn embedd_file<T>(mut file: ChunkedFile<T>, ollama: &OllamaClient) -> 
 }
 
 
-async fn embedd_all(requests: Vec<GenerateEmbeddingsRequest>, ollama: &OllamaClient) -> Vec<Vec<Vec<f32>>> {
+async fn embedd_all(requests: Vec<GenerateEmbeddingsRequest>, ollama: &OllamaClient) -> Vec<Vec<EmbeddingVector>> {
     let futures = requests.into_iter().map(|r| async move {
         ollama.embed(r).await.ok()
     });
@@ -41,7 +41,10 @@ async fn embedd_all(requests: Vec<GenerateEmbeddingsRequest>, ollama: &OllamaCli
     let results = futures::future::join_all(futures).await;
     results.into_iter()
         .filter_map(|resp|  match resp { 
-            Some(r) => Some(r.embeddings),
+            Some(r) => Some(r
+                .embeddings
+                .into_iter()
+                .map(|e| EmbeddingVector(e)).collect()),
             None => None
          })
         .collect()

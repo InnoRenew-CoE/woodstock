@@ -1,12 +1,11 @@
 use std::env;
 
 use once_cell::sync::Lazy;
-use qdrant_client::{client::QdrantClient, qdrant::{PointStruct, SearchPoints, SearchResponse, UpsertPointsBuilder}, Qdrant};
-use serde_json::json;
+use qdrant_client::{qdrant::{PointStruct, SearchResponse, UpsertPointsBuilder}, Qdrant};
 use tokio::sync::Mutex;
-use anyhow::{Error, Result};
+use anyhow::Result;
 
-use super::embedding::EmbeddedChunk;
+use super::embedding::{EmbeddedChunk, EmbeddingVector};
 
 
 /// Static global client for accessing the Qdrant database.
@@ -39,22 +38,13 @@ static QDRANT_CLIENT: Lazy<Mutex<Qdrant>> = Lazy::new(|| {
 ///
 /// # Errors
 /// - Returns an error if the tensor conversion fails or if the Qdrant search query encounters issues.
-// pub async fn vector_search(embedding: Tensor) -> Result<SearchResponse> {
-//     // Convert the tensor to a vector of f32 values.
-//     let embedding_vec = embedding.to_vec2::<f32>()?.first().unwrap().clone();
-//     let guard = QDRANT_CLIENT.lock().await;
-//     let search_result = guard
-//         .search_points(&SearchPoints {
-//             collection_name: QDRANT_COLLECTION.to_string(),
-//             vector: embedding_vec,
-//             limit: 2,
-//             with_payload: Some(true.into()),
-//             ..Default::default()
-//         })
-//         .await?;
-
-//     Ok(search_result)
-// }
+pub async fn vector_search(embedding: EmbeddingVector) -> Result<SearchResponse> {
+    let client = QDRANT_CLIENT.lock().await;
+    let search_result = client
+        .search_points(embedding)
+        .await?;
+    Ok(search_result.into())
+}
 
 pub async fn insert_chunks_to_qdrant(embedded_chunks: Vec<EmbeddedChunk>) -> Result<()> {
     println!("Upserting to qdrant...");

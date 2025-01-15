@@ -1,14 +1,14 @@
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
 use anyhow::{Result, anyhow};
 use serde_json::Value;
-use crate::rag::comm::embedding::{Embeddable, EmbeddedChunk};
+use crate::rag::comm::embedding::{Embeddable, EmbeddedChunk, EmbeddingVector};
 
 
 #[derive(Debug)]
 pub struct Chunk {
     pub seq_num: i32,
     pub text: String,
-    pub embedding_vector: Option<Vec<f32>>,
+    pub embedding_vector: Option<EmbeddingVector>,
 }
 
 impl Embeddable for Chunk {
@@ -19,7 +19,7 @@ impl Embeddable for Chunk {
         )
     }
     
-    fn set_embedding_vectors(&mut self, embedding_vectors: Vec<Vec<f32>>) {
+    fn set_embedding_vectors(&mut self, embedding_vectors: Vec<EmbeddingVector>) {
         self.embedding_vector = Some(embedding_vectors[0].clone());
     }
     

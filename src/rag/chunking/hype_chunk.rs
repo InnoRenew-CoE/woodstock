@@ -2,7 +2,7 @@ use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbedd
 use regex::RegexBuilder;
 use anyhow::{Result, anyhow};
 use serde_json::Value;
-use crate::rag::comm::{embedding::{Embeddable, EmbeddedChunk}, question::Question, OllamaClient};
+use crate::rag::comm::{embedding::{Embeddable, EmbeddedChunk, EmbeddingVector}, question::Question, OllamaClient};
 
 use super::{chunk::Chunk, chunked_file::ChunkedFile};
 
@@ -11,7 +11,7 @@ pub struct HypeChunk {
     pub seq_num: i32,
     pub text: String,
     pub questions: Vec<String>,
-    pub embedding_vector: Option<Vec<Vec<f32>>>,
+    pub embedding_vector: Option<Vec<EmbeddingVector>>,
 }
 
 impl From<&Chunk> for HypeChunk {
@@ -40,7 +40,7 @@ impl Embeddable for HypeChunk {
         )
     }
     
-    fn set_embedding_vectors(&mut self, embedding_vector: Vec<Vec<f32>>) {
+    fn set_embedding_vectors(&mut self, embedding_vector: Vec<EmbeddingVector>) {
         self.embedding_vector = Some(embedding_vector);
     }
     
@@ -54,17 +54,17 @@ impl Embeddable for HypeChunk {
             return Err(anyhow!("Number of questions and embeddings don't match on hypechunk"));
         }
 
-        let questions_with_embeddings: Vec<(&String, &Vec<f32>)> = self
+        let questions_with_embeddings: Vec<(&String, EmbeddingVector)> = self
             .questions
             .iter()
-            .zip(embedding_vectors.iter())
+            .zip(embedding_vectors.into_iter())
             .collect();
 
         let mut embedded_chunks = vec![];
 
         for (question, embedding_vector) in questions_with_embeddings.into_iter() {
             embedded_chunks.push(EmbeddedChunk {
-                embedding_vector: embedding_vector.to_vec(),
+                embedding_vector,
                 id: uuid::Uuid::new_v4().to_string(),
                 doc_id: parent_doc.clone(),
                 doc_seq_num: self.seq_num,
