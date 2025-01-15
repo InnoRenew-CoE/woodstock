@@ -11,6 +11,7 @@ use question::Question;
 
 pub mod embedding;
 pub mod question;
+pub mod qdrant;
 
 #[derive(Debug)]
 pub struct OllamaClient {
@@ -34,9 +35,8 @@ impl OllamaClient {
         self.ollama.generate(question.into()).await
     }
 
-    pub async fn embed_batch(&self, texts: Vec<String>) -> Result<GenerateEmbeddingsResponse, OllamaError> {
-        let request = GenerateEmbeddingsRequest::new("llama2:latest".to_string(), vec!["Why is the sky blue?", "Why is the sky red?"].into());
-        self.ollama.generate_embeddings(request).await
+    pub async fn embed(&self, req: GenerateEmbeddingsRequest) -> Result<GenerateEmbeddingsResponse, OllamaError> {
+        self.ollama.generate_embeddings(req).await
     }
 }
  

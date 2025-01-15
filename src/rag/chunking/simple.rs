@@ -24,8 +24,9 @@ pub fn simple_word_chunking(
         let text = chunk_words.join(" ");
 
         chunks.push(Chunk {
-            id: chunk_id,
+            seq_num: chunk_id,
             text,
+            embedding_vector: None,
         });
         chunk_id += 1;
 

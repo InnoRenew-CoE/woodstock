@@ -7,6 +7,8 @@ use super::loading::loaded_data::LoadedFile;
 pub mod chunked_file;
 pub mod chunk;
 pub mod hype_chunk;
+pub mod embedd_file;
+pub mod prepare;
 mod simple;
 
 type ChunkSize = i32;

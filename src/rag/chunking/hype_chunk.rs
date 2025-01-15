@@ -1,22 +1,27 @@
-use ollama_rs::{error::OllamaError, generation::completion::GenerationResponse};
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use futures::future::join_all;
+use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
 use regex::RegexBuilder;
-
-use crate::rag::comm::{embedding::Embeddable, question::{self, Question}, OllamaClient};
+use anyhow::{Result, anyhow};
+use serde_json::Value;
+use crate::rag::comm::{embedding::{Embeddable, EmbeddedChunk}, question::Question, OllamaClient};
 
 use super::{chunk::Chunk, chunked_file::ChunkedFile};
 
 #[derive(Debug)]
 pub struct HypeChunk {
-    pub id: i32,
+    pub seq_num: i32,
     pub text: String,
-    pub questions: Vec<String>
+    pub questions: Vec<String>,
+    pub embedding_vector: Option<Vec<Vec<f32>>>,
 }
 
 impl From<&Chunk> for HypeChunk {
     fn from(value: &Chunk) -> Self {
-        Self { id: value.id, text: value.text.clone(), questions: vec![] }
+        Self { 
+            seq_num: value.seq_num, 
+            text: value.text.clone(), 
+            questions: vec![] , 
+            embedding_vector: None
+        }
     }
 }
 
@@ -28,19 +33,57 @@ impl HypeChunk {
 }
 
 impl Embeddable for HypeChunk {
+    fn try_into_embed(&self) -> GenerateEmbeddingsRequest {
+        GenerateEmbeddingsRequest::new(
+            "bge-m3".to_owned(),
+            EmbeddingsInput::Multiple(self.questions.clone())
+        )
+    }
+    
+    fn set_embedding_vectors(&mut self, embedding_vector: Vec<Vec<f32>>) {
+        self.embedding_vector = Some(embedding_vector);
+    }
+    
+    fn prepare_for_upload(self, parent_doc: String) -> Result<Vec<EmbeddedChunk>> {
+        let embedding_vectors = match self.embedding_vector {
+            Some(v) => v,
+            None => return Err(anyhow!("No embedding vectors on hype chunk")),
+        };
 
+        if self.questions.len() != embedding_vectors.len() {
+            return Err(anyhow!("Number of questions and embeddings don't match on hypechunk"));
+        }
+
+        let questions_with_embeddings: Vec<(&String, &Vec<f32>)> = self
+            .questions
+            .iter()
+            .zip(embedding_vectors.iter())
+            .collect();
+
+        let mut embedded_chunks = vec![];
+
+        for (question, embedding_vector) in questions_with_embeddings.into_iter() {
+            embedded_chunks.push(EmbeddedChunk {
+                embedding_vector: embedding_vector.to_vec(),
+                id: uuid::Uuid::new_v4().to_string(),
+                doc_id: parent_doc.clone(),
+                doc_seq_num: self.seq_num,
+                content: self.text.clone(),
+                additional_data: Value::String(question.to_string()),
+            });
+        }
+
+        Ok(embedded_chunks)
+    }
+
+    
 }
 
 pub async fn hype(file: ChunkedFile<Chunk>, ollama: &OllamaClient) -> ChunkedFile<HypeChunk> {
     let summary_prompts = generate_questions(&file);
-    println!("Questions generated...");
     let chunk_summaries = answer_all(summary_prompts, ollama).await;
     let summary = create_document_summary(chunk_summaries, ollama).await;
-    println!("Summary: {:#?}", summary);
-
     let hype_question_prompts = generate_hype_prompt_questions(summary, &file);
-    println!("Qs: {:#?}", hype_question_prompts);
-
     let hype_questions = answer_all(hype_question_prompts, ollama).await;
     let hype_chunks = generate_hype_chunks(&file.chunks, hype_questions);
     replace_chunks(file, hype_chunks)
@@ -134,11 +177,7 @@ fn generate_questions(file: &ChunkedFile<Chunk>) -> Vec<Question> {
 
 async fn answer_all(questions: Vec<Question>, ollama: &OllamaClient) -> Vec<String> {
     let futures = questions.into_iter().map(|q| async move {
-        eprintln!("Starting question {:#?}", q);
-        let now = std::time::Instant::now();
-        let response = ollama.generate(q.clone()).await.ok();
-        eprintln!("Finished question {:#?}; took {:?}", q, now.elapsed());
-        response
+        ollama.generate(q.clone()).await.ok()
     });
 
     let results = futures::future::join_all(futures).await;
