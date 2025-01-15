@@ -1,5 +1,5 @@
-use chunking::{chunk, embedd_file::embedd_file, hype_chunk::hype, prepare::prepare_for_upload};
-use comm::OllamaClient;
+use chunking::{chunk, hype_chunk::hype, prepare::prepare_for_upload};
+use comm::{qdrant::insert_chunks_to_qdrant, OllamaClient};
 use anyhow::Result;
 use loading::load_file;
 use crate::shared::file::WoodstockFileData;
@@ -11,7 +11,6 @@ mod chunking;
 #[derive(Debug, Default)]
 pub struct Rag {
     ollama: OllamaClient,
-    vector_strore: (),
 }
 
 
@@ -21,8 +20,7 @@ impl Rag {
         let chunked_file = chunk(loaded_file, chunking::ChunkingStrategy::Word(250, 30));
         let enriched_file = hype(chunked_file, &self.ollama).await;
         let embedded_chunks = prepare_for_upload(enriched_file, &self.ollama).await?;
-        println!("{:?}", embedded_chunks);
-        Ok(())
+        insert_chunks_to_qdrant(embedded_chunks).await
     }
 }
 

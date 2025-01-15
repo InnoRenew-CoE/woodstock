@@ -1,10 +1,12 @@
 use std::env;
 
 use once_cell::sync::Lazy;
-use qdrant_client::{client::QdrantClient, qdrant::{PointStruct, SearchPoints, SearchResponse}, Qdrant};
+use qdrant_client::{client::QdrantClient, qdrant::{PointStruct, SearchPoints, SearchResponse, UpsertPointsBuilder}, Qdrant};
 use serde_json::json;
 use tokio::sync::Mutex;
 use anyhow::{Error, Result};
+
+use super::embedding::EmbeddedChunk;
 
 
 /// Static global client for accessing the Qdrant database.
@@ -54,12 +56,21 @@ static QDRANT_CLIENT: Lazy<Mutex<Qdrant>> = Lazy::new(|| {
 //     Ok(search_result)
 // }
 
-pub async fn insert_docs(embedded_docs: Vec<String>) -> Result<()> {
+pub async fn insert_chunks_to_qdrant(embedded_chunks: Vec<EmbeddedChunk>) -> Result<()> {
     println!("Upserting to qdrant...");
-    let guard = QDRANT_CLIENT.lock().await;
+    let client = QDRANT_CLIENT.lock().await;
     let qdrant_collection = env::var("QDRANT_COLLECTION").expect("QDRANT_COLLECTION not defined");
 
-    
+
+    let points: Vec<PointStruct> = embedded_chunks
+        .into_iter()
+        .map(|c| c.into())
+        .collect();
+
+
+    client
+        .upsert_points(UpsertPointsBuilder::new(qdrant_collection, points))
+        .await?;
 
     Ok(())
 }
