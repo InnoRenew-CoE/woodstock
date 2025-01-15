@@ -91,7 +91,7 @@ pub async fn hype(file: ChunkedFile<Chunk>, ollama: &OllamaClient) -> ChunkedFil
 
 async fn create_document_summary(chunk_summaries: Vec<String>, ollama: &OllamaClient) -> String {
     match ollama
-        .generate(Question::from("Summarize this document.").set_context(vec![chunk_summaries.join(" ")]))
+        .generate(Question::from("Summarize this document in context into 2 sentances.").set_context(vec![chunk_summaries.join(" ")]))
         .await {
             Ok(r) => r.response,
             Err(_) => "".into(),
