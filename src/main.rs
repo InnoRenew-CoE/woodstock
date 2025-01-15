@@ -8,6 +8,7 @@ use rag::Rag;
 use serde_json::json;
 use shared::file::{Answer, WoodstockFileData};
 
+mod db;
 pub mod rag;
 mod server;
 pub mod shared;

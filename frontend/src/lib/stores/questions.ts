@@ -14,16 +14,15 @@ export async function fetchQuestions() {
   questionsStore.set(questions);
 }
 
-export async function submitAnswers(files: FileList) {
+export async function submitAnswers(files: FileList, answers: FileAnswer[]) {
   for (let file of Array.from(files)) {
+    const correctFileAnswer = answers.find((f) => f.file === file.name);
+    if (!correctFileAnswer) {
+      console.error(`Unable to find answers for file ${file.name}`);
+      continue;
+    }
     const formData = new FormData();
-    formData.append(
-      "answers",
-      JSON.stringify([
-        { question_id: 1, text: "AE", selection: [] },
-        { question_id: 2, selection: [1] },
-      ]),
-    );
+    formData.append("answers", JSON.stringify(correctFileAnswer.answers));
     formData.append("file", file, file.name);
 
     const response = await fetch(`${PUBLIC_API_BASE_URL}/api/answers`, {

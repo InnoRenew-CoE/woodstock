@@ -30,13 +30,6 @@
         }),
     );
 
-    $effect(() => {
-        const files = $filesStore;
-        if (files && files.length > 0) {
-            submitAnswers(files);
-        }
-    });
-
     let file: FileAnswer | undefined = $derived(fileAnswers[Math.floor((currentStep - 1) / $questionsStore.length)]);
     let answer: Answer | undefined = $derived(file?.answers[(currentStep - 1) % $questionsStore.length]);
 
@@ -44,6 +37,13 @@
         if ($filesStore) {
             currentStep = Math.min(Math.max(currentStep + (forwards ? 1 : -1), 0), 1 + $questionsStore.length * $filesStore.length);
             proceed = false;
+        }
+    }
+
+    function submit() {
+        const files = $filesStore;
+        if (files && files.length > 0) {
+            submitAnswers(files, fileAnswers);
         }
     }
 </script>
@@ -55,7 +55,7 @@
             <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep} / {lastStep}</p>
             <ul class="p-5">
                 <li class="flex items-center gap-3 {currentStep >= 0 ? 'font-bold' : ''}">
-                    <MaskedIcon src="../{currentStep >= 0 ? 'checkmark.svg' : 'circle.svg'}" class="w-2 h-2 bg-secondary" />
+                    <MaskedIcon src="../{currentStep >= 1 ? 'checkmark.svg' : 'archive.svg'}" class="size-4 bg-secondary" />
                     File Upload
                 </li>
                 <div class="font-nunito opacity-30 pt-2 text-xs uppercase">Files</div>
@@ -88,6 +88,7 @@
             {#if currentStep === 0}
                 <FileUpload bind:proceed />
             {:else if currentStep === lastStep}
+                {submit()}
                 {JSON.stringify(fileAnswers)}
             {:else}
                 {@const question = $questionsStore.filter((x) => x.id === answer?.question_id)[0]}

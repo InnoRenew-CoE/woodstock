@@ -8,7 +8,7 @@
     $effect(() => {
         answer.selection = selection;
         answer.text = text_answer;
-        proceed = selection.length > 0 || (text_answer.length ?? 0) > 0;
+        proceed = selection.length > 0 || (text_answer?.length ?? 0) > 0;
     });
 </script>
 
