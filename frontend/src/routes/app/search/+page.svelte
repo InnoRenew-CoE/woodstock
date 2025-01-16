@@ -30,7 +30,6 @@
         while (true) {
             const { done, value } = await stream?.read();
             const decoded = decoder.decode(value);
-            console.log(decoded);
             total++;
             if (total === 1) {
                 chunks = JSON.parse(decoded);
@@ -162,8 +161,8 @@
                         </div>
                         <div class="text-wrap text-xs p-2 truncate bg-light-background border rounded-lg mt-3">
                             <div class="uppercase text-gray-400">Preview</div>
-                            <div class="response preview p-3">
-                                <div class="">{@html marked("... " + chunk.content.slice(0, 300) + "...")}</div>
+                            <div class="response preview p-3 prose-sm text-xs">
+                                <div class="">{@html marked(chunk.content.slice(0, 1500))}</div>
                             </div>
                         </div>
                     </div>
@@ -176,7 +175,7 @@
             <div in:fade>
                 <div class="opacity-30">Woody's response</div>
                 <div class="overflow-auto p-5 flex flex-col-reverse">
-                    <div class="response preview spacing-y-2 prose">{@html marked(data)}</div>
+                    <div class="response preview spacing-y-2 prose-sm">{@html marked(data)}</div>
                 </div>
             </div>
         {:else if waiting}

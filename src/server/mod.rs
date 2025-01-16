@@ -148,10 +148,10 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) ->
         return HttpResponse::InternalServerError().finish();
     };
 
-    let _ = tx.send(Bytes::try_from(chunks_json)).await;
-    let _ = tx.send(Bytes::try_from("\n")).await;
+    let _ = tx.send(Bytes::try_from(chunks_json + "\r\n")).await;
 
     actix_web::rt::spawn(async move {
+        sleep(Duration::from_secs(2)).await;
         while let Some(res) = result.stream.next().await {
             if let Ok(responses) = res {
                 for resp in responses {
