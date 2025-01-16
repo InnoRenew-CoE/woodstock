@@ -1,14 +1,12 @@
 use actix_cors::Cors;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{
-    get, post,
-    web::{self, Bytes, Query},
-    App, HttpResponse, HttpServer, Responder,
+    dev::ResourcePath, get, post, web::{self, Bytes, Query}, App, HttpResponse, HttpServer, Responder
 };
 use actix_web_lab::web::spa;
 use futures::{io::WriteAll, FutureExt};
 use serde::{Deserialize, Serialize};
-use std::{convert::Infallible, env, ffi::OsStr, fs::create_dir_all, path::Path, sync::Mutex, time::Duration};
+use std::{convert::Infallible, env, ffi::OsStr, fs::{create_dir_all, File}, io::Read, path::Path, sync::Mutex, time::Duration};
 use tokio::{sync::mpsc, time::sleep};
 use tokio_postgres::Client;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
@@ -155,6 +153,31 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) ->
 
     HttpResponse::Ok().content_type("text/plain").streaming(stream)
 }
+
+
+#[get("/download/{file_id}")]
+pub async fn competition_pack(file_id: web::Path<String>) -> HttpResponse {
+    let path = format!("/var/woodstock/files/{}", file_id.path());
+    println!("{path}");
+    
+    let mut file = match File::open(&path) {
+        Ok(file) => file,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let mut buffer = Vec::new();
+    if file.read_to_end(&mut buffer).is_err() {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    let filename = path.split("/").last().unwrap_or("download.zip");
+
+    HttpResponse::Ok()
+        .content_type("application/zip")
+        .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+        .body(buffer)
+}
+
 
 /// Attempts to start the server.
 pub async fn start_server(rag: Rag) {
