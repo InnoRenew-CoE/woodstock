@@ -40,12 +40,18 @@
         }
     }
 
-    function submit() {
-        const files = $filesStore;
-        if (files && files.length > 0) {
-            submitAnswers(files, fileAnswers);
+    $effect(() => {
+        if (currentStep === lastStep) {
+            const files = $filesStore;
+            if (files && files.length > 0) {
+                submitAnswers(files, fileAnswers);
+            }
+            setTimeout(() => {
+                $filesStore = undefined;
+                currentStep = 0;
+            }, 15_000);
         }
-    }
+    });
 </script>
 
 <svelte:window bind:innerWidth={windowSize} />
@@ -53,44 +59,51 @@
     <div class="grid gap-5 grid-cols-[minmax(min-content,300px)_auto] h-full">
         <div class="select-none bg-dark-background border p-3 rounded-lg">
             <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep} / {lastStep}</p>
-            <ul class="p-5">
-                <li class="flex items-center gap-3 {currentStep >= 0 ? 'font-bold' : ''}">
-                    <MaskedIcon src="../{currentStep >= 1 ? 'checkmark.svg' : 'archive.svg'}" class="size-4 bg-secondary" />
-                    File Upload
+            <ul class="p-5 space-y-3">
+                <li class="flex items-center gap-3 {currentStep === 0 ? 'font-semibold' : ''}">
+                    <MaskedIcon src="../{currentStep >= 1 ? 'checkmark.svg' : 'circle.svg'}" class="size-2.5 bg-secondary" />
+                    File Selection
                 </li>
-                <div class="font-nunito opacity-30 pt-2 text-xs uppercase">Files</div>
+                {#if ($filesStore?.length ?? 0) > 0}
+                    <div class="font-nunito opacity-30 pt-2 text-xs uppercase">Files</div>
+                {/if}
                 {#each Array.from($filesStore ?? []) as file, i}
                     {@const isVisible = currentStep >= i * $questionsStore.length + 1 && currentStep < (i + 1) * $questionsStore.length + 1}
                     {@const isDone = currentStep >= (i + 1) * $questionsStore.length + 1}
-                    <div class="pl-3 flex items-center gap-2 {isDone ? 'italic text-secondary' : ''}">
-                        <MaskedIcon src="../{isVisible ? 'chevron-down.svg' : isDone ? 'checkmark.svg' : 'circle.svg'}" class="w-2.5 h-2.5 bg-secondary" />
-                        {file.name}
+                    {@const backgroundColor = isDone ? "bg-lime-400" : "bg-secondary"}
+                    <div class="px-3 py-1 shadow-sm bg-secondary/5 border rounded-lg {isDone ? 'border-lime-400 bg-lime-400/10' : 'border-secondary/30'}">
+                        <div class="flex items-center gap-2 {isDone ? 'text-lime-500' : ''}">
+                            <MaskedIcon src="../{isVisible ? 'chevron-down.svg' : isDone ? 'checkmark.svg' : 'circle.svg'}" class="{isDone || isVisible ? 'size-3' : 'size-2'} {backgroundColor}" />
+                            {file.name}
+                        </div>
+                        {#each $questionsStore as question, j}
+                            {@const isNow = currentStep == 1 + j + i * $questionsStore.length}
+                            {@const isDone = currentStep > 1 + j + i * $questionsStore.length}
+                            {#if isVisible}
+                                <div in:slide out:slide class="py-2">
+                                    <li class="pl-5 {isDone || isNow ? '' : 'opacity-30'}">
+                                        <div class="flex gap-3 items-center {isNow ? 'font-bold' : ''}">
+                                            <MaskedIcon src="../{isDone ? 'checkmark.svg' : isNow ? 'chevron-right.svg' : 'circle.svg'}" class="w-3 h-3 bg-secondary" />
+                                            {question.title}
+                                        </div>
+                                    </li>
+                                </div>
+                            {/if}
+                        {/each}
                     </div>
-                    {#each $questionsStore as question, j}
-                        {@const isNow = currentStep == 1 + j + i * $questionsStore.length}
-                        {@const isDone = currentStep > 1 + j + i * $questionsStore.length}
-                        {#if isVisible}
-                            <div in:slide out:slide>
-                                <li class="pl-5 {isDone || isNow ? '' : 'opacity-30'}">
-                                    <div class="flex gap-3 items-center {isNow ? 'font-bold' : ''}">
-                                        <MaskedIcon src="../{isDone ? 'checkmark.svg' : isNow ? 'chevron-right.svg' : 'circle.svg'}" class="w-3 h-3 bg-secondary" />
-                                        {question.title}
-                                    </div>
-                                </li>
-                            </div>
-                        {/if}
-                    {/each}
                 {/each}
-                <li class={currentStep === lastStep ? "font-bold" : ""}>Submission</li>
+                <li class="flex items-center gap-3 {currentStep === lastStep ? 'font-bold' : 'opacity-45'}">
+                    <MaskedIcon src="../{currentStep === lastStep ? 'checkmark.svg' : 'circle.svg'}" class="size-2.5 bg-secondary" />
+                    Submission
+                </li>
             </ul>
         </div>
         <div class="bg-dark-background border rounded-lg p-5 grid grid-rows-[auto_min-content]">
             {#if currentStep === 0}
                 <FileUpload bind:proceed />
             {:else if currentStep === lastStep}
-                {submit()}
-                {JSON.stringify(fileAnswers)}
-            {:else}
+                <Submission />
+            {:else if answer}
                 {@const question = $questionsStore.filter((x) => x.id === answer?.question_id)[0]}
                 {#key currentStep}
                     <div in:fade>
@@ -106,8 +119,8 @@
                     </div>
                 {/key}
             {/if}
-            <div class="flex justify-between gap-5">
-                {#if currentStep >= 1}
+            <div class="flex justify-between gap-5 py-5">
+                {#if currentStep >= 1 && currentStep !== lastStep}
                     <button class="py-1 px-3 rounded bg-primary text-white opacity-70 hover:opacity-100" onclick={() => step(false)}>Back</button>
                 {/if}
                 <Spacer />

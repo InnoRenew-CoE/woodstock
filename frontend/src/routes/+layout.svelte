@@ -34,9 +34,9 @@
         {@render children()}
         <div class="absolute right-0 bottom-0 top-0 flex flex-col justify-end gap-5 p-10">
             {#each $notificationsStore as notification, i}
-                <div in:slide out:slide class="p-2 min-w-[250px] bg-dark-background border border-accent/80 rounded-xl shadow-lg shadow-accent/30">
-                    <div class="border border-accent/10 bg-light-background rounded-lg px-4 py-2 flex items-center gap-3">
-                        <MaskedIcon src="../bell.svg" class="size-5 bg-accent" />
+                <div in:slide out:slide class="p-2 min-w-[250px] bg-dark-background border border-secondary/80 rounded-xl shadow-lg shadow-secondary/30">
+                    <div class="border border-secondary/10 bg-light-background rounded-lg px-4 py-2 flex items-center gap-3">
+                        <MaskedIcon src="../bell.svg" class="size-5 bg-secondary" />
                         <div>
                             <div class="font-bold">{notification.title}</div>
                             <div class="font-light">{notification.body}</div>

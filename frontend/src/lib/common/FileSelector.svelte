@@ -5,9 +5,11 @@
 </script>
 
 <div class="flex items-center justify-center p-5">
-    <label for="file-upload" class="flex items-center gap-3 border border-accent bg-accent/5 text-accent w-min whitespace-nowrap px-5 py-2 rounded hover:brightness-75 cursor-pointer">
-        <MaskedIcon src="../paperclip.svg" class="size-4 bg-accent" />
-        Select files
+    <label for="file-upload" class="flex items-center rounded border border-secondary overflow-hidden group bg-secondary/10 hover:bg-secondary cursor-pointer hover:text-white">
+        <div class="bg-secondary p-2 group-hover:bg-white">
+            <MaskedIcon src="../sticker-circle.svg" class="size-4 bg-white group-hover:bg-secondary" />
+        </div>
+        <div class="text-center px-5">Select files</div>
     </label>
     <input id="file-upload" class="hidden" type="file" bind:files multiple />
 </div>
