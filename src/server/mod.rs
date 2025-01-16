@@ -2,14 +2,14 @@ use actix_cors::Cors;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{
     get, post,
-    web::{self, Bytes},
+    web::{self, Bytes, Query},
     App, HttpResponse, HttpServer, Responder,
 };
 use actix_web_lab::web::spa;
-use futures::FutureExt;
+use futures::{io::WriteAll, FutureExt};
 use serde::{Deserialize, Serialize};
-use std::{env, ffi::OsStr, fs::create_dir_all, path::Path, sync::Mutex, time::Duration};
-use tokio::sync::mpsc;
+use std::{convert::Infallible, env, ffi::OsStr, fs::create_dir_all, path::Path, sync::Mutex, time::Duration};
+use tokio::{sync::mpsc, time::sleep};
 use tokio_postgres::Client;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 
@@ -118,26 +118,38 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
     HttpResponse::Ok().finish()
 }
 
-#[post("/search")]
-async fn search(state: web::Data<AppState>, query: String) -> impl Responder {
+#[derive(Deserialize)]
+struct SearchQuery {
+    query: String,
+}
+
+#[get("/search")]
+async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) -> impl Responder {
     let Ok(rag) = state.rag.lock() else {
         return HttpResponse::InternalServerError().finish();
     };
-    let Ok(mut result) = rag.search(query).await else {
+    let Ok(mut result) = rag.search(search_query.query.clone()).await else {
         return HttpResponse::InternalServerError().finish();
     };
 
-    let (tx, rx) = mpsc::channel(100);
-    let stream = ReceiverStream::new(rx);
+    let (tx, rx) = mpsc::channel::<Result<Bytes, Infallible>>(100);
+    let mut stream = ReceiverStream::new(rx);
 
-    tokio::spawn(async move {
+    let Ok(chunks_json) = serde_json::to_string(&result.chunks) else {
+        return HttpResponse::InternalServerError().finish();
+    };
+    println!("JSON: {}", chunks_json);
+    let _ = tx.send(Bytes::try_from(chunks_json)).await;
+
+    actix_web::rt::spawn(async move {
+        sleep(Duration::from_secs(5)).await;
         while let Some(res) = result.stream.next().await {
-            let _ = tx.clone().send(Bytes::try_from("test")).await;
-
-            // let x = Bytes::try_from("hi");a
-            // println!("{:?}", tx.clone().send(x).await);
-            // let responses = res.unwrap();
-            // println!("{:?}", x);
+            if let Ok(responses) = res {
+                for resp in responses {
+                    let data = Bytes::copy_from_slice(resp.response.as_bytes());
+                    let _ = tx.send(Ok(data)).await;
+                }
+            }
         }
     });
 

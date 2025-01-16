@@ -1,7 +1,8 @@
 use qdrant_client::qdrant::ScoredPoint;
+use serde::Serialize;
 use serde_json::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct ResultChunk {
     pub id: String,
     pub doc_id: String,
@@ -9,17 +10,14 @@ pub struct ResultChunk {
     pub content: String,
     pub additional_data: Value,
     pub score: f32,
-
 }
 
 impl From<ScoredPoint> for ResultChunk {
     fn from(value: ScoredPoint) -> Self {
-
         let id: String = match value.id {
             Some(d) => format!("{:?}", d),
             None => "Unknown".into(),
         };
-
 
         let doc_id = match value.payload.get("doc_id") {
             Some(d) => d.as_str().map_or("Unknown", |v| v),
@@ -41,7 +39,7 @@ impl From<ScoredPoint> for ResultChunk {
             Some(d) => d.to_owned(),
             None => Value::Null.into(),
         };
-        
+
         Self {
             id,
             doc_id,

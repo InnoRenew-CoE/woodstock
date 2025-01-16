@@ -1,3 +1,12 @@
+export type ResultChunk = {
+  id: string;
+  doc_id: string;
+  doc_seq_num: number;
+  content: string;
+  additional_data: string;
+  score: number;
+};
+
 export enum QuestionType {
   Text,
   Select,
