@@ -8,7 +8,7 @@ pub struct RagProcessableFile {
     pub path: PathBuf,
     pub internal_id: String,
     pub original_name: String,
-    pub file_description: String,
+    pub file_description: Option<String>,
     pub tags: Option<Vec<String>>,
 }
 

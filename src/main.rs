@@ -56,19 +56,19 @@ async fn embed_all(rag: &Rag) -> Result<()> {
                 continue;
             }
         let file_name = match path.file_name() {
-                Some(name) => name.to_string_lossy().to_string(),
-                None => {
-                    eprintln!("Skipping file with no valid name: {:?}", path);
-                    continue;
-                }
-            };
+            Some(name) => name.to_string_lossy().to_string(),
+            None => {
+                eprintln!("Skipping file with no valid name: {:?}", path);
+                continue;
+            }
+        };
         
         let woodstock_data = RagProcessableFile {
                 path: path.clone(),
                 internal_id: id.to_string(),
                 original_name: file_name.clone(),
                 tags: Some(vec!["auto".to_string()]),
-                file_description: "".to_string(),
+                file_description: None,
         };
         let start_time = Instant::now();
         match rag.insert(woodstock_data).await {
