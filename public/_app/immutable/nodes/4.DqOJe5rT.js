@@ -1,1 +1,0 @@
-import{b as a,a as n}from"../chunks/disclose-version.BLKqk4_M.js";import"../chunks/legacy.CSot2tHa.js";import{n as e}from"../chunks/runtime.Bbhj79WZ.js";function i(o){e();var t=a("Hello from /account/login.");n(o,t)}export{i as component};
