@@ -128,7 +128,7 @@
         },
     ];
 
-    chunks = sample_json;
+    // chunks = sample_json;
 </script>
 
 <div class="flex flex-wrap sm:grid grid-cols-2 h-full gap-5">
