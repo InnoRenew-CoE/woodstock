@@ -105,7 +105,7 @@
             {#if currentStep === 0}
                 <FileUpload bind:proceed />
             {:else if currentStep === lastStep}
-                <Submission />
+                <Submission bind:step={currentStep} bind:files={$filesStore} />
             {:else if answer}
                 {@const question = $questionsStore.filter((x) => x.id === answer?.question_id)[0]}
                 {#key currentStep}
