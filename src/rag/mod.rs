@@ -10,7 +10,7 @@ mod loading;
 mod models;
 mod processing;
 
-pub use models::{RagProcessableFile, RagProcessableFileType};
+pub use models::RagProcessableFile;
 
 #[derive(Debug, Default)]
 pub struct Rag {

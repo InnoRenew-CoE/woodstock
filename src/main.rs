@@ -9,7 +9,7 @@ use anyhow::Result;
 mod shared;
 mod rag;
 
-use rag::{Rag, RagProcessableFile, RagProcessableFileType};
+use rag::{Rag, RagProcessableFile};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -62,26 +62,13 @@ async fn embed_all(rag: &Rag) -> Result<()> {
                     continue;
                 }
             };
-        let extension = path
-                .extension()
-                .and_then(|ext| ext.to_str())
-                .unwrap_or("")
-                .to_lowercase();
-        let file_type = match extension.as_str() {
-                "pdf" => RagProcessableFileType::Pdf,
-                "md"  => RagProcessableFileType::Markdown,
-                "txt" => RagProcessableFileType::Text,
-                _ => {
-                    eprintln!("Skipping unsupported file: {:?}", file_name);
-                    continue;
-                }
-            };
+        
         let woodstock_data = RagProcessableFile {
-                path: path.display().to_string(),
+                path: path.clone(),
                 internal_id: id.to_string(),
                 original_name: file_name.clone(),
                 tags: Some(vec!["auto".to_string()]),
-                file_type,
+                file_description: "".to_string(),
         };
         let start_time = Instant::now();
         match rag.insert(woodstock_data).await {

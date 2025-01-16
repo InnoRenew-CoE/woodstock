@@ -2,7 +2,7 @@ use crate::rag::RagProcessableFile;
 use anyhow::{Result, anyhow};
 use lopdf::Document;
 
-use super::{loaded_data::LoadedFile, FileLoader};
+use super::{loaded_data::LoadedFile, FileLoader, RagProcessableFileType};
 
 pub struct PdfFileLoader;
 
@@ -27,10 +27,12 @@ impl FileLoader for PdfFileLoader {
         }
 
         Ok(LoadedFile {
-            file_type: file.file_type.clone(),
+            file_type: RagProcessableFileType::Pdf,
             content: extracted_text,
             internal_id: file.internal_id.clone(),
             tags: file.tags.clone(),
+            original_file_description: file.file_description.clone(),
+            syntetic_file_description: None,
         })
     }
 
