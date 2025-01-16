@@ -2,18 +2,25 @@ use actix_cors::Cors;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{
     get, post,
-    web::{self},
+    web::{self, Bytes},
     App, HttpResponse, HttpServer, Responder,
 };
 use actix_web_lab::web::spa;
+use futures::FutureExt;
 use serde::{Deserialize, Serialize};
-use std::{env, ffi::OsStr, fs::create_dir_all, path::Path, sync::Mutex};
+use std::{env, ffi::OsStr, fs::create_dir_all, path::Path, sync::Mutex, time::Duration};
+use tokio::sync::mpsc;
 use tokio_postgres::Client;
+use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 
-use crate::db::{self, build_db_client, retrieve_questions, retrieve_tags, setup_db};
+use crate::{
+    db::{self, build_db_client, retrieve_questions, retrieve_tags, setup_db},
+    rag::Rag,
+};
 
 struct AppState {
     client: Mutex<Client>,
+    rag: Mutex<Rag>,
 }
 
 #[derive(MultipartForm)]
@@ -111,21 +118,50 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
     HttpResponse::Ok().finish()
 }
 
+#[post("/search")]
+async fn search(state: web::Data<AppState>, query: String) -> impl Responder {
+    let Ok(rag) = state.rag.lock() else {
+        return HttpResponse::InternalServerError().finish();
+    };
+    let Ok(mut result) = rag.search(query).await else {
+        return HttpResponse::InternalServerError().finish();
+    };
+
+    let (tx, rx) = mpsc::channel(100);
+    let stream = ReceiverStream::new(rx);
+
+    tokio::spawn(async move {
+        while let Some(res) = result.stream.next().await {
+            let _ = tx.clone().send(Bytes::try_from("test")).await;
+
+            // let x = Bytes::try_from("hi");a
+            // println!("{:?}", tx.clone().send(x).await);
+            // let responses = res.unwrap();
+            // println!("{:?}", x);
+        }
+    });
+
+    HttpResponse::Ok().content_type("text/plain").streaming(stream)
+}
+
 /// Attempts to start the server.
-pub async fn start_server() {
+pub async fn start_server(rag: Rag) {
     let server_port = env::var("SERVER_PORT").ok().and_then(|x| x.parse::<u16>().ok()).unwrap_or(6969);
     let client = build_db_client().await;
     setup_db(&client).await;
     create_dir_all(env::var("FILES_FOLDER").unwrap_or("/var/woodstock/files".to_string())).expect("Unable to create the files folder.");
 
     println!("Server is running on localhost:{}", server_port);
-    let state = web::Data::new(AppState { client: Mutex::new(client) });
+    let state = web::Data::new(AppState {
+        client: Mutex::new(client),
+        rag: Mutex::new(rag),
+    });
     let _ = HttpServer::new(move || {
         let cors = Cors::permissive();
         App::new()
             .wrap(cors)
             .app_data(state.clone())
-            .service(web::scope("/api").service(submit_answers).service(fetch_questions))
+            .service(web::scope("/api").service(search).service(submit_answers).service(fetch_questions))
             .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
     })
     .bind(("localhost", server_port))

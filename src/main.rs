@@ -1,17 +1,15 @@
+use anyhow::Result;
+use rag::{Rag, RagProcessableFile, RagProcessableFileType};
 use std::fs;
 use std::io::Write;
 use std::time::Instant;
 use tokio::io::{self, AsyncWriteExt};
 use tokio_stream::StreamExt;
 
-use anyhow::Result;
-
 mod db;
 mod rag;
 mod server;
 mod shared;
-
-use rag::{Rag, RagProcessableFile, RagProcessableFileType};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -19,13 +17,14 @@ async fn main() -> Result<()> {
     if let Err(e) = dotenv::dotenv() {
         return Err(e.into());
     }
+
     let rag = Rag::default();
 
-    if let Err(e) = prompt(&rag, "When did academic publications about wood densification first appear?").await {
-        println!("Something went wrong with prompt: {:#?}", e);
-    }
+    // if let Err(e) = prompt(&rag, "When did academic publications about wood densification first appear?").await {
+    //     println!("Something went wrong with prompt: {:#?}", e);
+    // }
 
-    server::start_server().await;
+    server::start_server(rag).await;
     Ok(())
 }
 
