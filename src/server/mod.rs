@@ -156,13 +156,16 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) ->
 
 
 #[get("/download/{file_id}")]
-pub async fn competition_pack(file_id: web::Path<String>) -> HttpResponse {
-    let path = format!("/var/woodstock/files/{}", file_id.path());
-    println!("{path}");
+pub async fn download(file_id: web::Path<String>) -> HttpResponse {
+    let path = format!("/var/woodstock/files/{}", file_id.path()).replace(".", "");
+    
+    if !path.starts_with("/var/woodstock/files/") {
+        return HttpResponse::InternalServerError().finish();
+    }
     
     let mut file = match File::open(&path) {
         Ok(file) => file,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(e) => return HttpResponse::InternalServerError().finish(),
     };
 
     let mut buffer = Vec::new();
@@ -170,10 +173,10 @@ pub async fn competition_pack(file_id: web::Path<String>) -> HttpResponse {
         return HttpResponse::InternalServerError().finish();
     }
 
-    let filename = path.split("/").last().unwrap_or("download.zip");
+    let filename = path.split("/").last().unwrap_or("download");
+    let filename = format!("{filename}.pdf");
 
     HttpResponse::Ok()
-        .content_type("application/zip")
         .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
         .body(buffer)
 }
@@ -196,7 +199,12 @@ pub async fn start_server(rag: Rag) {
         App::new()
             .wrap(cors)
             .app_data(state.clone())
-            .service(web::scope("/api").service(search).service(submit_answers).service(fetch_questions))
+            .service(web::scope("/api")
+                .service(search)
+                .service(submit_answers)
+                .service(fetch_questions)
+                .service(download)
+            )
             .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
     })
     .bind(("localhost", server_port))
