@@ -7,6 +7,7 @@ mod dedup_embeddings;
 mod prompt;
 mod hype;
 mod embedd_file;
+mod summarize;
 mod simple;
 
 pub use dedup_embeddings::dedup;

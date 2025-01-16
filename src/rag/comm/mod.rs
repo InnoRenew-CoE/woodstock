@@ -42,5 +42,17 @@ impl OllamaClient {
     pub async fn embed(&self, req: GenerateEmbeddingsRequest) -> Result<GenerateEmbeddingsResponse, OllamaError> {
         self.ollama.generate_embeddings(req).await
     }
+
+    pub async fn answer_all(&self, questions: Vec<Question>) -> Vec<String> {
+        let futures = questions.into_iter().map(|q| async move {
+            self.generate(q.clone()).await.ok()
+        });
+    
+        let results = futures::future::join_all(futures).await;
+        results.into_iter()
+            .map(|r| r.map_or_else(|| "".to_owned(), |resp| resp.response))
+            .collect()
+    }
+    
 }
  

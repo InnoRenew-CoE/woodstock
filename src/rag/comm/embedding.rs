@@ -9,7 +9,7 @@ use crate::rag::models::chunks::EmbeddedChunk;
 pub trait Embeddable {
     fn try_into_embed(&self) -> GenerateEmbeddingsRequest;
     fn set_embedding_vectors(&mut self, embedding_vector: Vec<EmbeddingVector>);
-    fn prepare_for_upload(self, parent_doc_id: String) -> Result<Vec<EmbeddedChunk>>;
+    fn prepare_for_upload(self, parent_doc_id: String, doc_summary: Option<String>) -> Result<Vec<EmbeddedChunk>>;
 }
 
 #[derive(Debug, Clone)]

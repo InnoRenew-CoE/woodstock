@@ -25,18 +25,22 @@ impl Embeddable for Chunk {
         self.embedding_vector = Some(embedding_vectors[0].clone());
     }
     
-    fn prepare_for_upload(self, doc_id: String) -> Result<Vec<EmbeddedChunk>> {
+    fn prepare_for_upload(self, doc_id: String, doc_summary: Option<String>) -> Result<Vec<EmbeddedChunk>> {
         let embedding_vector = match self.embedding_vector {
             Some(v) => v,
             None => return Err(anyhow!("No embedding vector on chunk")),
         };
+        let doc_summary = if let Some(summ) = doc_summary {
+            summ
+        } else {
+            "".to_string()
+        };
         Ok(vec![EmbeddedChunk {
-            embedding_vector,
-            id: uuid::Uuid::new_v4().to_string(),
-            doc_id,
-            doc_seq_num: self.seq_num,
+            embedding_vector,id:uuid::Uuid::new_v4().to_string(),
+            doc_id,doc_seq_num: self.seq_num,
             content: self.text,
-            additional_data: Value::Null,
+            additional_data: Value::Null, 
+            doc_summary,
         }])
     }
 
