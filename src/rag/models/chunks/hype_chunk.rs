@@ -44,7 +44,7 @@ impl Embeddable for HypeChunk {
         self.embedding_vector = Some(embedding_vector);
     }
     
-    fn prepare_for_upload(self, parent_doc: String) -> Result<Vec<EmbeddedChunk>> {
+    fn prepare_for_upload(self, parent_doc: String, doc_summary: Option<String>) -> Result<Vec<EmbeddedChunk>> {
         let embedding_vectors = match self.embedding_vector {
             Some(v) => v,
             None => return Err(anyhow!("No embedding vectors on hype chunk")),
@@ -61,7 +61,11 @@ impl Embeddable for HypeChunk {
             .collect();
 
         let mut embedded_chunks = vec![];
-
+        let doc_summary = if let Some(summ) = doc_summary {
+            summ
+        } else {
+            "".to_string()
+        };
         for (question, embedding_vector) in questions_with_embeddings.into_iter() {
             embedded_chunks.push(EmbeddedChunk {
                 embedding_vector,
@@ -70,6 +74,7 @@ impl Embeddable for HypeChunk {
                 doc_seq_num: self.seq_num,
                 content: self.text.clone(),
                 additional_data: Value::String(question.to_string()),
+                doc_summary: doc_summary.clone()
             });
         }
 

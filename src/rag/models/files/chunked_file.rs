@@ -5,6 +5,8 @@ pub struct ChunkedFile<T> where T: Embeddable {
     pub file_type: RagProcessableFileType,
     pub chunks: Vec<T>,
     pub internal_id: String,
+    pub original_file_description: Option<String>,
+    pub syntetic_file_description: Option<String>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -20,6 +22,9 @@ where
             chunks, 
             internal_id: file.internal_id,
             tags: file.tags,
+            original_file_description: file.original_file_description,
+            syntetic_file_description: file.syntetic_file_description,
+            
         }
     }
 }
