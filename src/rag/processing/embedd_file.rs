@@ -1,9 +1,6 @@
-use crate::rag::comm::{embedding::{Embeddable, EmbeddingVector}, OllamaClient};
+use crate::rag::{comm::{embedding::{Embeddable, EmbeddingVector}, OllamaClient}, models::ChunkedFile};
 use anyhow::{Result, anyhow};
 use ollama_rs::generation::embeddings::request::GenerateEmbeddingsRequest;
-use super::chunked_file::ChunkedFile;
-
-
 
 pub async fn embedd_file<T>(mut file: ChunkedFile<T>, ollama: &OllamaClient) -> Result<ChunkedFile<T>> where T: Embeddable {
     let requests: Vec<GenerateEmbeddingsRequest> = file

@@ -1,7 +1,6 @@
 use ollama_rs::generation::completion::GenerationResponseStream;
 
-use super::result_chunk::ResultChunk;
-
+use crate::rag::models::chunks::ResultChunk;
 
 
 pub struct SearchResult {

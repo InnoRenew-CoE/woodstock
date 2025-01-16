@@ -1,8 +1,8 @@
-use crate::rag::loading::loaded_data::LoadedFile;
+use crate::rag::{
+    loading::loaded_data::LoadedFile, 
+    models::{chunks::Chunk, ChunkedFile}};
 
-use super::{chunk::Chunk, chunked_file::ChunkedFile, ChunkOverlap, ChunkSize,};
-
-
+use super::{ChunkOverlap, ChunkSize};
 
 pub fn simple_word_chunking(
     file: LoadedFile, 

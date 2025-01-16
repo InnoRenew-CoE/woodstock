@@ -1,19 +1,19 @@
-use chunk::Chunk;
-use chunked_file::ChunkedFile;
 use simple::simple_word_chunking;
 
-use super::loading::loaded_data::LoadedFile;
+use super::{loading::loaded_data::LoadedFile, models::{chunks::Chunk, ChunkedFile}};
 
-pub mod chunked_file;
-pub mod chunk;
-pub mod hype_chunk;
-pub mod embedd_file;
-pub mod prepare;
-pub mod dedup_embeddings;
-pub mod result_chunk;
-pub mod search_result;
-pub mod prompt;
+mod prepare;
+mod dedup_embeddings;
+mod prompt;
+mod hype;
+mod embedd_file;
 mod simple;
+
+pub use dedup_embeddings::dedup;
+pub use embedd_file::embedd_file;
+pub use hype::hype;
+pub use prompt::prompt;
+pub use prepare::prepare_for_upload;
 
 type ChunkSize = i32;
 type ChunkOverlap = i32;

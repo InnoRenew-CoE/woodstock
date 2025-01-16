@@ -1,13 +1,16 @@
-use processing::{chunk, dedup_embeddings::dedup, hype_chunk::hype, prepare::prepare_for_upload, prompt::prompt, search_result::SearchResult};
 use comm::{embedding::EmbeddingVector, qdrant::{insert_chunks_to_qdrant, vector_search}, OllamaClient};
 use anyhow::{Result, anyhow};
 use loading::load_file;
+use models::SearchResult;
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
-use crate::shared::file::WoodstockFileData;
+use processing::{chunk, dedup, hype, prepare_for_upload, prompt};
 
 pub mod comm;
 mod loading;
+mod models;
 mod processing;
+
+pub use models::{RagProcessableFile, RagProcessableFileType};
 
 #[derive(Debug, Default)]
 pub struct Rag {
@@ -16,7 +19,7 @@ pub struct Rag {
 
 
 impl Rag {
-    pub async fn insert(&self, file: WoodstockFileData) -> Result<()>{
+    pub async fn insert(&self, file: RagProcessableFile) -> Result<()>{
         let loaded_file = load_file(&file)?;
         let chunked_file = chunk(loaded_file, processing::ChunkingStrategy::Word(250, 30));
         let enriched_file = hype(chunked_file, &self.ollama).await;
@@ -36,7 +39,7 @@ impl Rag {
         };
         let resp = vector_search(embedding).await?;
         let resp = dedup(resp);
-        
+        println!("{:#?}", resp);
         match prompt(query, resp, &self.ollama).await {
             Ok(r) => Ok(r),
             Err(e) => Err(anyhow!(e.to_string())),

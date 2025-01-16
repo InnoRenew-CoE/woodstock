@@ -5,7 +5,9 @@ use qdrant_client::{qdrant::{PointStruct, SearchResponse, UpsertPointsBuilder}, 
 use tokio::sync::Mutex;
 use anyhow::Result;
 
-use super::embedding::{EmbeddedChunk, EmbeddingVector};
+use crate::rag::models::chunks::EmbeddedChunk;
+
+use super::embedding::EmbeddingVector;
 
 
 /// Static global client for accessing the Qdrant database.

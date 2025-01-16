@@ -1,6 +1,6 @@
-use crate::rag::comm::{question::Question, OllamaClient};
+use crate::rag::{comm::{question::Question, OllamaClient}, models::{chunks::ResultChunk, SearchResult}};
 use ollama_rs::{error::OllamaError, generation::completion::GenerationResponseStream};
-use super::{result_chunk::ResultChunk, search_result::SearchResult};
+
 
 
 pub async fn prompt(prompt: String, chunks: Vec<ResultChunk>, ollama: &OllamaClient) -> Result<SearchResult, OllamaError> {

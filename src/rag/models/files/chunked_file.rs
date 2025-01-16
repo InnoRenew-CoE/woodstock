@@ -1,11 +1,10 @@
-use crate::{rag::{comm::embedding::Embeddable, loading::loaded_data::LoadedFile}, shared::{file::Answer, file_type::FileType}};
+use crate::{rag::{comm::embedding::Embeddable, loading::loaded_data::LoadedFile, RagProcessableFileType}, shared::{file::Answer, file_type::FileType}};
 
 #[derive(Debug)]
 pub struct ChunkedFile<T> where T: Embeddable {
-    pub file_type: FileType,
+    pub file_type: RagProcessableFileType,
     pub chunks: Vec<T>,
-    pub internal_id: i64,
-    pub answers: Vec<Answer>,
+    pub internal_id: String,
     pub tags: Option<Vec<String>>,
 }
 
@@ -19,8 +18,7 @@ where
         Self { 
             file_type: file.file_type, 
             chunks, 
-            internal_id: file.internal_id, 
-            answers: file.answers, 
+            internal_id: file.internal_id,
             tags: file.tags,
         }
     }

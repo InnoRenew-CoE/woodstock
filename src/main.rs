@@ -1,20 +1,15 @@
 use std::fs;
 use std::io::Write;
 use std::time::Instant;
-use rayon::result;
 use tokio::io::{self, AsyncWriteExt};
 use tokio_stream::StreamExt;
 
-use chrono::NaiveDateTime;
 use anyhow::Result;
-use serde_json::json;
 
 mod shared;
 mod rag;
 
-use rag::Rag;
-use shared::file::{Answer, WoodstockFileData};
-use shared::file_type::FileType;
+use rag::{Rag, RagProcessableFile, RagProcessableFileType};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -25,7 +20,9 @@ async fn main() -> Result<()> {
 
     let rag = Rag::default();
 
-    let _ = prompt(&rag, "Did Mihael Berčič provided any scientific knowledge in the field of wood densification?").await;
+    if let Err(e) = prompt(&rag, "When did academic publications about wood densification first appear?").await {
+        println!("Something went wrong with prompt: {:#?}", e);
+    }
    
     Ok(())
 }
@@ -45,16 +42,13 @@ async fn prompt(rag: &Rag, question: &str) -> Result<()> {
 }
 
 async fn embed_all(rag: &Rag) -> Result<()> {
-    // Directory containing files to process
     let input_dir = "./resources/wood";
     let done_dir = "./resources/done";
     let failed_dir = "./resources/failed";
 
-    // Create output directories if they don't exist
     fs::create_dir_all(done_dir)?;
     fs::create_dir_all(failed_dir)?;
 
-    // Iterate over each file in `./resources/wood`
     for (id, entry) in fs::read_dir(input_dir)?.enumerate() {
         let entry = entry?;
         let path = entry.path();
@@ -74,32 +68,21 @@ async fn embed_all(rag: &Rag) -> Result<()> {
                 .unwrap_or("")
                 .to_lowercase();
         let file_type = match extension.as_str() {
-                "pdf" => FileType::Pdf,
-                "md"  => FileType::Markdown,
-                "txt" => FileType::Text,
-                // Unknown extension — skip or handle differently
+                "pdf" => RagProcessableFileType::Pdf,
+                "md"  => RagProcessableFileType::Markdown,
+                "txt" => RagProcessableFileType::Text,
                 _ => {
                     eprintln!("Skipping unsupported file: {:?}", file_name);
                     continue;
                 }
             };
-        let woodstock_data = WoodstockFileData {
+        let woodstock_data = RagProcessableFile {
                 path: path.display().to_string(),
-                internal_id: id as i64,
+                internal_id: id.to_string(),
                 original_name: file_name.clone(),
-                answers: vec![
-                    // Possibly empty, or real data read from somewhere
-                    Answer {
-                        question_id: 1,
-                        value: json!("Auto-generated answer #1"),
-                    },
-                ],
                 tags: Some(vec!["auto".to_string()]),
                 file_type,
-                submitted_by: 1234,
-                date_of_submission: NaiveDateTime::from_timestamp_opt(1736784000, 0)
-                    .unwrap_or_else(|| NaiveDateTime::from_timestamp_opt(0, 0).unwrap()),
-            };
+        };
         let start_time = Instant::now();
         match rag.insert(woodstock_data).await {
             Ok(_) => {

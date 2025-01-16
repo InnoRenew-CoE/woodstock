@@ -1,6 +1,10 @@
-use crate::rag::comm::{embedding::{Embeddable, EmbeddedChunk}, OllamaClient};
+use crate::rag::{
+    comm::{embedding::Embeddable, OllamaClient}, 
+    models::{chunks::EmbeddedChunk, ChunkedFile}
+};
 use anyhow::Result;
-use super::{chunked_file::ChunkedFile, embedd_file::embedd_file};
+
+use super::embedd_file::embedd_file;
 
 
 pub async fn prepare_for_upload<T>(file: ChunkedFile<T>, ollama: &OllamaClient) -> Result<Vec<EmbeddedChunk>> where T: Embeddable {

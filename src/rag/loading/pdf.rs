@@ -1,4 +1,4 @@
-use crate::shared::file::WoodstockFileData;
+use crate::rag::RagProcessableFile;
 use anyhow::{Result, anyhow};
 use lopdf::Document;
 
@@ -7,7 +7,7 @@ use super::{loaded_data::LoadedFile, FileLoader};
 pub struct PdfFileLoader;
 
 impl FileLoader for PdfFileLoader {
-    fn load_file(file: &WoodstockFileData) -> Result<LoadedFile> {
+    fn load_file(file: &RagProcessableFile) -> Result<LoadedFile> {
         let doc = Document::load(&file.path)
             .map_err(|err| anyhow!(err.to_string()))?;
 
@@ -29,8 +29,7 @@ impl FileLoader for PdfFileLoader {
         Ok(LoadedFile {
             file_type: file.file_type.clone(),
             content: extracted_text,
-            internal_id: file.internal_id,
-            answers: file.answers.clone(),
+            internal_id: file.internal_id.clone(),
             tags: file.tags.clone(),
         })
     }

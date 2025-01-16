@@ -4,7 +4,7 @@ use serde_json::Value;
 #[derive(Debug)]
 pub struct ResultChunk {
     pub id: String,
-    pub doc_id: i32,
+    pub doc_id: String,
     pub doc_seq_num: i32,
     pub content: String,
     pub additional_data: Value,
@@ -20,10 +20,12 @@ impl From<ScoredPoint> for ResultChunk {
             None => "Unknown".into(),
         };
 
+
         let doc_id = match value.payload.get("doc_id") {
-            Some(d) => d.as_integer().unwrap_or(-1) as i32,
-            None => -1,
+            Some(d) => d.as_str().map_or("Unknown", |v| v),
+            None => "Unknown",
         };
+        let doc_id = doc_id.to_string();
 
         let doc_seq_num = match value.payload.get("doc_seq_num") {
             Some(d) => d.as_integer().unwrap_or(-1) as i32,

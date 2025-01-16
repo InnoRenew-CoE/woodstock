@@ -1,7 +1,9 @@
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
 use anyhow::{Result, anyhow};
 use serde_json::Value;
-use crate::rag::comm::embedding::{Embeddable, EmbeddedChunk, EmbeddingVector};
+use crate::rag::comm::embedding::{Embeddable, EmbeddingVector};
+
+use super::embedded_chunk::EmbeddedChunk;
 
 
 #[derive(Debug)]
