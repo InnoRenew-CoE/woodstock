@@ -162,7 +162,7 @@
                         <div class="text-wrap text-xs p-2 truncate bg-light-background border rounded-lg mt-3">
                             <div class="uppercase text-gray-400">Preview</div>
                             <div class="response preview p-3 prose-sm text-xs">
-                                <div class="">{@html marked(chunk.content.slice(0, 1500))}</div>
+                                <div class="">{@html marked("... " + chunk.content.slice(0, 1500) + " ...")}</div>
                             </div>
                         </div>
                     </div>

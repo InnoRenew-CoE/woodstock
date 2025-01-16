@@ -9,8 +9,8 @@
 </script>
 
 <svelte:window bind:innerWidth={width} />
-<div class="relative bg-dark-background px-5 {isSmall ? 'py-2' : ''} flex items-center justify-between">
-    {#if !$page.url.pathname.includes("/app")}
+{#if !$page.url.pathname.includes("/app")}
+    <div class="relative bg-dark-background px-5 {isSmall ? 'py-2' : ''} flex items-center justify-between">
         <div class="flex">
             <img src="../woodstock.svg" class="h-14 rounded-full" />
         </div>
@@ -46,5 +46,5 @@
                 </ul>
             </div>
         {/if}
-    {/if}
-</div>
+    </div>
+{/if}

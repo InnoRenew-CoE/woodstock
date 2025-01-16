@@ -8,7 +8,20 @@ const INSERT_TEXT_ANSWER_QUERY: &'static str = r#"insert into answers_text (file
 const SELECT_USER: &'static str = "select id from users where email = $1 and password = $2";
 const SELECT_QUESTIONS: &'static str = "select * from questions";
 const SELECT_QUESTION_OPTIONS: &'static str = "select * from question_options";
-const SELECT_DISTINCT_TAGS: &'static str = "select distinct (value) from tags;";
+const SELECT_DISTINCT_TAGS: &'static str = "select distinct (value) from tags";
+
+const SELECT_TOTAL_ANSWERS: &'static str =
+    "select SUM(coalesce((select count(*) from answers_text)) + (select count(*) from answers_selection)) as total";
+
+const SELECT_FILE_TYPE_STATISTICS: &'static str = "select type,
+       round(100 * count(*) /
+             Sum(count(*)) OVER (),
+             1) AS percentage
+from files
+group by type
+order by percentage DESC
+limit 5
+";
 
 const TABLES_SETUP: &'static str = r#"
 create table if not exists users
