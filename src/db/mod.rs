@@ -37,6 +37,7 @@ create table if not exists question_options
 create table if not exists files
 (
     id              serial primary key,
+    internal_id     varchar(200) default null,
     original_name   text,
     name            varchar(200),
     submission_date date default now(),
