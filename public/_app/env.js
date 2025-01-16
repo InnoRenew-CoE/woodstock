@@ -1,0 +1,1 @@
+export const env={"PUBLIC_API_BASE_URL":"http://212.235.192.125"}
