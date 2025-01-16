@@ -1,13 +1,13 @@
 use std::{fs::File, io::{BufReader, Read}};
 use anyhow::Result;
-use crate::shared::file::WoodstockFileData;
+use crate::rag::RagProcessableFile;
 
-use super::{loaded_data::LoadedFile, loader::FileLoader};
+use super::{loaded_data::LoadedFile, FileLoader};
 
 pub struct MarkdownFileLoader;
 
 impl FileLoader for MarkdownFileLoader {
-    fn load_file(file: &WoodstockFileData) -> Result<LoadedFile> {
+    fn load_file(file: &RagProcessableFile) -> Result<LoadedFile> {
         let mut f = BufReader::new(File::open(&file.path)?);
         let mut buffer = String::new();
         f.read_to_string(&mut buffer)?;
@@ -15,9 +15,11 @@ impl FileLoader for MarkdownFileLoader {
         Ok(LoadedFile {
             file_type: file.file_type.clone(),
             content: buffer,
-            internal_id: file.internal_id,
-            answers: file.answers.clone(),
+            internal_id: file.internal_id.clone(),
             tags: file.tags.clone(),
+            original_file_description: file.file_description.clone(),
+            syntetic_file_description: None,
+            
         })
     }
 }
