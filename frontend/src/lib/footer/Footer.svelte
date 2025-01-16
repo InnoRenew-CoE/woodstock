@@ -3,6 +3,5 @@
         <div id="partners" class="flex gap-3 h-[3rem] justify-center">
             <img src="../innorenew.svg" />
         </div>
-        <div class="uppercase font-mono opacity-30 text-xs text-center">Partners</div>
     </div>
 </div>

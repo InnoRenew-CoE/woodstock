@@ -17,11 +17,12 @@
         data = "";
         chunks = [];
         waiting = true;
+        console.log(`${PUBLIC_API_BASE_URL}/api/search?query=${query}`);
         const response = await fetch(`${PUBLIC_API_BASE_URL}/api/search?query=${query}`);
         const stream = response.body?.getReader();
 
         if (!stream) {
-            console.error("OO");
+            console.error("idk bro ");
             return;
         }
         const decoder = new TextDecoder("utf-8");
@@ -29,6 +30,7 @@
         while (true) {
             const { done, value } = await stream?.read();
             const decoded = decoder.decode(value);
+            console.log(decoded);
             total++;
             if (total === 1) {
                 chunks = JSON.parse(decoded);

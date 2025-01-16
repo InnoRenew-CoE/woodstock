@@ -10,8 +10,7 @@ export const tagsStore: Writable<string[]> = writable([]);
 
 export async function fetchQuestions() {
   const request = await fetch(`${PUBLIC_API_BASE_URL}/api/questions`);
-  const json = await request.json();
-  const { questions, available_tags }: { questions: Question[]; available_tags: string[] } = JSON.parse(json);
+  const { questions, available_tags }: { questions: Question[]; available_tags: string[] } = await request.json();
   questionsStore.set(questions.toSorted((a, b) => a.id - b.id));
   tagsStore.set(available_tags);
 }

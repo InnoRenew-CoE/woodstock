@@ -28,7 +28,7 @@
     });
 </script>
 
-<div id="layout" bind:this={layout_component} class="bg-light-background text-sm">
+<div id="layout" bind:this={layout_component} class="bg-light-background text-sm min-h-[100vh]">
     <div bind:this={header_component}><Header /></div>
     <div class="h-full relative">
         {@render children()}

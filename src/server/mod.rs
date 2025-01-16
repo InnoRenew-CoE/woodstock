@@ -3,7 +3,9 @@ use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{
     cookie::Cookie,
     dev::ResourcePath,
-    get, post,
+    get,
+    guard::{self, Guard, GuardContext},
+    post,
     web::{self, Bytes, Query},
     App, HttpResponse, HttpServer, Responder,
 };
@@ -84,10 +86,7 @@ async fn fetch_questions(state: web::Data<AppState>) -> impl Responder {
     let questions = retrieve_questions(client).await;
     let available_tags = retrieve_tags(client).await.unwrap_or(vec![]);
     let structure = QuestionsStructure { available_tags, questions };
-    let Ok(json) = serde_json::to_string(&structure) else {
-        return HttpResponse::InternalServerError().finish();
-    };
-    HttpResponse::Ok().json(json)
+    HttpResponse::Ok().json(&structure)
 }
 
 /// Stores files in the env["FILES_FOLDER"] folder, submits answers for each file into the database.
@@ -142,15 +141,13 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) ->
         return HttpResponse::InternalServerError().finish();
     };
 
-    let (tx, rx) = mpsc::channel::<Result<Bytes, Infallible>>(100);
-    let mut stream = ReceiverStream::new(rx);
+    let (tx, rx) = mpsc::channel::<Result<Bytes, Infallible>>(10_000);
+    let stream = ReceiverStream::new(rx);
 
     let Ok(chunks_json) = serde_json::to_string(&result.chunks) else {
         return HttpResponse::InternalServerError().finish();
     };
-    println!("JSON: {}", chunks_json);
-    let _ = tx.send(Bytes::try_from(chunks_json)).await;
-
+    let _ = tx.send(Bytes::try_from(chunks_json + "\n")).await;
     actix_web::rt::spawn(async move {
         sleep(Duration::from_secs(5)).await;
         while let Some(res) = result.stream.next().await {
@@ -219,6 +216,29 @@ async fn login(data: web::Data<AppState>, login_details: web::Json<LoginDetails>
         .finish()
 }
 
+struct CookieGuard {
+    cookie_name: String,
+}
+
+impl Guard for CookieGuard {
+    fn check(&self, ctx: &GuardContext) -> bool {
+        if let Some(req) = ctx.head().headers().get("cookie") {
+            if let Ok(cookie_header) = req.to_str() {
+                for cookie in cookie_header.split(';') {
+                    let cookie = cookie.trim();
+                    if let Some((name, value)) = cookie.split_once('=') {
+                        let Ok(user_id) = value.parse::<i32>() else {
+                            return false;
+                        };
+                        return user_id == 1;
+                    }
+                }
+            }
+        }
+        false
+    }
+}
+
 /// Attempts to start the server.
 pub async fn start_server(rag: Rag) {
     let server_port = env::var("SERVER_PORT").ok().and_then(|x| x.parse::<u16>().ok()).unwrap_or(6969);
@@ -236,9 +256,9 @@ pub async fn start_server(rag: Rag) {
         App::new()
             .wrap(cors)
             .app_data(state.clone())
+            .service(login)
             .service(
                 web::scope("/api")
-                    .service(login)
                     .service(search)
                     .service(submit_answers)
                     .service(fetch_questions)
