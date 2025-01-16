@@ -130,17 +130,16 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) ->
         return HttpResponse::InternalServerError().finish();
     };
 
-    let (tx, rx) = mpsc::channel::<Result<Bytes, Infallible>>(100);
+    let (tx, rx) = mpsc::channel::<Result<Bytes, Infallible>>(10000);
     let mut stream = ReceiverStream::new(rx);
 
     let Ok(chunks_json) = serde_json::to_string(&result.chunks) else {
         return HttpResponse::InternalServerError().finish();
     };
-    println!("JSON: {}", chunks_json);
     let _ = tx.send(Bytes::try_from(chunks_json)).await;
+    let _ = tx.send(Bytes::try_from("\n")).await;
 
     actix_web::rt::spawn(async move {
-        sleep(Duration::from_secs(5)).await;
         while let Some(res) = result.stream.next().await {
             if let Ok(responses) = res {
                 for resp in responses {
