@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::{env, ffi::OsStr, fs::create_dir_all, path::Path, sync::Mutex};
 use tokio_postgres::Client;
 
-use crate::db::{self, build_db_client, retrieve_questions, setup_db};
+use crate::db::{self, build_db_client, retrieve_questions, retrieve_tags, setup_db};
 
 struct AppState {
     client: Mutex<Client>,
@@ -52,6 +52,12 @@ pub struct FileAnswer {
     answers: Vec<Answer>,
 }
 
+#[derive(Serialize)]
+struct QuestionsStructure {
+    questions: Vec<Question>,
+    available_tags: Vec<String>,
+}
+
 /// Returns a JSON representation of questions stored in the database.
 #[get("/questions")]
 async fn fetch_questions(state: web::Data<AppState>) -> impl Responder {
@@ -59,7 +65,9 @@ async fn fetch_questions(state: web::Data<AppState>) -> impl Responder {
         return HttpResponse::InternalServerError().finish();
     };
     let questions = retrieve_questions(client).await;
-    let Ok(json) = serde_json::to_string(&questions) else {
+    let available_tags = retrieve_tags(client).await.unwrap_or(vec![]);
+    let structure = QuestionsStructure { available_tags, questions };
+    let Ok(json) = serde_json::to_string(&structure) else {
         return HttpResponse::InternalServerError().finish();
     };
     HttpResponse::Ok().json(json)

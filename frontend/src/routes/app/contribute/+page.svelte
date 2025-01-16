@@ -8,6 +8,8 @@
     import FileUpload from "./FileUpload.svelte";
     import Submission from "./Submission.svelte";
     import { onMount } from "svelte";
+    import { tagsStore } from "$lib/stores/questions";
+    import SuggestiveInput from "$lib/common/SuggestiveInput.svelte";
 
     onMount(async () => {
         await fetchQuestions();
@@ -55,6 +57,7 @@
 </script>
 
 <svelte:window bind:innerWidth={windowSize} />
+
 {#if windowSize > 640}
     <div class="grid gap-5 grid-cols-[minmax(min-content,300px)_auto] h-full">
         <div class="select-none bg-dark-background border p-3 rounded-lg">
@@ -80,7 +83,7 @@
                             {@const isNow = currentStep == 1 + j + i * $questionsStore.length}
                             {@const isDone = currentStep > 1 + j + i * $questionsStore.length}
                             {#if isVisible}
-                                <div in:slide out:slide class="py-2">
+                                <div in:slide out:slide>
                                     <li class="pl-5 {isDone || isNow ? '' : 'opacity-30'}">
                                         <div class="flex gap-3 items-center {isNow ? 'font-bold' : ''}">
                                             <MaskedIcon src="../{isDone ? 'checkmark.svg' : isNow ? 'chevron-right.svg' : 'circle.svg'}" class="w-3 h-3 bg-secondary" />

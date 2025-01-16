@@ -2,6 +2,7 @@ export enum QuestionType {
   Text,
   Select,
   MultiSelect,
+  Tags,
 }
 
 export type Question = {

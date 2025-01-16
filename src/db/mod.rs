@@ -1,12 +1,13 @@
 use crate::server::{Answer, Question, SelectionAnswer};
 use std::{collections::HashMap, env};
-use tokio_postgres::{Client, NoTls};
+use tokio_postgres::{Client, Error, NoTls};
 
 const INSERT_FILES_QUERY: &'static str = r#"insert into files (original_name, name, type, submitted_by) values ($1, $2, $3, $4) returning id"#;
 const INSERT_SELECTION_ANSWER_QUERY: &'static str = r#"insert into answers_selection (file_id, question_id, answer_id) values ($1, $2, $3)"#;
 const INSERT_TEXT_ANSWER_QUERY: &'static str = r#"insert into answers_text (file_id, question_id, text) values ($1, $2, $3)"#;
 const SELECT_QUESTIONS: &'static str = "select * from questions";
 const SELECT_QUESTION_OPTIONS: &'static str = "select * from question_options";
+const SELECT_DISTINCT_TAGS: &'static str = "select distinct (value) from tags;";
 
 const TABLES_SETUP: &'static str = r#"
 create table if not exists users
@@ -156,4 +157,14 @@ pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) {
             }
         }
     }
+}
+
+/// Retrieves all possible tags from the database.
+pub async fn retrieve_tags(client: &Client) -> Result<Vec<String>, Error> {
+    Ok(client
+        .query(SELECT_DISTINCT_TAGS, &[])
+        .await?
+        .into_iter()
+        .map(|row| row.get("value"))
+        .collect())
 }

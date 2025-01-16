@@ -18,10 +18,10 @@
         {#if ($filesStore?.length ?? 0) > 0}
             <div class="font-light pb-2 text-secondary">Selected files ({$filesStore?.length ?? 0}):</div>
             {@const fileNames = Array.from($filesStore ?? []).map((x) => x.name)}
-            <ul class="space-y-2 bg-secondary/5 border border-secondary/50 shadow shadow-secondary/10 py-3 px-5 rounded-lg text-secondary">
+            <ul class="space-y-2 bg-secondary/5 border border-secondary/50 shadow shadow-secondary/10 py-3 px-5 rounded-lg">
                 {#each fileNames as fileName}
                     <li class="flex items-center gap-3">
-                        <MaskedIcon src="../checkmark-circle.svg" class="opacity-50 size-2.5 bg-secondary" />
+                        <MaskedIcon src="../checkmark-circle.svg" class="opacity-50 size-2.5 bg-primary" />
                         {fileName}
                     </li>
                 {/each}
