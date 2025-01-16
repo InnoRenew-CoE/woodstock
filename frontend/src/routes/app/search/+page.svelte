@@ -169,12 +169,12 @@
             {/each}
         </ul>
     </div>
-    <div class="p-10 border rounded-lg w-full" bind:this={component}>
+    <div id="llm" class=" p-10 border rounded-lg w-full" bind:this={component}>
         {#if data && data.length >= 0}
             <div in:fade>
                 <div class="opacity-30">Woody's response</div>
                 <div class="overflow-auto p-5 flex flex-col-reverse">
-                    <div class="response preview spacing-y-10">{@html marked(data)}</div>
+                    <div class="response preview spacing-y-2 prose">{@html marked(data)}</div>
                 </div>
             </div>
         {:else if waiting}

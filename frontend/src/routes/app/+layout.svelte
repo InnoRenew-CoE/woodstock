@@ -24,13 +24,13 @@
         <div class="sm:relative sm:rounded-2xl sm:border sm:bg-primary text-white sm:flex sm:p-3">
             <div class="bg-black rounded-xl p-2 sm:bg-transparent sm:border-transparent sm:rounded-none sm:p-0 flex gap-5 items-center justify-end w-full">
                 {#if isSmall}
-                    <button on:click={() => (isVisible = !isVisible)}>
+                    <button onclick={() => (isVisible = !isVisible)}>
                         <MaskedIcon src="../menu.svg" class="w-10 p-3 bg-white" />
                     </button>
                 {/if}
                 {#if isVisible || !isSmall}
-                    <div in:slide out:slide={{ duration: 100 }} class="select-none top-20 left-0 right-0 bg-black absolute text-white p-5 sm:relative sm:top-0 sm:translate-y-0 sm:p-0">
-                        <ul class="grid sm:flex gap-3 sm:gap-3 font-nunito" on:click={() => (isVisible = false)}>
+                    <div in:slide out:slide={{ duration: 100 }} class="z-10 select-none top-16 left-0 right-0 bg-black absolute text-white p-5 sm:relative sm:top-0 sm:translate-y-0 sm:p-0">
+                        <ul class="grid sm:flex gap-3 sm:gap-3 font-nunito" onclick={() => (isVisible = false)}>
                             {#each paths as { link, text }}
                                 {@const isSelected = link == $page.url.pathname}
                                 <li>

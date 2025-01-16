@@ -14,17 +14,20 @@
         <div class="flex">
             <img src="../woodstock.svg" class="h-14 rounded-full" />
         </div>
+
         {#if isSmall}
-            <button on:click={() => (isVisible = !isVisible)}> <img src="../menu.svg" alt="menu" class="w-5" /></button>
+            <button onclick={() => (isVisible = !isVisible)}>
+                <img src="../menu.svg" alt="menu" class="w-5" />
+            </button>
         {/if}
         {#if isVisible || !isSmall}
             <div
                 in:slide
                 out:slide={{ duration: 100 }}
-                class="absolute bottom-0 translate-y-full bg-secondary text-white right-0 left-0 p-3
+                class="z-10 absolute bottom-0 translate-y-full bg-secondary text-white right-0 left-0 p-3
                 sm:relative sm:flex sm:translate-y-0 sm:bg-transparent sm:text-primary"
             >
-                <ul class="pl-8 py-4 grid sm:flex gap-3 sm:gap-10" on:click={() => (isVisible = false)}>
+                <ul class="pl-8 py-4 grid sm:flex gap-3 sm:gap-10" onclick={() => (isVisible = false)}>
                     <li>
                         <a class="flex items-center gap-3 sm:hover:text-accent" href="/">
                             <MaskedIcon src="../home.svg" class={isSmall ? "bg-white" : "hidden"} />Home

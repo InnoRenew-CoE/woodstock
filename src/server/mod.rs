@@ -1,11 +1,12 @@
 use actix_cors::Cors;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{
+    cookie::Cookie,
     get, post,
     web::{self, Bytes, Query},
     App, HttpResponse, HttpServer, Responder,
 };
-use actix_web_lab::web::spa;
+use actix_web_lab::{sse::Data, web::spa};
 use futures::{io::WriteAll, FutureExt};
 use serde::{Deserialize, Serialize};
 use std::{convert::Infallible, env, ffi::OsStr, fs::create_dir_all, path::Path, sync::Mutex, time::Duration};
@@ -14,7 +15,7 @@ use tokio_postgres::Client;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 
 use crate::{
-    db::{self, build_db_client, retrieve_questions, retrieve_tags, setup_db},
+    db::{self, build_db_client, check_login, retrieve_questions, retrieve_tags, setup_db},
     rag::Rag,
 };
 
@@ -156,6 +157,33 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) ->
     HttpResponse::Ok().content_type("text/plain").streaming(stream)
 }
 
+#[derive(Deserialize, Debug)]
+pub struct LoginDetails {
+    pub email: String,
+    pub password: String,
+}
+
+#[post("/login")]
+async fn login(data: web::Data<AppState>, login_details: web::Json<LoginDetails>) -> impl Responder {
+    let Ok(client) = &mut data.client.lock() else {
+        return HttpResponse::InternalServerError().finish();
+    };
+
+    let Ok(user_id) = check_login(client, login_details.0).await else {
+        return HttpResponse::BadRequest().finish();
+    };
+
+    HttpResponse::Ok()
+        .cookie(
+            Cookie::build("user", format!("{}", user_id))
+                .path("/")
+                .secure(true)
+                .http_only(true)
+                .finish(),
+        )
+        .finish()
+}
+
 /// Attempts to start the server.
 pub async fn start_server(rag: Rag) {
     let server_port = env::var("SERVER_PORT").ok().and_then(|x| x.parse::<u16>().ok()).unwrap_or(6969);
@@ -173,7 +201,13 @@ pub async fn start_server(rag: Rag) {
         App::new()
             .wrap(cors)
             .app_data(state.clone())
-            .service(web::scope("/api").service(search).service(submit_answers).service(fetch_questions))
+            .service(
+                web::scope("/api")
+                    .service(login)
+                    .service(search)
+                    .service(submit_answers)
+                    .service(fetch_questions),
+            )
             .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
     })
     .bind(("localhost", server_port))
