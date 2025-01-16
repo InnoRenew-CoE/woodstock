@@ -1,8 +1,8 @@
 use std::{fs::File, io::{BufReader, Read}};
 use anyhow::Result;
-use crate::{rag::RagProcessableFile};
+use crate::rag::RagProcessableFile;
 
-use super::{loaded_data::LoadedFile, FileLoader, RagProcessableFileType};
+use super::{loaded_data::LoadedFile, FileLoader};
 
 pub struct MarkdownFileLoader;
 
@@ -13,7 +13,7 @@ impl FileLoader for MarkdownFileLoader {
         f.read_to_string(&mut buffer)?;
 
         Ok(LoadedFile {
-            file_type: RagProcessableFileType::Markdown,
+            file_type: file.file_type.clone(),
             content: buffer,
             internal_id: file.internal_id.clone(),
             tags: file.tags.clone(),

@@ -1,4 +1,4 @@
-use super::RagProcessableFileType;
+use crate::rag::models::RagProcessableFileType;
 
 #[derive(Debug)]
 pub struct LoadedFile {
