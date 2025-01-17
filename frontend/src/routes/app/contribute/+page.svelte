@@ -74,10 +74,13 @@
                     {@const isVisible = currentStep >= i * $questionsStore.length + 1 && currentStep < (i + 1) * $questionsStore.length + 1}
                     {@const isDone = currentStep >= (i + 1) * $questionsStore.length + 1}
                     {@const backgroundColor = isDone ? "bg-lime-400" : "bg-secondary"}
-                    <div class="px-3 py-1 shadow-sm bg-secondary/5 border rounded-lg {isDone ? 'border-lime-400 bg-lime-400/10' : 'border-secondary/30'}">
-                        <div class="flex items-center gap-2 {isDone ? 'text-lime-500' : ''}">
+                    <div class="group relative px-3 py-1 shadow-sm bg-secondary/5 border rounded-lg {isDone ? 'border-lime-400 bg-lime-400/10' : 'border-secondary/30'}">
+                        <div class="flex items-center gap-2 {isDone ? 'text-lime-500' : ''} ">
                             <MaskedIcon src="../{isVisible ? 'chevron-down.svg' : isDone ? 'checkmark.svg' : 'circle.svg'}" class="{isDone || isVisible ? 'size-3' : 'size-2'} {backgroundColor}" />
-                            {file.name}
+                            ... {file.name.slice(-15)}
+                            <div class="z-10 absolute top-0 left-0 bg-gray-50 rounded p-5 border shadow shadow-secondary border-secondary group-hover:block right-0 hidden cursor-pointer">
+                                {file.name}
+                            </div>
                         </div>
                         {#each $questionsStore as question, j}
                             {@const isNow = currentStep == 1 + j + i * $questionsStore.length}

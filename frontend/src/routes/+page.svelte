@@ -11,16 +11,13 @@
     async function login() {
         if (email.length > 5 && password.length > 5) {
             pushNotification({ body: "Succesfull login", title: "Welcome" });
-            goto("/app");
+            await goto("/app");
         }
     }
 </script>
 
-<div class="flex justify-center items-center rounded-lg h-full p-10">
-    <div class="grid gap-5 max-w-[400px] w-[80%]">
-        <div class="flex justify-center items-center">
-            <img src="./woodstock.svg" alt="Logo" class="rounded-full w-14" />
-        </div>
+<div class="flex justify-center h-full p-10">
+    <div class="grid gap-2 max-w-[400px] w-[80%] h-min">
         <form class="grid p-5 px-8 rounded-xl border gap-5 bg-dark-background">
             <div class="flex gap-3 items-center text-lg justify-center">
                 WoodStock <span><img src="./info.svg" alt="Information" class="w-3" /></span>

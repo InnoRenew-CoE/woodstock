@@ -10,7 +10,7 @@
 
 <svelte:window bind:innerWidth={width} />
 {#if !$page.url.pathname.includes("/app")}
-    <div class="relative bg-dark-background px-5 {isSmall ? 'py-2' : ''} flex items-center justify-between">
+    <div class="relative bg-dark-background px-5 {isSmall ? 'py-2' : ''} flex items-center justify-between border-b">
         <div class="flex">
             <img src="../woodstock.svg" class="h-14 rounded-full" />
         </div>

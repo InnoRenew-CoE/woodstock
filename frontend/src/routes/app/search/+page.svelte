@@ -138,7 +138,7 @@
             <input bind:value={query} type="text" class="w-full rounded-lg py-2 px-4 border" placeholder="Search query / question ..." />
             <button type="submit" onclick={sendQuery} class="flex items-center gap-2 border flex-1 px-4 py-2 rounded-lg bg-secondary/10 border-secondary hover:brightness-75">
                 <MaskedIcon src="../contact.svg" class="size-3 bg-secondary" />
-                Send
+                Ask
             </button>
         </form>
         {#if chunks.length > 0}
@@ -152,9 +152,9 @@
                         <div class="flex justify-between items-center bg-white py-2 px-5 rounded-lg border">
                             <div class="flex gap-2">
                                 <div class="text-xs bg-secondary/5 text-secondary px-2 rounded border-secondary/50 border group-hover:border-accent/50 group-hover:bg-accent/5 group-hover:text-accent">#{i + 1}</div>
-                                <div>Original Title.pdf</div>
+                                <div>{chunk.additional_data}</div>
                             </div>
-                            <button class="border border-secondary/10 hover:border-accent bg-secondary/5 py-1 px-2 rounded flex items-center gap-2 group-hover:bg-accent/5 hover:text-accent">
+                            <button disabled class="disabled:opacity-50 bg-gray-50 border py-1 px-2 rounded flex items-center gap-2">
                                 <MaskedIcon src="../download.svg" class="size-3 bg-secondary group-hover:bg-accent/50" />
                                 Download
                             </button>
@@ -162,7 +162,7 @@
                         <div class="text-wrap text-xs p-2 truncate bg-light-background border rounded-lg mt-3">
                             <div class="uppercase text-gray-400">Preview</div>
                             <div class="response preview p-3 prose-sm text-xs">
-                                <div class="">{@html marked("... " + chunk.content.slice(0, 1500) + " ...")}</div>
+                                <div class="">{@html marked("... " + chunk.content.slice(0, 3000) + " ...")}</div>
                             </div>
                         </div>
                     </div>
