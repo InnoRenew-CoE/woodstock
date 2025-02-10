@@ -1,6 +1,12 @@
 use regex::RegexBuilder;
 
-use crate::rag::{comm::{question::Question, OllamaClient}, models::{chunks::{Chunk, HypeChunk}, ChunkedFile}};
+use crate::rag::{
+    comm::{question::Question, OllamaClient},
+    models::{
+        chunks::{Chunk, HypeChunk},
+        ChunkedFile,
+    },
+};
 
 use super::summarize::summarize_document;
 
@@ -32,12 +38,12 @@ fn replace_chunks(file: ChunkedFile<Chunk>, hype_chunks: Vec<HypeChunk>) -> Chun
     }
 }
 
-fn generate_hype_chunks(chunks: &[Chunk], hype_questions: Vec<String>) -> Vec<HypeChunk> {    
+fn generate_hype_chunks(chunks: &[Chunk], hype_questions: Vec<String>) -> Vec<HypeChunk> {
     let list_pattern = RegexBuilder::new(r"^\s*[\-\*]|\s*\d+\.\s*|\s*[a-zA-Z]\)\s*|\s*\(\d+\)\s*|\s*\([a-zA-Z]\)\s*|\s*\([ivxlcdm]+\)\s*")
         .case_insensitive(true)
         .build()
         .unwrap();
-    
+
     let mut hype_chunks = vec![];
     for (i, chunk) in chunks.into_iter().enumerate() {
         let questions: Vec<String> = hype_questions[i]
@@ -65,13 +71,12 @@ fn generate_hype_prompt_questions(summary: String, file: &ChunkedFile<Chunk>) ->
         summary);
     let system_prompt = "You are an agent specialized to only answer in form of questions.";
 
-    file
-        .chunks
+    file.chunks
         .iter()
-        .map(|c| Question::from(question.clone())
-            .set_system_prompt(&system_prompt)
-            .set_context(vec![format!("\nCONTEXT PASSAGE:\n{}", c.text)])
-        )
+        .map(|c| {
+            Question::from(question.clone())
+                .set_system_prompt(&system_prompt)
+                .set_context(vec![format!("\nCONTEXT PASSAGE:\n{}", c.text)])
+        })
         .collect()
 }
-

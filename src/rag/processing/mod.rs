@@ -1,26 +1,29 @@
 use simple::simple_word_chunking;
 
-use super::{loading::loaded_data::LoadedFile, models::{chunks::Chunk, ChunkedFile}};
+use super::{
+    loading::loaded_data::LoadedFile,
+    models::{chunks::Chunk, ChunkedFile},
+};
 
-mod prepare;
 mod dedup_embeddings;
-mod prompt;
-mod hype;
 mod embedd_file;
-mod summarize;
+mod hype;
+mod prepare;
+mod prompt;
 mod simple;
+mod summarize;
 
 pub use dedup_embeddings::dedup;
 pub use embedd_file::embedd_file;
 pub use hype::hype;
-pub use prompt::prompt;
 pub use prepare::prepare_for_upload;
+pub use prompt::prompt;
 
 type ChunkSize = i32;
 type ChunkOverlap = i32;
 
 pub enum ChunkingStrategy {
-    Word(ChunkSize, ChunkOverlap)
+    Word(ChunkSize, ChunkOverlap),
 }
 
 pub fn chunk(file: LoadedFile, strategy: ChunkingStrategy) -> ChunkedFile<Chunk> {

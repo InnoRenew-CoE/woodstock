@@ -1,38 +1,60 @@
+use crate::db::build_db_client;
+use crate::db::check_login;
+use crate::db::insert_new_password;
+use crate::db::retrieve_questions;
+use crate::db::retrieve_tags;
+use crate::db::setup_db;
+use crate::db::{self};
+use crate::rag::Rag;
 use actix_cors::Cors;
-use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
-use actix_web::{
-    cookie::Cookie,
-    dev::ResourcePath,
-    get,
-    guard::{self, Guard, GuardContext},
-    post,
-    web::{self, Bytes, Query},
-    App, HttpResponse, HttpServer, Responder,
-};
+use actix_jwt_auth_middleware::use_jwt::UseJWTOnApp;
+use actix_jwt_auth_middleware::AuthResult;
+use actix_jwt_auth_middleware::Authority;
+use actix_jwt_auth_middleware::TokenSigner;
+use actix_multipart::form::tempfile::TempFile;
+use actix_multipart::form::text::Text;
+use actix_multipart::form::MultipartForm;
+use actix_web::cookie::Cookie;
+use actix_web::dev::ResourcePath;
+use actix_web::get;
+use actix_web::guard::Guard;
+use actix_web::guard::GuardContext;
+use actix_web::post;
+use actix_web::web::Bytes;
+use actix_web::web::Query;
+use actix_web::web::{self};
+use actix_web::App;
+use actix_web::HttpResponse;
+use actix_web::HttpServer;
+use actix_web::Responder;
 use actix_web_lab::web::spa;
-use serde::{Deserialize, Serialize};
-use std::{
-    convert::Infallible,
-    env,
-    ffi::OsStr,
-    fs::{create_dir_all, File},
-    io::Read,
-    path::Path,
-    sync::Mutex,
-    time::Duration,
-};
-use tokio::{sync::mpsc, time::sleep};
+use ed25519_compact::KeyPair;
+use jwt_compact::alg::Ed25519;
+use passwords::PasswordGenerator;
+use serde::Deserialize;
+use serde::Serialize;
+use sha2::digest::KeyInit;
+use sha2::Digest;
+use sha2::Sha256;
+use std::convert::Infallible;
+use std::env;
+use std::ffi::OsStr;
+use std::fs::create_dir_all;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
+use std::sync::Mutex;
+use std::time::Duration;
+use tokio::sync::mpsc;
+use tokio::time::sleep;
 use tokio_postgres::Client;
-use tokio_stream::{wrappers::ReceiverStream, StreamExt};
-
-use crate::{
-    db::{self, build_db_client, check_login, retrieve_questions, retrieve_tags, setup_db},
-    rag::Rag,
-};
+use tokio_stream::wrappers::ReceiverStream;
+use tokio_stream::StreamExt;
 
 struct AppState {
     client: Mutex<Client>,
     rag: Mutex<Rag>,
+    token_signer: TokenSigner<User, Ed25519>,
 }
 
 #[derive(MultipartForm)]
@@ -40,6 +62,16 @@ struct SubmissionForm {
     #[multipart(limit = "20MB")]
     file: TempFile,
     answers: Text<String>,
+}
+#[derive(Serialize, Deserialize)]
+pub struct User {
+    pub id: u32,
+    pub role: UserRole,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum UserRole {
+    Admin,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -198,47 +230,47 @@ pub struct LoginDetails {
 }
 
 #[post("/login")]
-async fn login(data: web::Data<AppState>, login_details: web::Json<LoginDetails>) -> impl Responder {
+async fn login(data: web::Data<AppState>, login_details: web::Json<LoginDetails>) -> AuthResult<HttpResponse> {
     let Ok(client) = &mut data.client.lock() else {
-        return HttpResponse::InternalServerError().finish();
+        return Ok(HttpResponse::InternalServerError().finish());
+    };
+    println!("Login has been called!");
+    let Ok(user) = check_login(client, login_details.0).await else {
+        return Ok(HttpResponse::BadRequest().finish());
     };
 
-    let Ok(user_id) = check_login(client, login_details.0).await else {
-        return HttpResponse::BadRequest().finish();
+    let token_signer = &data.token_signer;
+
+    Ok(HttpResponse::Ok()
+        .cookie(token_signer.create_access_cookie(&user)?)
+        .cookie(token_signer.create_refresh_cookie(&user)?)
+        .finish())
+}
+
+#[post("/register")]
+async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginDetails>) -> AuthResult<HttpResponse> {
+    let Ok(client) = &mut data.client.lock() else {
+        return Ok(HttpResponse::InternalServerError().finish());
     };
+    let pg = PasswordGenerator {
+        length: 12,
+        numbers: true,
+        lowercase_letters: true,
+        uppercase_letters: true,
+        symbols: false,
+        spaces: false,
+        exclude_similar_characters: false,
+        strict: true,
+    };
+    let password = pg.generate_one().expect("Unable to generate a secure password");
+    login_details.password = password.clone();
 
-    HttpResponse::Ok()
-        .cookie(
-            Cookie::build("user", format!("{}", user_id))
-                .path("/")
-                .secure(true)
-                .http_only(true)
-                .finish(),
-        )
-        .finish()
-}
-
-struct CookieGuard {
-    cookie_name: String,
-}
-
-impl Guard for CookieGuard {
-    fn check(&self, ctx: &GuardContext) -> bool {
-        if let Some(req) = ctx.head().headers().get("cookie") {
-            if let Ok(cookie_header) = req.to_str() {
-                for cookie in cookie_header.split(';') {
-                    let cookie = cookie.trim();
-                    if let Some((name, value)) = cookie.split_once('=') {
-                        let Ok(user_id) = value.parse::<i32>() else {
-                            return false;
-                        };
-                        return user_id == 1;
-                    }
-                }
-            }
-        }
-        false
-    }
+    if let Err(error) = insert_new_password(client, login_details.0).await {
+        return Ok(HttpResponse::BadRequest().body(error));
+    };
+    // TODO: Send mail with the password...
+    println!("Sending mail with newly generated password: {:?}", password);
+    Ok(HttpResponse::Ok().finish())
 }
 
 /// Attempts to start the server.
@@ -249,17 +281,31 @@ pub async fn start_server(rag: Rag) {
     create_dir_all(env::var("FILES_FOLDER").unwrap_or("/var/woodstock/files".to_string())).expect("Unable to create the files folder.");
 
     println!("Server is running on localhost:{}", server_port);
+    let KeyPair {
+        pk: public_key,
+        sk: secret_key,
+    } = KeyPair::generate();
     let state = web::Data::new(AppState {
         client: Mutex::new(client),
         rag: Mutex::new(rag),
+        token_signer: TokenSigner::new().signing_key(secret_key.clone()).algorithm(Ed25519).build().expect(""),
     });
+
     let _ = HttpServer::new(move || {
+        let authority = Authority::<User, Ed25519, _, _>::new()
+            .refresh_authorizer(|| async move { Ok(()) })
+            .token_signer(Some(state.token_signer.clone()))
+            .verifying_key(public_key)
+            .build()
+            .expect("");
         let cors = Cors::permissive();
         App::new()
             .wrap(cors)
             .app_data(state.clone())
             .service(login)
-            .service(
+            .service(register)
+            .use_jwt(
+                authority,
                 web::scope("/api")
                     .service(search)
                     .service(submit_answers)

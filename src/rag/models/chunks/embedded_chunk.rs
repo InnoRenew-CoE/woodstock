@@ -3,7 +3,6 @@ use serde_json::{Map, Value};
 
 use crate::rag::comm::embedding::EmbeddingVector;
 
-
 #[derive(Debug)]
 pub struct EmbeddedChunk {
     pub embedding_vector: EmbeddingVector,
@@ -24,10 +23,6 @@ impl Into<PointStruct> for EmbeddedChunk {
         payload.insert("content".to_string(), Value::String(self.content));
         payload.insert("additional_data".to_string(), self.additional_data);
 
-        PointStruct::new(
-            self.id,
-            self.embedding_vector.0,
-            payload,
-        )
+        PointStruct::new(self.id, self.embedding_vector.0, payload)
     }
 }

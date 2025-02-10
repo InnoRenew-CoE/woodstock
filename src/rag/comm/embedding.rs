@@ -1,7 +1,7 @@
 use std::env;
 
-use ollama_rs::generation::embeddings::request::GenerateEmbeddingsRequest;
 use anyhow::Result;
+use ollama_rs::generation::embeddings::request::GenerateEmbeddingsRequest;
 use qdrant_client::qdrant::SearchPoints;
 
 use crate::rag::models::chunks::EmbeddedChunk;
@@ -18,9 +18,9 @@ pub struct EmbeddingVector(pub Vec<f32>);
 impl Into<SearchPoints> for EmbeddingVector {
     fn into(self) -> SearchPoints {
         let qdrant_collection = env::var("QDRANT_COLLECTION").expect("QDRANT_COLLECTION not defined");
-        SearchPoints { 
-            collection_name: qdrant_collection, 
-            vector: self.0, 
+        SearchPoints {
+            collection_name: qdrant_collection,
+            vector: self.0,
             limit: 10,
             with_payload: Some(true.into()),
             with_vectors: Some(false.into()),

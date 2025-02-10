@@ -1,0 +1,14 @@
+services:
+  woodstock-db:
+    container_name: woodstock-db
+    image: postgres
+    restart: always
+    volumes:
+      - data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - 5432:${DB_PORT}
+volumes:
+  data:

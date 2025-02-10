@@ -18,4 +18,3 @@ pub struct RagProcessableFile {
     pub file_description: Option<String>,
     pub tags: Option<Vec<String>>,
 }
-

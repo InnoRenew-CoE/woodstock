@@ -1,11 +1,28 @@
-use crate::server::{Answer, LoginDetails, Question, SelectionAnswer};
-use std::{collections::HashMap, env, io::Error};
-use tokio_postgres::{Client, NoTls};
+use crate::server::Answer;
+use crate::server::LoginDetails;
+use crate::server::Question;
+use crate::server::SelectionAnswer;
+use crate::server::User;
+use crate::server::UserRole;
+use chrono::Local;
+use chrono::NaiveDate;
+use chrono::Utc;
+use std::collections::HashMap;
+use std::env;
+use std::io::Error;
+use std::time::Duration;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
+use tokio_postgres::types::Date;
+use tokio_postgres::types::Timestamp;
+use tokio_postgres::Client;
+use tokio_postgres::NoTls;
 
 const INSERT_FILES_QUERY: &'static str = r#"insert into files (original_name, name, type, submitted_by) values ($1, $2, $3, $4) returning id"#;
 const INSERT_SELECTION_ANSWER_QUERY: &'static str = r#"insert into answers_selection (file_id, question_id, answer_id) values ($1, $2, $3)"#;
 const INSERT_TEXT_ANSWER_QUERY: &'static str = r#"insert into answers_text (file_id, question_id, text) values ($1, $2, $3)"#;
-const SELECT_USER: &'static str = "select id from users where email = $1 and password = $2";
+const SELECT_USER: &'static str = "select users.id as id, user_roles.title as role from users left join user_roles on users.role = user_roles.id where email = $1 and password = $2";
+const SET_PASSWORD: &'static str = "update users set password = $2, last_password_change = now() where email = $1;";
 const SELECT_QUESTIONS: &'static str = "select * from questions";
 const SELECT_QUESTION_OPTIONS: &'static str = "select * from question_options";
 const SELECT_DISTINCT_TAGS: &'static str = "select distinct (value) from tags";
@@ -24,13 +41,21 @@ limit 5
 ";
 
 const TABLES_SETUP: &'static str = r#"
+
+create table if not exists user_roles
+(
+    id    serial primary key,
+    title varchar(50)
+);
+
 create table if not exists users
 (
-    id        serial primary key,
-    email     varchar(100),
-    password  varchar(150),
-    joined_on date default now(),
-    role      int  default 0
+    id                   serial primary key,
+    email                varchar(100),
+    password             varchar(150),
+    joined_on            date default now(),
+    role                 int references user_roles,
+    last_password_change date
 );
 
 create table if not exists questions
@@ -88,8 +113,12 @@ pub async fn build_db_client() -> Client {
     let db_host = env::var("DB_HOST").expect("Missing DB_HOST in .env!");
     let db_user = env::var("DB_USER").expect("Missing DB_USER in .env!");
     let db_password = env::var("DB_PASSWORD").expect("Missing DB_PASSWORD in .env!");
+    let db_port = env::var("DB_PORT").unwrap_or_else(|_| {
+        println!("Defaulting to port 5432!");
+        return "5432".to_string();
+    });
 
-    let connection_string = format!("host={db_host} user={db_user} password={db_password}");
+    let connection_string = format!("host={db_host} user={db_user} password={db_password} port={db_port}");
     let (client, connection) = tokio_postgres::connect(&connection_string, NoTls)
         .await
         .expect("Unable to conenct to database");
@@ -184,9 +213,51 @@ pub async fn retrieve_tags(client: &Client) -> Result<Vec<String>, tokio_postgre
         .collect())
 }
 
-pub async fn check_login(client: &Client, login_details: LoginDetails) -> Result<i32, String> {
-    match client.query_one(SELECT_USER, &[&login_details.email, &login_details.password]).await {
-        Ok(row) => Ok(row.get("id")),
+use sha2::Digest;
+use sha2::Sha256;
+
+pub async fn check_login(client: &Client, login_details: LoginDetails) -> Result<User, String> {
+    let mut hasher = Sha256::new();
+
+    hasher.update(login_details.password.as_bytes());
+    let hashed = hex::encode(hasher.finalize());
+
+    match client.query_one(SELECT_USER, &[&login_details.email, &hashed]).await {
+        Ok(row) => {
+            let user_role: &str = row.get("role");
+            let user_role: UserRole = match user_role {
+                "Admin" => UserRole::Admin,
+                _ => panic!("No such role"),
+            };
+            let user = User {
+                id: row.get("id"),
+                role: user_role,
+            };
+            Ok(user)
+        }
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+pub async fn insert_new_password(client: &Client, login_details: LoginDetails) -> Result<(), String> {
+    let user = client
+        .query_one("select last_password_change as date from users where email = $1", &[&login_details.email])
+        .await;
+
+    if let Ok(row) = user {
+        let date: Option<NaiveDate> = row.get("date");
+        let now = Local::now().date_naive();
+        if let Some(date) = date {
+            if date >= now {
+                return Err("Too many password reset attempts".to_string());
+            }
+        }
+    };
+    let mut hasher = Sha256::new();
+    hasher.update(login_details.password);
+    let hashed = hex::encode(hasher.finalize());
+    match client.execute(SET_PASSWORD, &[&login_details.email, &hashed]).await {
+        Ok(_) => Ok(()),
         Err(error) => Err(error.to_string()),
     }
 }
