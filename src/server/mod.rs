@@ -65,7 +65,7 @@ struct SubmissionForm {
 }
 #[derive(Serialize, Deserialize)]
 pub struct User {
-    pub id: u32,
+    pub id: i32,
     pub role: UserRole,
 }
 
@@ -226,7 +226,7 @@ pub async fn download(file_id: web::Path<String>) -> HttpResponse {
 #[derive(Deserialize, Debug)]
 pub struct LoginDetails {
     pub email: String,
-    pub password: String,
+    pub password: Option<String>,
 }
 
 #[post("/login")]
@@ -234,11 +234,9 @@ async fn login(data: web::Data<AppState>, login_details: web::Json<LoginDetails>
     let Ok(client) = &mut data.client.lock() else {
         return Ok(HttpResponse::InternalServerError().finish());
     };
-    println!("Login has been called!");
     let Ok(user) = check_login(client, login_details.0).await else {
         return Ok(HttpResponse::BadRequest().finish());
     };
-
     let token_signer = &data.token_signer;
 
     Ok(HttpResponse::Ok()
@@ -263,7 +261,7 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
         strict: true,
     };
     let password = pg.generate_one().expect("Unable to generate a secure password");
-    login_details.password = password.clone();
+    login_details.password = Some(password.clone());
 
     if let Err(error) = insert_new_password(client, login_details.0).await {
         return Ok(HttpResponse::BadRequest().body(error));
@@ -271,6 +269,12 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
     // TODO: Send mail with the password...
     println!("Sending mail with newly generated password: {:?}", password);
     Ok(HttpResponse::Ok().finish())
+}
+
+#[post("/verify")]
+async fn verify(data: web::Data<AppState>) -> HttpResponse {
+    println!("Verify");
+    HttpResponse::Ok().finish()
 }
 
 /// Attempts to start the server.
@@ -298,7 +302,7 @@ pub async fn start_server(rag: Rag) {
             .verifying_key(public_key)
             .build()
             .expect("");
-        let cors = Cors::permissive();
+        let cors = Cors::default().send_wildcard().allow_any_origin().allow_any_header().allow_any_method();
         App::new()
             .wrap(cors)
             .app_data(state.clone())
@@ -310,7 +314,8 @@ pub async fn start_server(rag: Rag) {
                     .service(search)
                     .service(submit_answers)
                     .service(fetch_questions)
-                    .service(download),
+                    .service(download)
+                    .service(verify),
             )
             .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
     })

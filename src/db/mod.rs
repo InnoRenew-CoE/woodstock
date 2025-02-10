@@ -217,16 +217,19 @@ use sha2::Digest;
 use sha2::Sha256;
 
 pub async fn check_login(client: &Client, login_details: LoginDetails) -> Result<User, String> {
-    let mut hasher = Sha256::new();
+    let Some(password) = login_details.password else {
+        return Err("Missing password field.".to_string());
+    };
 
-    hasher.update(login_details.password.as_bytes());
+    let mut hasher = Sha256::new();
+    hasher.update(password.as_bytes());
     let hashed = hex::encode(hasher.finalize());
 
     match client.query_one(SELECT_USER, &[&login_details.email, &hashed]).await {
         Ok(row) => {
             let user_role: &str = row.get("role");
             let user_role: UserRole = match user_role {
-                "Admin" => UserRole::Admin,
+                "admin" => UserRole::Admin,
                 _ => panic!("No such role"),
             };
             let user = User {
@@ -240,6 +243,9 @@ pub async fn check_login(client: &Client, login_details: LoginDetails) -> Result
 }
 
 pub async fn insert_new_password(client: &Client, login_details: LoginDetails) -> Result<(), String> {
+    let Some(password) = login_details.password else {
+        return Err("Missing password field.".to_string());
+    };
     let user = client
         .query_one("select last_password_change as date from users where email = $1", &[&login_details.email])
         .await;
@@ -252,9 +258,11 @@ pub async fn insert_new_password(client: &Client, login_details: LoginDetails) -
                 return Err("Too many password reset attempts".to_string());
             }
         }
+    } else {
+        return Err("Invalid query.".to_string());
     };
     let mut hasher = Sha256::new();
-    hasher.update(login_details.password);
+    hasher.update(password);
     let hashed = hex::encode(hasher.finalize());
     match client.execute(SET_PASSWORD, &[&login_details.email, &hashed]).await {
         Ok(_) => Ok(()),
