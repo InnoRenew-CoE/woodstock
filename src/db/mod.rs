@@ -4,6 +4,7 @@ use crate::server::Question;
 use crate::server::SelectionAnswer;
 use crate::server::User;
 use crate::server::UserRole;
+use anyhow::bail;
 use chrono::Local;
 use chrono::NaiveDate;
 use chrono::Utc;
@@ -250,16 +251,19 @@ pub async fn insert_new_password(client: &Client, login_details: LoginDetails) -
         .query_one("select last_password_change as date from users where email = $1", &[&login_details.email])
         .await;
 
-    if let Ok(row) = user {
-        let date: Option<NaiveDate> = row.get("date");
-        let now = Local::now().date_naive();
-        if let Some(date) = date {
-            if date >= now {
-                return Err("Too many password reset attempts".to_string());
+    match user {
+        Ok(row) => {
+            let date: Option<NaiveDate> = row.get("date");
+            let now = Local::now().date_naive();
+            if let Some(date) = date {
+                if date >= now {
+                    return Err("Too many password reset attempts".to_string());
+                }
             }
         }
-    } else {
-        return Err("Invalid query.".to_string());
+        Err(error) => {
+            return Err(format_args!("Invalid query: {}", error).to_string());
+        }
     };
     let mut hasher = Sha256::new();
     hasher.update(password);
