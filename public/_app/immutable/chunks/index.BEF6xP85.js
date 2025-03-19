@@ -1,0 +1,1 @@
+import{P as t}from"./public.BxSvzgoa.js";async function s(){const o=await fetch(`${t}/api/verify`,{method:"post",headers:{"Content-Type":"application/json"}});return console.log(o),o.status}export{s as v};
