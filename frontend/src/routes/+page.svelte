@@ -24,7 +24,7 @@
             body: JSON.stringify({ email: email, password: password }),
         };
         if (requestPassword) {
-            const response = await fetch(`${PUBLIC_API_BASE_URL}/api/register`, init);
+            const response = await fetch(`${PUBLIC_API_BASE_URL}/register`, init);
             if (response.status === 200) {
                 pushNotification({ body: "You'll receive an email with newly generated password.", title: "Request successful" });
                 requestPassword = false;
@@ -32,7 +32,7 @@
                 pushNotification({ body: "An error occured, please notify us at woodstock@innorenew.eu", title: "Request failed" });
             }
         } else {
-            const response = await fetch(`${PUBLIC_API_BASE_URL}/api/login`, init);
+            const response = await fetch(`${PUBLIC_API_BASE_URL}/login`, init);
             if (response.status === 200) {
                 pushNotification({ body: "Succesfull login", title: "Welcome" });
                 await goto("/app");
