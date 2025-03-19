@@ -34,12 +34,12 @@
                         </a>
                     </li>
                     <li>
-                        <a class="flex items-center gap-3 sm:hover:text-accent" href="/account/login">
+                        <a class="flex items-center gap-3 sm:hover:text-accent" href="/">
                             <MaskedIcon src="../book-open.svg" class={isSmall ? "bg-white" : "hidden"} />About
                         </a>
                     </li>
                     <li>
-                        <a class="flex items-center gap-3 sm:hover:text-accent" href="/account/login">
+                        <a class="flex items-center gap-3 sm:hover:text-accent" href="/">
                             <MaskedIcon src="../contact.svg" class={isSmall ? "bg-white" : "hidden"} />Contact
                         </a>
                     </li>
