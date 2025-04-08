@@ -7,7 +7,7 @@
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
     import { fade, slide } from "svelte/transition";
     import { verify } from "$lib";
-    import { goto } from "$app/navigation";
+    import { goto, invalidateAll } from "$app/navigation";
 
     let { children } = $props();
 
@@ -32,6 +32,7 @@
         const response = await verify();
         console.log(response);
         if (response !== 200) {
+            await invalidateAll();
             await goto("/");
         }
     });
