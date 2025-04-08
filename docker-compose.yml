@@ -4,11 +4,11 @@ services:
     image: postgres
     restart: always
     volumes:
-      - data:/var/lib/postgresql/data
+      - woodstock-data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - 5432:${DB_PORT}
 volumes:
-  data:
+  woodstock-data:
