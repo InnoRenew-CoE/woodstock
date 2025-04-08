@@ -12,3 +12,4 @@ services:
       - 5432:${DB_PORT}
 volumes:
   woodstock-data:
+    name: "woodstock-data"
