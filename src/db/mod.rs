@@ -104,9 +104,11 @@ create table if not exists answers_text
 
 /// Attempts to create all tables required by this software.
 pub async fn setup_db(client: &Client) {
+    println!("Executing tables setup.");
     if let Err(error) = client.batch_execute(TABLES_SETUP).await {
         panic!("Unable to setup the database tables. {:?}", error);
     }
+    println!("Executed tables setup.");
 }
 
 /// Attempts to connect to the database and return the built Client.
