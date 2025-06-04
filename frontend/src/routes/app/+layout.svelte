@@ -25,7 +25,7 @@
 </div>
 <div class="p-2 sm:p-5 h-full bg-dark-background">
     <div class="flex flex-col items-end sm:items-center h-full gap-5">
-        <div class="sm:relative sm:rounded-2xl sm:border sm:bg-primary text-white sm:flex p-3 sm:p-3">
+        <div class="sm:relative sm:rounded-2xl sm:border sm:bg-black text-white sm:flex p-3 sm:p-3">
             <div class="bg-black rounded-xl p-4 sm:bg-transparent sm:border-transparent sm:rounded-none sm:p-0 flex gap-5 items-center justify-end w-full">
                 {#if isSmall}
                     <button onclick={() => (isVisible = !isVisible)}>
@@ -54,6 +54,6 @@
                 {/if}
             </div>
         </div>
-        <div class="rounded-xl p-10 border bg-light-background w-full flex-1">{@render children()}</div>
+        <div class="rounded-xl p-10 bg-light-background w-full flex-1 border border-secondary/30 shadow-sm">{@render children()}</div>
     </div>
 </div>

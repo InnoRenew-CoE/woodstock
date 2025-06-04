@@ -8,7 +8,7 @@
     {#if icon}
         <MaskedIcon src={icon} class="size-3 bg-primary ml-3 opacity-30 group-focus-within:opacity-100 group-hover:opacity-100 group-hover:bg-secondary group-focus-within:bg-secondary" />
     {/if}
-    <input {required} {type} {placeholder} class="w-full px-2 py-2 outline-none text-secondary transition-all ease-in-out rounded-md placeholder:text-primary/40 bg-transparent group-hover:placeholder:text-secondary {className}" bind:value />
+    <input {required} {type} {placeholder} class="w-full px-2 py-2 outline-none transition-all ease-in-out rounded-md placeholder:text-primary/40 bg-transparent group-hover:placeholder:text-secondary {className}" bind:value />
 </div>
 
 <style>

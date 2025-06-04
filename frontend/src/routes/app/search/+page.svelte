@@ -133,9 +133,9 @@
 </script>
 
 <div class="flex flex-wrap sm:grid grid-cols-2 h-full gap-5">
-    <div class="p-5 border rounded-lg bg-dark-background w-full">
+    <div class="p-5 border border-secondary/50 shadow-md rounded-lg bg-light-background w-full">
         <form class="flex gap-5 items-center">
-            <input bind:value={query} type="text" class="w-full rounded-lg py-2 px-4 border" placeholder="Search query / question ..." />
+            <input bind:value={query} type="text" class="w-full rounded-lg py-2 px-4 border border-secondary" placeholder="Ask a question ..." />
             <button type="submit" onclick={sendQuery} class="flex items-center gap-2 border flex-1 px-4 py-2 rounded-lg bg-secondary/10 border-secondary hover:brightness-75">
                 <MaskedIcon src="../contact.svg" class="size-3 bg-secondary" />
                 Ask
@@ -151,7 +151,7 @@
                     <div>
                         <div class="flex justify-between items-center bg-white py-2 px-5 rounded-lg border">
                             <div class="flex gap-2">
-                                <div class="text-xs bg-secondary/5 text-secondary px-2 rounded border-secondary/50 border group-hover:border-accent/50 group-hover:bg-accent/5 group-hover:text-accent">#{i + 1}</div>
+                                <div class="text-xs bg-secondary/5 px-2 rounded border-secondary/50 border group-hover:border-accent/50 group-hover:bg-accent/5 group-hover:text-accent">#{i + 1}</div>
                                 <div>{chunk.additional_data}</div>
                             </div>
                             <button disabled class="disabled:opacity-50 bg-gray-50 border py-1 px-2 rounded flex items-center gap-2">
@@ -170,7 +170,7 @@
             {/each}
         </ul>
     </div>
-    <div id="llm" class=" p-10 border rounded-lg w-full" bind:this={component}>
+    <div id="llm" class=" p-10 border border-secondary/50 shadow-md rounded-lg w-full" bind:this={component}>
         {#if data && data.length >= 0}
             <div in:fade>
                 <div class="opacity-30">Woody's response</div>
@@ -193,9 +193,5 @@
     .response :global(li) {
         padding: 0.25rem 0;
         transition: all 0.2s ease-in-out;
-    }
-
-    .response :global(a) {
-        @apply text-secondary;
     }
 </style>

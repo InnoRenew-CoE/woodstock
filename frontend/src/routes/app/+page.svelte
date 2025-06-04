@@ -123,18 +123,18 @@
 <div class="h-full p-10" id="charts">
     <div class="font-semibold text-xl mb-10">Welcome,</div>
     <div class="h-full grid gap-5 grid-cols-1 lg:grid-cols-5 grid-rows-3 sm:flex flex-wrap items-start">
-        <div class="min-w-[200px] rounded-lg border flex-1 overflow-hidden bg-secondary/[1%]">
-            <div class="font-nunito bg-dark-background px-5 py-3 border-b text-lg font-bold">Most common file types</div>
+        <div class="min-w-[200px] rounded-lg border border-secondary flex-1 overflow-hidden bg-secondary/[1%]">
+            <div class="font-nunito bg-dark-background px-5 py-3 border-b border-secondary text-lg font-bold">Most common file types</div>
             <div bind:this={fileTypeChart} class="chart-container"></div>
         </div>
 
-        <div class="min-w-[200px] rounded-lg border flex-1 overflow-hidden bg-secondary/[1%]">
-            <div class="font-nunito bg-dark-background px-5 py-3 border-b text-lg font-bold">Embedded files chart</div>
+        <div class="min-w-[200px] rounded-lg border border-secondary flex-1 overflow-hidden bg-secondary/[1%]">
+            <div class="font-nunito bg-dark-background px-5 py-3 border-b border-secondary text-lg font-bold">Embedded files chart</div>
             <div bind:this={embeddedFilesChart} class="chart-container"></div>
         </div>
 
-        <div class="min-w-[200px] rounded-lg border flex-1 overflow-hidden bg-secondary/[1%]">
-            <div class="font-nunito bg-dark-background px-5 py-3 border-b text-lg font-bold">File sciences</div>
+        <div class="min-w-[200px] rounded-lg border border-secondary flex-1 overflow-hidden bg-secondary/[1%]">
+            <div class="font-nunito bg-dark-background px-5 py-3 border-b border-secondary text-lg font-bold">File sciences</div>
             <div bind:this={fileCategoriesChart} class="chart-container"></div>
         </div>
     </div>

@@ -17,8 +17,8 @@
         <div class="flex items-center justify-end py-3">
             <button class="hover:brightness-125 rounded-lg px-3 py-1 bg-orange-400 border border-orange-500 text-white">Submit</button>
         </div>
-        <span>
-            Thank you, with <MaskedIcon src="/heart.svg" class="size-5 inline-block" />, team from <a href="https://innorenew.eu/sl/">InnoRenew</a>.
-        </span>
+        <div class="flex items-center justify-center gap-2">
+            Thank you, with <MaskedIcon src="/heart.svg" class="size-5 inline-block bg-red-400" />, team from <a href="https://innorenew.eu/sl/">InnoRenew</a>.
+        </div>
     </form>
 </div>

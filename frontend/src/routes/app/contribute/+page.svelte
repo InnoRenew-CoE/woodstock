@@ -60,11 +60,11 @@
 
 {#if windowSize > 640}
     <div class="grid gap-5 grid-cols-[minmax(min-content,300px)_auto] h-full">
-        <div class="select-none bg-dark-background border p-3 rounded-lg">
+        <div class="select-none bg-dark-background border border-secondary/50 p-3 rounded-lg">
             <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep} / {lastStep}</p>
             <ul class="p-5 space-y-3">
                 <li class="flex items-center gap-3 {currentStep === 0 ? 'font-semibold' : ''}">
-                    <MaskedIcon src="../{currentStep >= 1 ? 'checkmark.svg' : 'circle.svg'}" class="size-2.5 bg-secondary" />
+                    <MaskedIcon src="../{currentStep >= 1 ? 'checkmark.svg' : 'circle.svg'}" class="size-3 bg-primary" />
                     File Selection
                 </li>
                 {#if ($filesStore?.length ?? 0) > 0}
@@ -73,10 +73,10 @@
                 {#each Array.from($filesStore ?? []) as file, i}
                     {@const isVisible = currentStep >= i * $questionsStore.length + 1 && currentStep < (i + 1) * $questionsStore.length + 1}
                     {@const isDone = currentStep >= (i + 1) * $questionsStore.length + 1}
-                    {@const backgroundColor = isDone ? "bg-lime-400" : "bg-secondary"}
-                    <div class="group relative px-3 py-1 shadow-sm bg-secondary/5 border rounded-lg {isDone ? 'border-lime-400 bg-lime-400/10' : 'border-secondary/30'}">
+                    {@const backgroundColor = isDone ? "bg-lime-400" : "bg-primary"}
+                    <div class="group relative px-3 py-1 shadow-sm bg-secondary/10 border rounded-lg {isDone ? 'border-lime-400 bg-lime-400/10' : 'border-secondary'}">
                         <div class="flex items-center gap-2 {isDone ? 'text-lime-500' : ''} ">
-                            <MaskedIcon src="../{isVisible ? 'chevron-down.svg' : isDone ? 'checkmark.svg' : 'circle.svg'}" class="{isDone || isVisible ? 'size-3' : 'size-2'} {backgroundColor}" />
+                            <MaskedIcon src="../{isVisible ? 'chevron-down.svg' : isDone ? 'checkmark.svg' : 'circle.svg'}" class="{isDone || isVisible ? 'size-3' : 'size-3'} {backgroundColor}" />
                             ... {file.name.slice(-15)}
                             <div class="z-10 absolute top-0 left-0 bg-gray-50 rounded p-5 border shadow shadow-secondary border-secondary group-hover:block right-0 hidden cursor-pointer">
                                 {file.name}
@@ -99,12 +99,12 @@
                     </div>
                 {/each}
                 <li class="flex items-center gap-3 {currentStep === lastStep ? 'font-bold' : 'opacity-45'}">
-                    <MaskedIcon src="../{currentStep === lastStep ? 'checkmark.svg' : 'circle.svg'}" class="size-2.5 bg-secondary" />
+                    <MaskedIcon src="../{currentStep === lastStep ? 'checkmark.svg' : 'circle.svg'}" class="size-3 bg-secondary" />
                     Submission
                 </li>
             </ul>
         </div>
-        <div class="bg-dark-background border rounded-lg p-5 grid grid-rows-[auto_min-content]">
+        <div class="bg-dark-background border border-secondary/50 rounded-lg p-5 grid grid-rows-[auto_min-content]">
             {#if currentStep === 0}
                 <FileUpload bind:proceed />
             {:else if currentStep === lastStep}
@@ -132,9 +132,9 @@
                 <Spacer />
                 {#if currentStep < lastStep}
                     {#if proceed}
-                        <button class="py-1 px-3 rounded bg-primary text-white opacity-70 hover:opacity-100 disabled:bg-gray-400" onclick={() => step(true)}>Next</button>
+                        <button class="py-1 px-3 rounded bg-primary text-white hover:brightness-125 cursor-pointer disabled:bg-gray-400" onclick={() => step(true)}>Next</button>
                     {:else}
-                        <span class="text-secondary font-nunito flex items-center gap-2">
+                        <span class="font-nunito flex items-center gap-2">
                             <MaskedIcon src="../chevron-right.svg" class="size-3 bg-secondary animate-pulse" />
                             Required
                         </span>

@@ -1,10 +1,64 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import "tailwindcss";
 
-@layer components {
-    .primary-button {
-        @apply bg-primary text-white rounded-md p-3 hover:bg-accent transition ease-in-out duration-200;
+/* Variable Fonts */
+@supports (font-variation-settings: normal) {
+    @font-face {
+        font-family: "nunito";
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("/fonts/nunito/Nunito-VariableFont_wght.ttf") format("truetype");
+        font-named-instance: "Regular";
+    }
+
+    @font-face {
+        font-family: "jetbrains-mono";
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("/fonts/JetBrains_Mono/JetBrainsMono-VariableFont_wght.ttf") format("truetype");
+        font-named-instance: "Regular";
+    }
+
+    @font-face {
+        font-family: "nunito";
+        font-style: italic;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("/fonts/nunito/Nunito-Italic-VariableFont_wght.ttf") format("truetype");
+        font-named-instance: "Italic";
+    }
+
+    @font-face {
+        font-family: "jetbrains-mono";
+        font-style: italic;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("/fonts/JetBrains_Mono/JetBrainsMono-Italic-VariableFont_wght.ttf") format("truetype");
+        font-named-instance: "Italic";
+    }
+}
+
+@theme {
+    --font-sans: "Inter", sans-serif;
+    --font-mono: "jetbrains-mono";
+    --font-nunito: "nunito";
+
+    --color-primary: #18230f;
+    --color-background: #ec5228;
+    --color-dark-background: #fafafa;
+    --color-light-background: #fbfbfb;
+    --color-secondary: #80af81;
+    --animate-vote: vote 0.5s ease-in-out 2;
+
+    @keyframes vote {
+        0%,
+        100% {
+            transform: rotate(0deg);
+        }
+        50% {
+            transform: rotate(30deg);
+        }
     }
 }
 
