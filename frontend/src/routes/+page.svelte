@@ -62,7 +62,7 @@
                 </div>
             {:else}
                 <div in:fade>
-                    <p class= bg-secondary/5 border border-secondary p-3 rounded text-sm">You'll receive an email with password for you to access the app.</p>
+                    <p class="bg-secondary/5 border border-secondary p-3 rounded text-sm">You'll receive an email with password for you to access the app.</p>
                 </div>
             {/if}
             <button type="submit" class="primary-button grid grid-cols-[1rem_auto_1rem] items-center gap-4 group" onclick={login}>
