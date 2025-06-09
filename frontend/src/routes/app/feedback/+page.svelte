@@ -13,12 +13,12 @@
                 <li>Did you experience any issues when using the application?</li>
             </ul>
         </div>
-        <textarea id="text" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" rows="5" placeholder="We appreciate any kind of feedback!"></textarea>
+        <textarea id="text" class="outline-none appearance-none w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-accent resize-none" rows="5" placeholder="We appreciate any kind of feedback!"></textarea>
         <div class="flex items-center justify-end py-3">
-            <button class="hover:brightness-125 rounded-lg px-3 py-1 bg-orange-400 border border-orange-500 text-white">Submit</button>
+            <button class="hover:brightness-125 rounded-sm px-3 py-0.5 border text-white bg-accent/70 border-accent">Submit</button>
         </div>
-        <div class="flex items-center justify-center gap-2">
-            Thank you, with <MaskedIcon src="/heart.svg" class="size-5 inline-block bg-red-400" />, team from <a href="https://innorenew.eu/sl/">InnoRenew</a>.
+        <div class="flex items-center justify-center gap-1">
+            <span>Thank you, with</span><MaskedIcon src="/heart.svg" class="size-5 inline-block bg-red-400" /><span> from <a target="_blank" class="text-accent" href="https://innorenew.eu/sl/">InnoRenew</a>.</span>
         </div>
     </form>
 </div>

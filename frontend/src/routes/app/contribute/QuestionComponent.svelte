@@ -7,10 +7,12 @@
     let { question, answer = $bindable(), proceed = $bindable(false) }: { question: Question; answer: Answer; proceed: boolean } = $props();
     let selection = $state(answer.selection);
     let text_answer = $state(answer.text);
+    let tags = $state(answer.tags);
     $effect(() => {
         answer.selection = selection;
         answer.text = text_answer;
-        proceed = selection.length > 0 || (text_answer?.length ?? 0) > 0;
+        answer.tags = tags;
+        proceed = selection.length > 0 || (text_answer?.length ?? 0) > 0 || tags.length > 0;
     });
 </script>
 
@@ -22,7 +24,7 @@
             {#if question.question_type === QuestionType.Text}
                 <textarea placeholder="Answer here..." class="p-5 min-h-[100px] resize-none w-full rounded border border-secondary shadow-xs shadow-secondary" bind:value={text_answer}></textarea>
             {:else if question.question_type === QuestionType.Tags}
-                <SuggestiveInput options={$tagsStore} />
+                <SuggestiveInput bind:selected={tags} options={$tagsStore} />
             {:else}
                 {#each question.possible_answers.toSorted() as possible_answer}
                     <Checkbox bind:group={selection} label={possible_answer.value} value={possible_answer.id} multiple={question.question_type === QuestionType.MultiSelect} />

@@ -2,6 +2,7 @@
     import { fade, slide } from "svelte/transition";
     import { page } from "$app/stores";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
+    import { goto, invalidateAll } from "$app/navigation";
 
     let { children } = $props();
     let width = $state(0);
@@ -18,7 +19,10 @@
     let notificationCount = $state(0);
 
     async function logout() {
-        console.log(document.cookie);
+        document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        document.cookie = "refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        await invalidateAll();
+        await goto("/");
     }
 </script>
 

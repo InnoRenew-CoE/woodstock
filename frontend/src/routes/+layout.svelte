@@ -38,7 +38,7 @@
     });
 </script>
 
-<div id="layout" bind:this={layout_component} class="bg-light-background text-sm min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
+<div id="layout" bind:this={layout_component} class="bg-white text-sm min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
     <div bind:this={header_component}><Header /></div>
     <div class="flex-1 h-full relative">
         {@render children()}
@@ -56,5 +56,5 @@
             {/each}
         </div>
     </div>
-    <div bind:this={footer_component} class="bg-orange-300"><Footer /></div>
+    <div bind:this={footer_component}><Footer /></div>
 </div>

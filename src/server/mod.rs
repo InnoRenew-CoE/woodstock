@@ -98,6 +98,7 @@ pub struct Answer {
     pub question_id: i32,
     pub text: Option<String>,
     pub selection: Vec<i32>,
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -135,7 +136,6 @@ async fn fetch_tags(data: Data<AppState>) -> impl Responder {
 #[post("/answers")]
 async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): MultipartForm<SubmissionForm>, user: User) -> impl Responder {
     let tmp_file = form.file;
-    println!("{:?}", &form.answers);
     let Ok(answers) = serde_json::from_str::<Vec<Answer>>(&form.answers) else {
         eprintln!("Unable to parse answers json!");
         return HttpResponse::BadRequest().finish();

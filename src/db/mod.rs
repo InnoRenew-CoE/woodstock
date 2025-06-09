@@ -215,6 +215,7 @@ pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) {
         text,
         question_id,
         selection,
+        tags,
     } = answer;
     match text {
         Some(text) => {
@@ -227,6 +228,13 @@ pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) {
                     .await;
             }
         }
+    }
+    for tag in tags {
+        println!("Looking for a tag: {}", tag);
+        // Search for tag
+        // If it exists, get ID
+        // If it doesn't, create + get ID
+        // Insert into file_tags relation.
     }
 }
 

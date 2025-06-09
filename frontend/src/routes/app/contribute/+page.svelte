@@ -23,6 +23,7 @@
         Array.from($filesStore ?? []).flatMap((file) => {
             const answers: Answer[] = $questionsStore.map((q) => ({
                 question_id: q.id,
+                tags: [],
                 selection: [],
             }));
             return {
@@ -127,12 +128,12 @@
             {/if}
             <div class="flex justify-between gap-5 py-5">
                 {#if currentStep >= 1 && currentStep !== lastStep}
-                    <button class="transition-all py-1 px-3 rounded bg-primary text-white hover:bg-pink-500 cursor-pointer" onclick={() => step(false)}>Back</button>
+                    <button class="transition-all py-1 px-3 rounded bg-black text-white hover:bg-amber-500 cursor-pointer" onclick={() => step(false)}>Back</button>
                 {/if}
                 <Spacer />
                 {#if currentStep < lastStep}
                     {#if proceed}
-                        <button class="transition-all py-1 px-3 rounded bg-primary text-white hover:bg-accent cursor-pointer disabled:bg-gray-400" onclick={() => step(true)}>Next</button>
+                        <button class="transition-all py-1 px-3 rounded bg-black text-white hover:bg-accent cursor-pointer disabled:bg-gray-400" onclick={() => step(true)}>Next</button>
                     {:else}
                         <span class="font-nunito flex items-center gap-2">
                             <MaskedIcon src="../chevron-right.svg" class="size-3 bg-secondary animate-pulse" />

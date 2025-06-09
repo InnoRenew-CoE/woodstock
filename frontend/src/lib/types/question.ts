@@ -33,6 +33,7 @@ export type Answer = {
   question_id: number;
   text?: string;
   selection: number[];
+  tags: string[];
 };
 
 export type FileAnswer = {

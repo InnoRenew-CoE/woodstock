@@ -4,7 +4,7 @@
     let { type = "text", placeholder, class: className = "", value = $bindable(), icon = undefined, required = false } = $props();
 </script>
 
-<div class="flex items-center bg-white hover:border-secondary border rounded-md group font-sans focus-within:border-secondary">
+<div class="flex items-center bg-white hover:border-secondary border border-accent focus:shadow rounded-md group font-sans focus-within:border-secondary">
     {#if icon}
         <MaskedIcon src={icon} class="size-3 bg-primary ml-3 opacity-30 group-focus-within:opacity-100 group-hover:opacity-100 group-hover:bg-secondary group-focus-within:bg-secondary" />
     {/if}

@@ -25,8 +25,8 @@
     }
 }
 
-a {
-    color: var(--primary);
+button {
+    cursor: pointer;
 }
 
 /* Variable Fonts */
