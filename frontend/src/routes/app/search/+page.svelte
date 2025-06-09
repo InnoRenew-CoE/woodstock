@@ -132,7 +132,7 @@
     // chunks = sample_json;
 </script>
 
-<div class="flex flex-wrap sm:grid grid-cols-2 h-full gap-5">
+<div class="flex flex-wrap sm:grid grid-cols-2 h-full gap-5 min-h-[80vh]">
     <div class="p-5 border border-secondary/50 shadow-md rounded-lg bg-light-background w-full">
         <form class="flex gap-5 items-center">
             <input bind:value={query} type="text" class="w-full rounded-lg py-2 px-4 border border-secondary" placeholder="Ask a question ..." />

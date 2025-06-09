@@ -9,7 +9,9 @@ use crate::rag::Rag;
 use actix_cors::Cors;
 use actix_jwt_auth_middleware::use_jwt::UseJWTOnApp;
 use actix_jwt_auth_middleware::AuthResult;
+use actix_jwt_auth_middleware::AuthenticationService;
 use actix_jwt_auth_middleware::Authority;
+use actix_jwt_auth_middleware::FromRequest;
 use actix_jwt_auth_middleware::TokenSigner;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
@@ -21,6 +23,7 @@ use actix_web::guard::Guard;
 use actix_web::guard::GuardContext;
 use actix_web::post;
 use actix_web::web::Bytes;
+use actix_web::web::Data;
 use actix_web::web::Query;
 use actix_web::web::{self};
 use actix_web::App;
@@ -63,13 +66,13 @@ struct SubmissionForm {
     file: TempFile,
     answers: Text<String>,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, FromRequest, Clone, Debug)]
 pub struct User {
     pub id: i32,
     pub role: UserRole,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum UserRole {
     Admin,
 }
@@ -121,11 +124,20 @@ async fn fetch_questions(state: web::Data<AppState>) -> impl Responder {
     HttpResponse::Ok().json(&structure)
 }
 
+#[get("/tags")]
+async fn fetch_tags(data: Data<AppState>) -> impl Responder {
+    let mut client = data.client.lock().unwrap();
+    let tags = db::retrieve_tags(&mut client).await.unwrap_or(vec![]);
+    HttpResponse::Ok().json(tags)
+}
+
 /// Stores files in the env["FILES_FOLDER"] folder, submits answers for each file into the database.
 #[post("/answers")]
-async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): MultipartForm<SubmissionForm>) -> impl Responder {
+async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): MultipartForm<SubmissionForm>, user: User) -> impl Responder {
     let tmp_file = form.file;
+    println!("{:?}", &form.answers);
     let Ok(answers) = serde_json::from_str::<Vec<Answer>>(&form.answers) else {
+        eprintln!("Unable to parse answers json!");
         return HttpResponse::BadRequest().finish();
     };
     let Ok(client) = &mut state.client.lock() else {
@@ -141,8 +153,10 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
     let file_uuid = uuid::Uuid::new_v4().to_string();
     let base_path = std::env::var("FILES_FOLDER").unwrap_or("/var/woodstock/files/".to_string());
     let file_path = format!("{}/{}", base_path, file_uuid);
-    let user_id = 1i32;
+
+    let user_id = user.id;
     let Ok(file_id) = db::insert_file(client, &original_name, &file_uuid, &file_extension, &user_id).await else {
+        eprintln!("Unable to insert the file into the database!");
         return HttpResponse::BadRequest().finish();
     };
 
@@ -272,8 +286,8 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
 }
 
 #[post("/verify")]
-async fn verify(data: web::Data<AppState>) -> HttpResponse {
-    println!("Verify");
+async fn verify(data: web::Data<AppState>, user: User) -> HttpResponse {
+    println!("Verify {:?}", user);
     HttpResponse::Ok().finish()
 }
 

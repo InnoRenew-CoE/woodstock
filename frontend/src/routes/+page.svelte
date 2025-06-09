@@ -65,8 +65,7 @@
                     <p class="bg-secondary/5 border border-secondary p-3 rounded text-sm">You'll receive an email with password for you to access the app.</p>
                 </div>
             {/if}
-            <button type="submit" class="primary-button grid grid-cols-[1rem_auto_1rem] items-center gap-4 group" onclick={login}>
-                <MaskedIcon src="../{requestPassword ? 'contact' : 'login'}.svg" class="size-4 group-hover:translate-x-full bg-white transition duration-200 ease-in-out" />
+            <button type="submit" class="transition-all hover:bg-primary cursor-pointer bg-secondary rounded-lg p-3 text-white grid grid-cols-[1rem_auto_1rem] items-center gap-4 group" onclick={login}>
                 <div class="row-start-1 col-start-2">{requestPassword ? "Request" : "Login"}</div>
             </button>
         </form>

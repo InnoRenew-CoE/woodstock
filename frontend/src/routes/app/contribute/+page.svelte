@@ -87,8 +87,8 @@
                             {@const isDone = currentStep > 1 + j + i * $questionsStore.length}
                             {#if isVisible}
                                 <div in:slide out:slide>
-                                    <li class="pl-5 {isDone || isNow ? '' : 'opacity-30'}">
-                                        <div class="flex gap-3 items-center {isNow ? 'font-bold' : ''}">
+                                    <li class="pt-2 pl-5 {isDone || isNow ? '' : 'opacity-30'}">
+                                        <div class="flex gap-3 items-center {isNow ? 'font-bold text-secondary' : ''}">
                                             <MaskedIcon src="../{isDone ? 'checkmark.svg' : isNow ? 'chevron-right.svg' : 'circle.svg'}" class="w-3 h-3 bg-secondary" />
                                             {question.title}
                                         </div>
@@ -127,12 +127,12 @@
             {/if}
             <div class="flex justify-between gap-5 py-5">
                 {#if currentStep >= 1 && currentStep !== lastStep}
-                    <button class="py-1 px-3 rounded bg-primary text-white opacity-70 hover:opacity-100" onclick={() => step(false)}>Back</button>
+                    <button class="transition-all py-1 px-3 rounded bg-primary text-white hover:bg-pink-500 cursor-pointer" onclick={() => step(false)}>Back</button>
                 {/if}
                 <Spacer />
                 {#if currentStep < lastStep}
                     {#if proceed}
-                        <button class="py-1 px-3 rounded bg-primary text-white hover:brightness-125 cursor-pointer disabled:bg-gray-400" onclick={() => step(true)}>Next</button>
+                        <button class="transition-all py-1 px-3 rounded bg-primary text-white hover:bg-accent cursor-pointer disabled:bg-gray-400" onclick={() => step(true)}>Next</button>
                     {:else}
                         <span class="font-nunito flex items-center gap-2">
                             <MaskedIcon src="../chevron-right.svg" class="size-3 bg-secondary animate-pulse" />

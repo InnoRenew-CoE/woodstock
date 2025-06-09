@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { slide } from "svelte/transition";
+    import { fade, slide } from "svelte/transition";
     import { page } from "$app/stores";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
 
@@ -16,6 +16,10 @@
         { link: "/app/feedback", text: "Feedback" },
     ];
     let notificationCount = $state(0);
+
+    async function logout() {
+        console.log(document.cookie);
+    }
 </script>
 
 <svelte:window bind:innerWidth={width} />
@@ -49,6 +53,9 @@
                                     </a>
                                 </li>
                             {/each}
+                            <div class="flex gap-3 text-red-400 group relative" onclick={logout}>
+                                <MaskedIcon src="/logout.svg" class="group-hover:bg-red-400 bg-white size-5" />
+                            </div>
                         </ul>
                     </div>
                 {/if}

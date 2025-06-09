@@ -26,7 +26,7 @@ const SELECT_USER: &'static str = "select users.id as id, user_roles.title as ro
 const SET_PASSWORD: &'static str = "update users set password = $2, last_password_change = now() where email = $1;";
 const SELECT_QUESTIONS: &'static str = "select * from questions";
 const SELECT_QUESTION_OPTIONS: &'static str = "select * from question_options";
-const SELECT_DISTINCT_TAGS: &'static str = "select distinct (value) from tags";
+const SELECT_DISTINCT_TAGS: &'static str = "select distinct tag from tags";
 
 const SELECT_TOTAL_ANSWERS: &'static str =
     "select SUM(coalesce((select count(*) from answers_text)) + (select count(*) from answers_selection)) as total";
@@ -100,6 +100,19 @@ create table if not exists answers_text
     question_id int references questions,
     text        text
 );
+
+create table if not exists tags
+(
+    id    serial primary key,
+    tag varchar(50)
+);
+
+create table if not exists tag_file
+(
+    id          serial primary key,
+    file_id     int references files,
+    tag_id int references tags
+);
 "#;
 
 /// Attempts to create all tables required by this software.
@@ -172,6 +185,17 @@ pub async fn retrieve_questions(client: &mut Client) -> Vec<Question> {
     questions.into_iter().map(|(_id, q)| q).collect()
 }
 
+/// Retrieves all possible tags from the database.
+pub async fn retrieve_tags(client: &Client) -> Result<Vec<String>, tokio_postgres::Error> {
+    Ok(client
+        .query(SELECT_DISTINCT_TAGS, &[])
+        .await
+        .expect("Unable to query tags.")
+        .into_iter()
+        .map(|row| row.get("tag"))
+        .collect())
+}
+
 /// Inserts the information about the file into the database.
 pub async fn insert_file(
     client: &Client,
@@ -204,16 +228,6 @@ pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) {
             }
         }
     }
-}
-
-/// Retrieves all possible tags from the database.
-pub async fn retrieve_tags(client: &Client) -> Result<Vec<String>, tokio_postgres::Error> {
-    Ok(client
-        .query(SELECT_DISTINCT_TAGS, &[])
-        .await?
-        .into_iter()
-        .map(|row| row.get("value"))
-        .collect())
 }
 
 use sha2::Digest;

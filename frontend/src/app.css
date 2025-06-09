@@ -1,5 +1,34 @@
 @import "tailwindcss";
 
+@theme {
+    --font-sans: "Inter", sans-serif;
+    --font-mono: "jetbrains-mono";
+    --font-nunito: "nunito";
+
+    --color-primary: #18230f;
+    --color-secondary: #67ae6e;
+    --color-accent: #0065f8;
+
+    --color-background: #ec5228;
+    --color-dark-background: #fafafa;
+    --color-light-background: #fbfbfb;
+    --animate-vote: vote 0.5s ease-in-out 2;
+
+    @keyframes vote {
+        0%,
+        100% {
+            transform: rotate(0deg);
+        }
+        50% {
+            transform: rotate(30deg);
+        }
+    }
+}
+
+a {
+    color: var(--primary);
+}
+
 /* Variable Fonts */
 @supports (font-variation-settings: normal) {
     @font-face {
@@ -37,31 +66,4 @@
         src: url("/fonts/JetBrains_Mono/JetBrainsMono-Italic-VariableFont_wght.ttf") format("truetype");
         font-named-instance: "Italic";
     }
-}
-
-@theme {
-    --font-sans: "Inter", sans-serif;
-    --font-mono: "jetbrains-mono";
-    --font-nunito: "nunito";
-
-    --color-primary: #18230f;
-    --color-background: #ec5228;
-    --color-dark-background: #fafafa;
-    --color-light-background: #fbfbfb;
-    --color-secondary: #80af81;
-    --animate-vote: vote 0.5s ease-in-out 2;
-
-    @keyframes vote {
-        0%,
-        100% {
-            transform: rotate(0deg);
-        }
-        50% {
-            transform: rotate(30deg);
-        }
-    }
-}
-
-a {
-    color: var(--primary);
 }

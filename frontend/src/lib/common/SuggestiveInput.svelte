@@ -3,4 +3,4 @@
 </script>
 
 {JSON.stringify(options)}
-<input class="border rounded-lg px-2 py-1 w-full" placeholder="Please type here..." />
+<input id="tag-input" class="border rounded-lg px-2 py-1 w-full" placeholder="Please type here..." />
