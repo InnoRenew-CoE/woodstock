@@ -3,15 +3,13 @@
 @theme {
     --font-sans: "Inter", sans-serif;
     --font-mono: "jetbrains-mono";
+    --font-roboto: "roboto";
     --font-nunito: "nunito";
 
-    --color-primary: #18230f;
-    --color-secondary: #67ae6e;
-    --color-accent: #0065f8;
-
-    --color-background: #ec5228;
-    --color-dark-background: #fafafa;
-    --color-light-background: #fbfbfb;
+    --color-primary: #000000;
+    --color-secondary: #007bff;
+    --color-accent: #4a4a4a;
+    --color-background: #d9d9d9;
     --animate-vote: vote 0.5s ease-in-out 2;
 
     @keyframes vote {
@@ -32,12 +30,19 @@ button {
 /* Variable Fonts */
 @supports (font-variation-settings: normal) {
     @font-face {
+        font-family: "roboto";
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("/fonts/roboto/Roboto-VariableFont.ttf") format("truetype");
+    }
+
+    @font-face {
         font-family: "nunito";
         font-style: normal;
         font-weight: 100 900;
         font-display: swap;
         src: url("/fonts/nunito/Nunito-VariableFont_wght.ttf") format("truetype");
-        font-named-instance: "Regular";
     }
 
     @font-face {
@@ -46,7 +51,6 @@ button {
         font-weight: 100 900;
         font-display: swap;
         src: url("/fonts/JetBrains_Mono/JetBrainsMono-VariableFont_wght.ttf") format("truetype");
-        font-named-instance: "Regular";
     }
 
     @font-face {
@@ -55,7 +59,6 @@ button {
         font-weight: 100 900;
         font-display: swap;
         src: url("/fonts/nunito/Nunito-Italic-VariableFont_wght.ttf") format("truetype");
-        font-named-instance: "Italic";
     }
 
     @font-face {
@@ -64,6 +67,13 @@ button {
         font-weight: 100 900;
         font-display: swap;
         src: url("/fonts/JetBrains_Mono/JetBrainsMono-Italic-VariableFont_wght.ttf") format("truetype");
-        font-named-instance: "Italic";
+    }
+
+    @font-face {
+        font-family: "roboto";
+        font-style: italic;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("/fonts/roboto/Roboto-Italic-VariableFont_wdth,wght.ttf") format("truetype");
     }
 }

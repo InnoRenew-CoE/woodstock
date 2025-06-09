@@ -38,8 +38,10 @@
     });
 </script>
 
-<div id="layout" bind:this={layout_component} class="bg-white text-sm min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
-    <div bind:this={header_component}><Header /></div>
+<div id="layout" bind:this={layout_component} class="font-sans bg-background text-sm min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
+    <div bind:this={header_component}>
+        <Header />
+    </div>
     <div class="flex-1 h-full relative">
         {@render children()}
         <div class="absolute right-0 bottom-0 top-0 flex flex-col justify-end gap-5 p-10 pointer-events-none">

@@ -6,13 +6,21 @@
     let width = $state(0);
     let isSmall = $derived(width < 640);
     let isVisible = $state(false);
+
+    const paths = [
+        { text: "Home", url: "/", icon: "/home.svg" },
+        { text: "About", path: "/about", icon: "/heart.svg" },
+        { text: "Contact", path: "/contact", icon: "/contact.svg" },
+    ];
 </script>
 
 <svelte:window bind:innerWidth={width} />
 {#if !$page.url.pathname.includes("/app")}
-    <div class="p-3 flex items-center justify-center relative">
-        <div class="rounded-full bg-black text-white px-10 py-1 {isSmall ? 'py-2' : ''} flex gap-5 items-center justify-between border-b border-b-secondary">
-            <img src="/woodstock.svg" class="size-10 rounded-full" />
+    <div class="p-3 flex gap-3 items-center justify-center relative">
+        <div class="p-2 bg-white backdrop-blur-2xl border-white rounded-full">
+            <img src="/woodstock.svg" class="size-8 rounded-full" />
+        </div>
+        <div class="rounded-full text-white {isSmall ? 'p-4 bg-black' : ''} flex gap-5 items-center justify-between">
             {#if isSmall}
                 <button onclick={() => (isVisible = !isVisible)}>
                     <MaskedIcon src="../menu.svg" class="w-5 bg-white" />
@@ -22,25 +30,18 @@
                 <div
                     in:slide
                     out:slide={{ duration: 100 }}
-                    class="z-10 absolute bottom-0 translate-y-full bg-black rounded-2xl text-white right-10 left-10 p-3
-                    sm:relative sm:flex sm:translate-y-0 sm:left-0 sm:right-0 sm:p-0"
+                    class="z-10 absolute bottom-0 translate-y-full bg-black rounded-2xl text-white right-10 left-10 p-4
+                    sm:relative sm:rounded-full sm:py-1.5 sm:px-2 sm:flex sm:translate-y-0 sm:left-0 sm:right-0"
                 >
-                    <ul class="pl-8 py-1 grid sm:flex gap-3 sm:gap-10" onclick={() => (isVisible = false)}>
-                        <li class="hover:text-secondary">
-                            <a class="flex items-center gap-3" href="/">
-                                <MaskedIcon src="../home.svg" class={isSmall ? "bg-white" : "hidden"} />Home
-                            </a>
-                        </li>
-                        <li>
-                            <a class="flex items-center gap-3" href="/">
-                                <MaskedIcon src="../book-open.svg" class={isSmall ? "bg-white" : "hidden"} />About
-                            </a>
-                        </li>
-                        <li>
-                            <a class="flex items-center gap-3" href="/">
-                                <MaskedIcon src="../contact.svg" class={isSmall ? "bg-white" : "hidden"} />Contact
-                            </a>
-                        </li>
+                    <ul class="grid sm:flex gap-3 sm:gap-2" onclick={() => (isVisible = false)}>
+                        {#each paths as path}
+                            {@const isSelected = window?.location?.pathname === path.url}
+                            <li>
+                                <a class="cursor-pointer flex items-center gap-3 {isSelected ? 'bg-white text-black' : ''} px-8 py-1.5 rounded-full" href={path.url}>
+                                    <MaskedIcon src={path.icon} class={isSmall ? (isSelected ? "bg-black" : "bg-white") : "hidden"} />{path.text}
+                                </a>
+                            </li>
+                        {/each}
                     </ul>
                 </div>
             {/if}
