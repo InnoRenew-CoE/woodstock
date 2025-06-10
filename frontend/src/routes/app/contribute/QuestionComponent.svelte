@@ -22,7 +22,6 @@
     });
 </script>
 
-{JSON.stringify(multipleTextAnswers)}
 {#if answer}
     <div>
         <div class="glass p-8">
