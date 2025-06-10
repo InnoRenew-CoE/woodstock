@@ -28,7 +28,6 @@
             {/if}
             {#if isVisible || !isSmall}
                 <div
-                    in:slide
                     out:slide={{ duration: 100 }}
                     class="z-10 absolute bottom-0 translate-y-full bg-black rounded-2xl text-white right-10 left-10 p-4
                     sm:relative sm:rounded-full sm:py-1.5 sm:px-2 sm:flex sm:translate-y-0 sm:left-0 sm:right-0"
