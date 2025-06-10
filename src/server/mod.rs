@@ -181,9 +181,11 @@ struct SearchQuery {
 #[get("/search")]
 async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) -> impl Responder {
     let Ok(rag) = state.rag.lock() else {
+        println!("State.rag.lock failed");
         return HttpResponse::InternalServerError().finish();
     };
     let Ok(mut result) = rag.search(search_query.query.clone()).await else {
+        println!("rag.search failed");
         return HttpResponse::InternalServerError().finish();
     };
 
@@ -191,6 +193,7 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) ->
     let stream = ReceiverStream::new(rx);
 
     let Ok(chunks_json) = serde_json::to_string(&result.chunks) else {
+        println!("To json failed");
         return HttpResponse::InternalServerError().finish();
     };
 
