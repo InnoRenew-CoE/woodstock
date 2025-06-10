@@ -49,9 +49,9 @@
     });
 </script>
 
-<div class="flex justify-center h-full p-10">
+<div class="flex items-center justify-center h-full p-10">
     <div class="grid gap-2 max-w-[400px] w-[80%] h-min">
-        <form class="grid p-8 px-10 rounded-3xl border border-white shadow-sm backdrop-blur-2xl gap-5 bg-white/70">
+        <form class="grid p-8 px-10 glass gap-5 bg-white/60">
             <div class="flex gap-3 items-center font-roboto font-semibold text-2xl text-black">
                 Login <span><img src="./info.svg" alt="Information" class="w-3" /></span>
             </div>

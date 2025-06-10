@@ -34,7 +34,7 @@
             <div class="p-2 bg-white backdrop-blur-2xl border-white rounded-full">
                 <img src="/woodstock.svg" class="size-8 rounded-full" />
             </div>
-            <div class="flex items-center justify-center bg-black rounded-full p-4 sm:p-1">
+            <div class="flex items-center justify-center rounded-full p-4 sm:p-0 bg-black">
                 {#if isSmall}
                     <button onclick={() => (isVisible = !isVisible)}>
                         <MaskedIcon src="../menu.svg" class="size-4 bg-white" />
@@ -51,7 +51,7 @@
                             {#each paths as { link, text }}
                                 {@const isSelected = link == $page.url.pathname}
                                 <li>
-                                    <a class="{text === 'Feedback' ? 'bg-orange-400' : ''} cursor-pointer flex items-center gap-3 {isSelected ? 'bg-white text-black' : ''} px-8 py-1.5 rounded-full" href={link}>
+                                    <a class="{text === 'Feedback' ? 'text-amber-500' : ''} cursor-pointer flex items-center gap-3 {isSelected ? 'bg-white text-black' : ''} px-8 py-1.5 rounded-full hover:brightness-90" href={link}>
                                         {text}
                                     </a>
                                 </li>
@@ -64,6 +64,6 @@
                 {/if}
             </div>
         </div>
-        <div class="rounded-xl p-10 bg-light-background w-full flex-1 border border-secondary/30 shadow-sm">{@render children()}</div>
+        <div class="rounded-xl w-full flex-1">{@render children()}</div>
     </div>
 </div>

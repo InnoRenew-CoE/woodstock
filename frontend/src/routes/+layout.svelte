@@ -38,7 +38,7 @@
     });
 </script>
 
-<div id="layout" bind:this={layout_component} class="font-sans bg-background text-sm min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
+<div id="layout" bind:this={layout_component} class="font-sans from-light-background to-background bg-gradient-to-br text-sm min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
     <div bind:this={header_component}>
         <Header />
     </div>
@@ -46,8 +46,8 @@
         {@render children()}
         <div class="absolute right-0 bottom-0 top-0 flex flex-col justify-end gap-5 p-10 pointer-events-none">
             {#each $notificationsStore as notification, i}
-                <div in:slide out:slide class="{notification.class} p-2 min-w-[250px] bg-dark-background border border-secondary/80 rounded-xl shadow-lg shadow-secondary/30">
-                    <div class="border border-secondary/10 bg-light-background rounded-lg px-4 py-2 flex items-center gap-3">
+                <div in:slide out:slide class="{notification.class} p-2 min-w-[250px] glass">
+                    <div class="glass rounded-lg px-4 py-2 flex items-center gap-3">
                         <MaskedIcon src="../bell.svg" class="{notification.class} size-5 bg-secondary" />
                         <div>
                             <div class="font-bold">{notification.title}</div>

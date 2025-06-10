@@ -60,9 +60,9 @@
 <svelte:window bind:innerWidth={windowSize} />
 
 {#if windowSize > 640}
-    <div class="grid gap-5 grid-cols-[minmax(min-content,300px)_auto] h-full">
-        <div class="select-none bg-dark-background border border-secondary/50 p-3 rounded-lg">
-            <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep} / {lastStep}</p>
+    <div class="glass p-5 grid gap-5 grid-cols-[minmax(min-content,300px)_auto] h-full">
+        <div class="select-none glass px-4 py-2">
+            <!-- <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep} / {lastStep}</p> -->
             <ul class="p-5 space-y-3">
                 <li class="flex items-center gap-3 {currentStep === 0 ? 'font-semibold' : ''}">
                     <MaskedIcon src="../{currentStep >= 1 ? 'checkmark.svg' : 'circle.svg'}" class="size-3 bg-primary" />
@@ -75,13 +75,17 @@
                     {@const isVisible = currentStep >= i * $questionsStore.length + 1 && currentStep < (i + 1) * $questionsStore.length + 1}
                     {@const isDone = currentStep >= (i + 1) * $questionsStore.length + 1}
                     {@const backgroundColor = isDone ? "bg-lime-400" : "bg-primary"}
-                    <div class="group relative px-3 py-1 shadow-sm bg-secondary/10 border rounded-lg {isDone ? 'border-lime-400 bg-lime-400/10' : 'border-secondary'}">
+                    <div class="glass group relative px-3 py-1 shadow-sm border {isDone ? 'border-lime-400 bg-lime-400/10' : ''}">
                         <div class="flex items-center gap-2 {isDone ? 'text-lime-500' : ''} ">
-                            <MaskedIcon src="../{isVisible ? 'chevron-down.svg' : isDone ? 'checkmark.svg' : 'circle.svg'}" class="{isDone || isVisible ? 'size-3' : 'size-3'} {backgroundColor}" />
-                            ... {file.name.slice(-15)}
-                            <div class="z-10 absolute top-0 left-0 bg-gray-50 rounded p-5 border shadow shadow-secondary border-secondary group-hover:block right-0 hidden cursor-pointer">
+                            <div class="text-white glass bg-secondary z-20 absolute top-0 left-0 pr-30 text-nowrap py-1 px-5 cursor-pointer hidden group-hover:block">
                                 {file.name}
                             </div>
+                            <MaskedIcon src="../{isVisible ? 'chevron-down.svg' : isDone ? 'checkmark.svg' : 'circle.svg'}" class="size-3 {backgroundColor}" />
+                            {#if file.name.length > 10}
+                                {file.name.slice(0, 3)} ... {file.name.slice(-5)}
+                            {:else}
+                                {file.name}
+                            {/if}
                         </div>
                         {#each $questionsStore as question, j}
                             {@const isNow = currentStep == 1 + j + i * $questionsStore.length}
@@ -89,7 +93,7 @@
                             {#if isVisible}
                                 <div in:slide out:slide>
                                     <li class="pt-2 pl-5 {isDone || isNow ? '' : 'opacity-30'}">
-                                        <div class="flex gap-3 items-center {isNow ? 'font-bold text-secondary' : ''}">
+                                        <div class="flex gap-3 items-center {isNow ? 'text-secondary' : ''}">
                                             <MaskedIcon src="../{isDone ? 'checkmark.svg' : isNow ? 'chevron-right.svg' : 'circle.svg'}" class="w-3 h-3 bg-secondary" />
                                             {question.title}
                                         </div>
@@ -99,13 +103,13 @@
                         {/each}
                     </div>
                 {/each}
-                <li class="flex items-center gap-3 {currentStep === lastStep ? 'font-bold' : 'opacity-45'}">
-                    <MaskedIcon src="../{currentStep === lastStep ? 'checkmark.svg' : 'circle.svg'}" class="size-3 bg-secondary" />
+                <li class="flex items-center gap-3 {currentStep === lastStep ? 'font-bold' : ''}">
+                    <!-- <MaskedIcon src="../{currentStep === lastStep ? 'checkmark.svg' : 'circle.svg'}" class="z-0 size-3 bg-secondary" /> -->
                     Submission
                 </li>
             </ul>
         </div>
-        <div class="bg-dark-background border border-secondary/50 rounded-lg p-5 grid grid-rows-[auto_min-content]">
+        <div class="glass p-10 grid grid-rows-[auto_min-content]">
             {#if currentStep === 0}
                 <FileUpload bind:proceed />
             {:else if currentStep === lastStep}

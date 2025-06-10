@@ -26,9 +26,11 @@
             {:else if question.question_type === QuestionType.Tags}
                 <SuggestiveInput bind:selected={tags} options={$tagsStore} />
             {:else}
-                {#each question.possible_answers.toSorted() as possible_answer}
-                    <Checkbox bind:group={selection} label={possible_answer.value} value={possible_answer.id} multiple={question.question_type === QuestionType.MultiSelect} />
-                {/each}
+                <div class="grid lg:grid-cols-3 gap-3 w-full items-stretch flex-wrap">
+                    {#each question.possible_answers.toSorted() as possible_answer}
+                        <Checkbox bind:group={selection} label={possible_answer.value} value={possible_answer.id} multiple={question.question_type === QuestionType.MultiSelect} />
+                    {/each}
+                </div>
             {/if}
         </div>
     </div>

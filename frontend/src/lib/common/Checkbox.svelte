@@ -20,7 +20,7 @@
     }
 </script>
 
-<label class="transition-all font-nunito select-none cursor-pointer px-4 py-2 rounded border {checked ? 'bg-accent/70 border-accent text-white' : 'border-gray-200 bg-gray-100 opacity-70 hover:opacity-100'} ">
+<label class="transition-all select-none glass px-5 py-2 {checked ? 'bg-secondary backdrop-blur-none text-white border-white' : ''}">
     <input class="hidden" type="checkbox" {value} onchange={(e) => change(e)} />
     {label}
 </label>

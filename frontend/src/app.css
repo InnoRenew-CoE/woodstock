@@ -7,9 +7,12 @@
     --font-nunito: "nunito";
 
     --color-primary: #000000;
-    --color-secondary: #007bff;
+    /* --color-secondary: #007bff; */
+    --color-secondary: #95d2b3;
     --color-accent: #4a4a4a;
-    --color-background: #d9d9d9;
+    /* --color-background: #cedf9f; */
+    --color-light-background: #ffdcdc;
+    --color-background: #ecfae5;
     --animate-vote: vote 0.5s ease-in-out 2;
 
     @keyframes vote {
@@ -20,6 +23,12 @@
         50% {
             transform: rotate(30deg);
         }
+    }
+}
+
+@layer components {
+    .glass {
+        @apply backdrop-blur-2xl bg-white/30 border border-white rounded-2xl shadow-sm shadow-accent/10;
     }
 }
 
