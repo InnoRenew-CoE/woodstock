@@ -63,8 +63,8 @@
     <div class="glass p-5 grid gap-5 grid-cols-[minmax(min-content,300px)_auto] h-full">
         <div class="select-none glass px-4 py-2">
             <!-- <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep} / {lastStep}</p> -->
-            <ul class="p-5 space-y-3">
-                <li class="glass p-3 flex items-center gap-3 {currentStep === 0 ? 'bg-secondary/5 shadow-secondary/30 border-secondary text-secondary' : ''}">
+            <ul class="px-2 py-5 space-y-3">
+                <li class="glass px-3 py-2 flex items-center gap-3 {currentStep === 0 ? 'bg-secondary/5 shadow-secondary/30 border-secondary text-secondary' : ''}">
                     <MaskedIcon src="../{currentStep >= 1 ? 'checkmark.svg' : 'circle.svg'}" class="size-3 bg-secondary" />
                     File Selection
                 </li>
@@ -103,7 +103,7 @@
                         {/each}
                     </div>
                 {/each}
-                <li class="glass p-3 flex items-center gap-3 {currentStep === lastStep ? 'font-bold' : ''}">
+                <li class="glass px-3 py-2 flex items-center gap-3 {currentStep === lastStep ? 'font-bold' : ''}">
                     <MaskedIcon src="../{currentStep === lastStep ? 'checkmark.svg' : 'circle.svg'}" class="z-0 size-3 bg-secondary" />
                     Submission
                 </li>

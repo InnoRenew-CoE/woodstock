@@ -112,8 +112,8 @@ create table if not exists answers_text
 
 create table if not exists tags
 (
-    id    serial primary key,
-    tag varchar(50)
+    id  serial primary key,
+    tag varchar(50) unique
 );
 
 create table if not exists tag_file
@@ -121,6 +121,13 @@ create table if not exists tag_file
     id          serial primary key,
     file_id     int references files,
     tag_id int references tags
+);
+
+create table if not exists feedback
+(
+    id           serial primary key,
+    submitted_by int references users,
+    text         text
 );
 "#;
 
@@ -351,4 +358,10 @@ pub async fn insert_new_password(client: &Client, login_details: LoginDetails) -
         Ok(_) => Ok(()),
         Err(error) => Err(error.to_string()),
     }
+}
+
+pub async fn insert_feedback(feedback: String, user: &i32, client: &mut Client) {
+    client
+        .execute("insert into feedback (text, submitted_by) values ($1, $2)", &[&feedback, user])
+        .await;
 }

@@ -16,11 +16,13 @@ use actix_jwt_auth_middleware::TokenSigner;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
+use actix_web::cookie::time::Duration;
 use actix_web::cookie::Cookie;
 use actix_web::dev::ResourcePath;
 use actix_web::get;
 use actix_web::guard::Guard;
 use actix_web::guard::GuardContext;
+use actix_web::http::StatusCode;
 use actix_web::post;
 use actix_web::web::Bytes;
 use actix_web::web::Data;
@@ -28,6 +30,7 @@ use actix_web::web::Query;
 use actix_web::web::{self};
 use actix_web::App;
 use actix_web::HttpResponse;
+use actix_web::HttpResponseBuilder;
 use actix_web::HttpServer;
 use actix_web::Responder;
 use actix_web_lab::web::spa;
@@ -47,7 +50,6 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::sync::Mutex;
-use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
 use tokio_postgres::Client;
@@ -180,6 +182,14 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
     HttpResponse::Ok().finish()
 }
 
+#[post("/feedback")]
+async fn submit_feedback(state: Data<AppState>, feedback: web::Json<String>, user: User) -> impl Responder {
+    let mut client = state.client.lock().unwrap();
+    let feedback = feedback.0;
+    db::insert_feedback(feedback, &user.id, &mut client).await;
+    HttpResponse::Ok().finish()
+}
+
 #[derive(Deserialize)]
 struct SearchQuery {
     query: String,
@@ -207,7 +217,7 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) ->
     let _ = tx.send(Bytes::try_from(chunks_json + "\r\n")).await;
 
     actix_web::rt::spawn(async move {
-        sleep(Duration::from_secs(2)).await;
+        sleep(std::time::Duration::from_secs(2)).await;
         while let Some(res) = result.stream.next().await {
             if let Ok(responses) = res {
                 for resp in responses {
@@ -263,10 +273,9 @@ async fn login(data: web::Data<AppState>, login_details: web::Json<LoginDetails>
     };
     let token_signer = &data.token_signer;
 
-    Ok(HttpResponse::Ok()
-        .cookie(token_signer.create_access_cookie(&user)?)
-        .cookie(token_signer.create_refresh_cookie(&user)?)
-        .finish())
+    let mut access = token_signer.create_access_cookie(&user)?;
+    let mut refresh = token_signer.create_refresh_cookie(&user)?;
+    Ok(HttpResponse::Ok().cookie(access).cookie(refresh).finish())
 }
 
 #[post("/register")]
@@ -303,11 +312,13 @@ async fn verify(data: web::Data<AppState>, user: User) -> HttpResponse {
 
 #[post("/invalidate")]
 async fn invalidate(data: web::Data<AppState>, user: User) -> HttpResponse {
-    let mut refresh = data.token_signer.create_refresh_cookie(&user).unwrap();
-    let mut access = data.token_signer.create_refresh_cookie(&user).unwrap();
+    let mut refresh = Cookie::new("refresh_token", "");
+    let mut access = Cookie::new("access_token", "");
+    refresh.set_path("/");
+    access.set_path("/");
     refresh.make_removal();
     access.make_removal();
-    HttpResponse::Ok().cookie(refresh).cookie(access).finish()
+    HttpResponseBuilder::new(StatusCode::OK).cookie(refresh).cookie(access).finish()
 }
 
 /// Attempts to start the server.
@@ -341,7 +352,6 @@ pub async fn start_server(rag: Rag) {
             .app_data(state.clone())
             .service(login)
             .service(register)
-            .service(invalidate)
             .use_jwt(
                 authority,
                 web::scope("/api")
@@ -351,7 +361,9 @@ pub async fn start_server(rag: Rag) {
                     .service(download)
                     .service(verify)
                     .service(fetch_tags)
-                    .service(fetch_files),
+                    .service(fetch_files)
+                    .service(submit_feedback)
+                    .service(invalidate),
             )
             .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
     })
