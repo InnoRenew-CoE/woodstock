@@ -1,1 +1,1 @@
-export const env={"PUBLIC_API_BASE_URL":"http://localhost:6969"}
+export const env={"PUBLIC_API_BASE_URL":"https://observatory.innorenew.eu"}
