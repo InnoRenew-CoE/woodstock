@@ -16,7 +16,10 @@
         answer.text = text_answer;
         answer.tags = tags;
         if (question.question_type === QuestionType.MultiText) {
-            answer.text = JSON.stringify(multipleTextAnswers.filter((s) => s.trim().length !== 0));
+            const options = multipleTextAnswers.filter((s) => s.trim().length !== 0);
+            if (options.length > 0) {
+                answer.text = JSON.stringify(options);
+            }
         }
         proceed = answer.selection.length > 0 || (answer.text?.length ?? 0) > 0 || answer.tags.length > 0;
     });

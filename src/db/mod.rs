@@ -253,7 +253,7 @@ pub async fn insert_file(
     Ok(row.get("id"))
 }
 
-pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) {
+pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) -> Result<(), anyhow::Error> {
     let Answer {
         text,
         question_id,
@@ -274,11 +274,23 @@ pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) {
     }
     for tag in tags {
         println!("Looking for a tag: {}", tag);
-        // Search for tag
-        // If it exists, get ID
-        // If it doesn't, create + get ID
+        let tagRow = match client.query_one("SELECT id from tags where tag = $1 limit 1", &[&tag]).await {
+            Ok(row) => Ok(row),
+            Err(_) => {
+                // insert new tag
+                println!("Inserting {tag:?}");
+                client.query_one("insert into tags (tag) values ($1) returning id", &[&tag.trim()]).await
+            }
+        };
+        println!("{:?}", tagRow);
+        let Ok(row) = tagRow else { bail!("Unable to add tag to the database.") };
+        let tag_id: i32 = row.get("id");
+        client
+            .execute("insert into tag_file (file_id, tag_id) values ($1, $2)", &[file_id, &tag_id])
+            .await?;
         // Insert into file_tags relation.
     }
+    Ok(())
 }
 
 use sha2::Digest;

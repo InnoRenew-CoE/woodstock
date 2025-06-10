@@ -174,7 +174,7 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
     }
 
     for answer in answers {
-        db::insert_answer(client, answer, &file_id).await;
+        db::insert_answer(client, answer, &file_id).await.unwrap();
     }
 
     HttpResponse::Ok().finish()
@@ -301,6 +301,15 @@ async fn verify(data: web::Data<AppState>, user: User) -> HttpResponse {
     HttpResponse::Ok().finish()
 }
 
+#[post("/invalidate")]
+async fn invalidate(data: web::Data<AppState>, user: User) -> HttpResponse {
+    let mut refresh = data.token_signer.create_refresh_cookie(&user).unwrap();
+    let mut access = data.token_signer.create_refresh_cookie(&user).unwrap();
+    refresh.make_removal();
+    access.make_removal();
+    HttpResponse::Ok().cookie(refresh).cookie(access).finish()
+}
+
 /// Attempts to start the server.
 pub async fn start_server(rag: Rag) {
     let server_port = env::var("SERVER_PORT").ok().and_then(|x| x.parse::<u16>().ok()).unwrap_or(6969);
@@ -332,6 +341,7 @@ pub async fn start_server(rag: Rag) {
             .app_data(state.clone())
             .service(login)
             .service(register)
+            .service(invalidate)
             .use_jwt(
                 authority,
                 web::scope("/api")
