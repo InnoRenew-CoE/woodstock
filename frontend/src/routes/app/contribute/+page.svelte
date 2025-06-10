@@ -55,6 +55,8 @@
             }, 15_000);
         }
     });
+
+    let answers = $state([""]);
 </script>
 
 <svelte:window bind:innerWidth={windowSize} />

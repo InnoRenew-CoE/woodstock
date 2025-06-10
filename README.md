@@ -56,3 +56,14 @@ You could offer a few simple ways for them to answer, for example:
 - [ ] After Event: (User describes an event, e.g., "After next product launch," "End of fiscal year," "Once new policy is approved")
 - [ ] No Expiration / Evergreen: (For documents not expected to become outdated quickly)
 - [ ] Unsure / Needs Regular Review: (Indicates the document might need periodic checks without a fixed date)
+
+
+```ts
+export enum QuestionType {
+  Text,
+  Select,
+  MultiSelect,
+  Tags,
+  MultiText,
+}
+```

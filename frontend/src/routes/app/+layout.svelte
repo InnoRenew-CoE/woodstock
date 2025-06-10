@@ -14,7 +14,6 @@
         { link: "/app/search", text: "Search" },
         { link: "/app/contribute", text: "Contribute" },
         { link: "/app/notifications", text: "Notifications" },
-        { link: "/app/feedback", text: "Feedback" },
     ];
     let notificationCount = $state(0);
 
@@ -51,7 +50,7 @@
                             {#each paths as { link, text }}
                                 {@const isSelected = link == $page.url.pathname}
                                 <li>
-                                    <a class="{text === 'Feedback' ? 'text-green-400' : ''} cursor-pointer flex items-center gap-3 {isSelected ? 'bg-white text-black' : ''} px-8 py-1.5 rounded-full hover:brightness-90" href={link}>
+                                    <a class="cursor-pointer flex items-center gap-3 {isSelected ? 'bg-white text-black' : ''} px-8 py-1.5 rounded-full hover:brightness-90" href={link}>
                                         {text}
                                     </a>
                                 </li>
@@ -60,6 +59,10 @@
                     </div>
                 {/if}
             </div>
+            <a class="flex items-center gap-3 group relative glass bg-white p-3 rounded-full hover:bg-white/90 cursor-pointer" href="/app/feedback">
+                <MaskedIcon src="/bulb.svg" class="bg-green-600 size-5" />
+                Feedback
+            </a>
             <div class="glass bg-white/60 p-3 rounded-full hover:bg-white/90 cursor-pointer">
                 <div class="flex items-center gap-3 group relative" onclick={logout}>
                     <MaskedIcon src="/logout.svg" class="bg-radial from-accent to-secondary size-5" />
