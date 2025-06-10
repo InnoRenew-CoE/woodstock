@@ -132,6 +132,13 @@ async fn fetch_tags(data: Data<AppState>) -> impl Responder {
     HttpResponse::Ok().json(tags)
 }
 
+#[get("/files")]
+async fn fetch_files(data: Data<AppState>, user: User) -> impl Responder {
+    let mut client = data.client.lock().unwrap();
+    let files = db::retrieve_files(&user.id, &mut client).await.unwrap_or(vec![]);
+    HttpResponse::Ok().json(files)
+}
+
 /// Stores files in the env["FILES_FOLDER"] folder, submits answers for each file into the database.
 #[post("/answers")]
 async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): MultipartForm<SubmissionForm>, user: User) -> impl Responder {
@@ -332,7 +339,9 @@ pub async fn start_server(rag: Rag) {
                     .service(submit_answers)
                     .service(fetch_questions)
                     .service(download)
-                    .service(verify),
+                    .service(verify)
+                    .service(fetch_tags)
+                    .service(fetch_files),
             )
             .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
     })

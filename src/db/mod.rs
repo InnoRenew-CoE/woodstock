@@ -8,9 +8,12 @@ use anyhow::bail;
 use chrono::Local;
 use chrono::NaiveDate;
 use chrono::Utc;
+use serde::Deserialize;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::env;
 use std::io::Error;
+use std::iter::Map;
 use std::time::Duration;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
@@ -27,6 +30,12 @@ const SET_PASSWORD: &'static str = "update users set password = $2, last_passwor
 const SELECT_QUESTIONS: &'static str = "select * from questions";
 const SELECT_QUESTION_OPTIONS: &'static str = "select * from question_options";
 const SELECT_DISTINCT_TAGS: &'static str = "select distinct tag from tags";
+const SELECT_UPLOADED_FILES: &'static str = r#"select *
+from files
+         left join tag_file on tag_file.file_id = files.id
+         left join tags on tags.id = tag_file.tag_id
+where submitted_by = $1
+"#;
 
 const SELECT_TOTAL_ANSWERS: &'static str =
     "select SUM(coalesce((select count(*) from answers_text)) + (select count(*) from answers_selection)) as total";
@@ -194,6 +203,40 @@ pub async fn retrieve_tags(client: &Client) -> Result<Vec<String>, tokio_postgre
         .into_iter()
         .map(|row| row.get("tag"))
         .collect())
+}
+
+#[derive(Serialize, Debug, Deserialize)]
+pub struct UploadedFile {
+    name: String,
+    date: chrono::NaiveDate,
+    file_type: String,
+    tags: Vec<String>,
+}
+/// Retrieves all uploaded files by the user from the database.
+pub async fn retrieve_files(user_id: &i32, client: &Client) -> Result<Vec<UploadedFile>, tokio_postgres::Error> {
+    let mut files: HashMap<String, UploadedFile> = HashMap::new();
+    client
+        .query(SELECT_UPLOADED_FILES, &[user_id])
+        .await
+        .expect("Unable to query files.")
+        .into_iter()
+        .for_each(|row| {
+            let name: String = row.get("original_name");
+            let date: chrono::NaiveDate = row.get("submission_date");
+            let file_type: String = row.get("type");
+            let tag: Option<String> = row.get("tag");
+
+            let existing = files.entry(name.clone()).or_insert(UploadedFile {
+                name,
+                date,
+                file_type,
+                tags: vec![],
+            });
+            if let Some(tag) = tag {
+                existing.tags.push(tag);
+            }
+        });
+    Ok(files.into_values().collect())
 }
 
 /// Inserts the information about the file into the database.

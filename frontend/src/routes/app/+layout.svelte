@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { fade, slide } from "svelte/transition";
+    import { fade, fly, slide } from "svelte/transition";
     import { page } from "$app/stores";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
     import { goto, invalidateAll } from "$app/navigation";
@@ -8,11 +8,13 @@
     let width = $state(0);
     let isSmall = $derived(width < 640);
     let isVisible = $state(false);
+    let exitHover = $state(false);
 
     const paths: { link: string; text: string }[] = [
         { link: "/app", text: "Home" },
         { link: "/app/search", text: "Search" },
         { link: "/app/contribute", text: "Contribute" },
+        { link: "/app/contributions", text: "Contributions" },
         { link: "/app/notifications", text: "Notifications" },
     ];
     let notificationCount = $state(0);
@@ -59,12 +61,12 @@
                     </div>
                 {/if}
             </div>
-            <a class="flex items-center gap-3 group relative glass bg-white p-3 rounded-full hover:bg-white/90 cursor-pointer" href="/app/feedback">
+            <a class="transition-all hover:gap-3 hover:px-10 group flex items-center gap-3 group relative glass bg-white p-3 px-5 rounded-full hover:bg-white/90 cursor-pointer" href="/app/feedback">
                 <MaskedIcon src="/bulb.svg" class="bg-green-600 size-5" />
                 Feedback
             </a>
-            <div class="glass bg-white/60 p-3 rounded-full hover:bg-white/90 cursor-pointer">
-                <div class="flex items-center gap-3 group relative" onclick={logout}>
+            <div class="group transition-all glass bg-white/60 py-3 px-5 rounded-full hover:bg-white/90 cursor-pointer">
+                <div class="flex items-center relative" onclick={logout}>
                     <MaskedIcon src="/logout.svg" class="bg-radial from-accent to-secondary size-5" />
                 </div>
             </div>
