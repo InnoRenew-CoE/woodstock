@@ -64,8 +64,8 @@
         <div class="select-none glass px-4 py-2">
             <!-- <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep} / {lastStep}</p> -->
             <ul class="p-5 space-y-3">
-                <li class="flex items-center gap-3 {currentStep === 0 ? 'font-semibold' : ''}">
-                    <MaskedIcon src="../{currentStep >= 1 ? 'checkmark.svg' : 'circle.svg'}" class="size-3 bg-primary" />
+                <li class="glass p-3 flex items-center gap-3 {currentStep === 0 ? 'bg-secondary/5 shadow-secondary/30 border-secondary text-secondary' : ''}">
+                    <MaskedIcon src="../{currentStep >= 1 ? 'checkmark.svg' : 'circle.svg'}" class="size-3 bg-secondary" />
                     File Selection
                 </li>
                 {#if ($filesStore?.length ?? 0) > 0}
@@ -103,8 +103,8 @@
                         {/each}
                     </div>
                 {/each}
-                <li class="flex items-center gap-3 {currentStep === lastStep ? 'font-bold' : ''}">
-                    <!-- <MaskedIcon src="../{currentStep === lastStep ? 'checkmark.svg' : 'circle.svg'}" class="z-0 size-3 bg-secondary" /> -->
+                <li class="glass p-3 flex items-center gap-3 {currentStep === lastStep ? 'font-bold' : ''}">
+                    <MaskedIcon src="../{currentStep === lastStep ? 'checkmark.svg' : 'circle.svg'}" class="z-0 size-3 bg-secondary" />
                     Submission
                 </li>
             </ul>
@@ -117,16 +117,18 @@
             {:else if answer}
                 {@const question = $questionsStore.filter((x) => x.id === answer?.question_id)[0]}
                 {#key currentStep}
-                    <div in:fade>
-                        <div class="text-center">
-                            <div class="font-bold">{file?.file}</div>
-                            <div>
-                                <span class="text-accent">{((currentStep - 1) % $questionsStore.length) + 1}</span>
+                    <div in:fade class="flex flex-col gap-4">
+                        <div class="flex gap-5 m-auto text-center whitespace-nowrap">
+                            <div class="glass w-min p-5 py-2 rounded-full">{file?.file}</div>
+                            <div class="glass w-min p-5 py-2 rounded-full">
+                                <span class="text-secondary">{((currentStep - 1) % $questionsStore.length) + 1}</span>
                                 |
                                 <span class="opacity-30">{$questionsStore.length}</span>
                             </div>
                         </div>
-                        <QuestionComponent bind:proceed {question} {answer} />
+                        <div class="flex-1">
+                            <QuestionComponent bind:proceed {question} {answer} />
+                        </div>
                     </div>
                 {/key}
             {/if}

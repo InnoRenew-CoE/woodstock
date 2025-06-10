@@ -17,8 +17,8 @@
 <svelte:window bind:innerWidth={width} />
 {#if !$page.url.pathname.includes("/app")}
     <div class="p-2 sm:p-5 flex gap-3 items-center justify-center relative">
-        <div class="p-2 bg-white backdrop-blur-2xl border-white rounded-full">
-            <img src="/woodstock.svg" class="size-8 rounded-full" />
+        <div class="p-2 rounded-full glass bg-white/80">
+            <img src="/woodstock.svg" class="size-7 rounded-full" />
         </div>
         <div class="rounded-full text-white {isSmall ? 'p-4 bg-black' : ''} flex gap-5 items-center justify-between">
             {#if isSmall}

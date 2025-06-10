@@ -3,8 +3,8 @@
 </script>
 
 <div class="flex flex-wrap h-full gap-5 items-center justify-center">
-    <form class="glass p-10 w-[90%] max-w-[800px]">
-        <div class="pb-5">
+    <form class="glass flex flex-col gap-5 p-10 w-[90%] max-w-[800px]">
+        <div class="glass p-5">
             <div class="pb-3 text-black font-roboto text-lg">Let us know:</div>
             <ul class="list-disc pl-8 space-y-1">
                 <li>What other questions you'd think would be valuable to have on file upload</li>
@@ -13,7 +13,7 @@
                 <li>Did you experience any issues when using the application?</li>
             </ul>
         </div>
-        <textarea id="text" class="glass rounded-lg outline-none appearance-none w-full p-3 focus:outline-none focus:border-secondary resize-none" rows="5" placeholder="We appreciate any kind of feedback!"></textarea>
+        <textarea id="text" class="glass p-5 resize-none" rows="5" placeholder="We appreciate any kind of feedback!"></textarea>
         <div class="flex items-center justify-end py-3">
             <button class="transition-all cursor-pointer hover:bg-secondary/90 hover:text-white rounded-lg glass px-5 py-2">Submit</button>
         </div>

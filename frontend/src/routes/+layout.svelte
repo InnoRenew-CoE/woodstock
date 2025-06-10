@@ -38,7 +38,7 @@
     });
 </script>
 
-<div id="layout" bind:this={layout_component} class="font-sans from-light-background to-background bg-gradient-to-br text-sm min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
+<div id="layout" bind:this={layout_component} class="font-sans from-light-background to-background bg-gradient-to-b text-sm min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
     <div bind:this={header_component}>
         <Header />
     </div>
@@ -58,5 +58,5 @@
             {/each}
         </div>
     </div>
-    <div bind:this={footer_component}><Footer /></div>
+    <!-- <div bind:this={footer_component}><Footer /></div> -->
 </div>

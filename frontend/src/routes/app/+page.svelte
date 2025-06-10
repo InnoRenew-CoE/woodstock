@@ -121,7 +121,7 @@
 
 <svelte:window onresize={rerender} />
 <div class="h-full p-10 glass grid grid-rows-[minmax(10%,min-content)_1fr] gap-5" id="charts">
-    <div class="glass px-10 py-0 flex items-center text-lg font-roboto">Simple Dashboard</div>
+    <div class="glass px-10 py-3 flex items-center text-lg font-roboto">Dashboard</div>
     <div class="flex-1 grid gap-5 grid-cols-1 lg:grid-cols-5 grid-rows-3 sm:flex flex-wrap items-start">
         <div class="min-w-[200px] flex-1 glass p-2">
             <div class="font-roboto glass px-5 py-3">Most common file types</div>

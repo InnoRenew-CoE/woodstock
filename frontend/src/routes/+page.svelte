@@ -37,6 +37,7 @@
             if (response.status === 200) {
                 pushNotification({ body: "Succesfull login", title: "Welcome" });
                 await goto("/app");
+                console.log(response.headers.getSetCookie());
             } else {
                 pushNotification({ body: "Incorrect login credentials", title: "Failure to login" });
             }

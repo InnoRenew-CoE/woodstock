@@ -31,8 +31,8 @@
 <div class="p-2 sm:p-5 h-full">
     <div class="flex flex-col items-center h-full gap-5">
         <div class="p-3 flex gap-3 items-center justify-center relative w-full">
-            <div class="p-2 bg-white backdrop-blur-2xl border-white rounded-full">
-                <img src="/woodstock.svg" class="size-8 rounded-full" />
+            <div class="glass bg-white/60 p-2 rounded-full hover:bg-white/70 cursor-pointer">
+                <img src="/woodstock.svg" class="size-7 rounded-full" />
             </div>
             <div class="flex items-center justify-center rounded-full p-4 sm:p-0 bg-black">
                 {#if isSmall}
@@ -51,17 +51,19 @@
                             {#each paths as { link, text }}
                                 {@const isSelected = link == $page.url.pathname}
                                 <li>
-                                    <a class="{text === 'Feedback' ? 'text-amber-500' : ''} cursor-pointer flex items-center gap-3 {isSelected ? 'bg-white text-black' : ''} px-8 py-1.5 rounded-full hover:brightness-90" href={link}>
+                                    <a class="{text === 'Feedback' ? 'text-green-400' : ''} cursor-pointer flex items-center gap-3 {isSelected ? 'bg-white text-black' : ''} px-8 py-1.5 rounded-full hover:brightness-90" href={link}>
                                         {text}
                                     </a>
                                 </li>
                             {/each}
-                            <div class="flex items-center gap-3 text-red-400 group relative" onclick={logout}>
-                                <MaskedIcon src="/logout.svg" class="group-hover:bg-red-400 bg-white size-5" />
-                            </div>
                         </ul>
                     </div>
                 {/if}
+            </div>
+            <div class="glass bg-white/60 p-3 rounded-full hover:bg-white/90 cursor-pointer">
+                <div class="flex items-center gap-3 group relative" onclick={logout}>
+                    <MaskedIcon src="/logout.svg" class="bg-radial from-accent to-secondary size-5" />
+                </div>
             </div>
         </div>
         <div class="rounded-xl w-full flex-1">{@render children()}</div>

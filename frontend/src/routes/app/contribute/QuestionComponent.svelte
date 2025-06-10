@@ -18,15 +18,17 @@
 
 {#if answer}
     <div>
-        <div class="text-lg font-semibold">{question.title}</div>
-        <div>{question.text}</div>
+        <div class="glass p-8">
+            <div class="text-lg font-semibold">{question.title}</div>
+            <div>{question.text}</div>
+        </div>
         <div class="mt-5 flex gap-5 items-center justify-center flex-wrap">
             {#if question.question_type === QuestionType.Text}
-                <textarea placeholder="Answer here..." class="p-5 min-h-[100px] resize-none w-full rounded border border-secondary shadow-xs shadow-secondary" bind:value={text_answer}></textarea>
+                <textarea placeholder="Answer here..." class="glass p-5 min-h-[100px] resize-none w-full" bind:value={text_answer}></textarea>
             {:else if question.question_type === QuestionType.Tags}
                 <SuggestiveInput bind:selected={tags} options={$tagsStore} />
             {:else}
-                <div class="grid lg:grid-cols-3 gap-3 w-full items-stretch flex-wrap">
+                <div class="grid sm:flex gap-3 w-full items-stretch flex-wrap">
                     {#each question.possible_answers.toSorted() as possible_answer}
                         <Checkbox bind:group={selection} label={possible_answer.value} value={possible_answer.id} multiple={question.question_type === QuestionType.MultiSelect} />
                     {/each}
