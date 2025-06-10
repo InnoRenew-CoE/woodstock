@@ -22,6 +22,7 @@ use actix_web::dev::ResourcePath;
 use actix_web::get;
 use actix_web::guard::Guard;
 use actix_web::guard::GuardContext;
+use actix_web::http::header;
 use actix_web::http::StatusCode;
 use actix_web::post;
 use actix_web::web::Bytes;
@@ -29,6 +30,7 @@ use actix_web::web::Data;
 use actix_web::web::Query;
 use actix_web::web::{self};
 use actix_web::App;
+use actix_web::HttpRequest;
 use actix_web::HttpResponse;
 use actix_web::HttpResponseBuilder;
 use actix_web::HttpServer;
@@ -42,6 +44,7 @@ use serde::Serialize;
 use sha2::digest::KeyInit;
 use sha2::Digest;
 use sha2::Sha256;
+use std::collections::VecDeque;
 use std::convert::Infallible;
 use std::env;
 use std::ffi::OsStr;
@@ -60,6 +63,7 @@ struct AppState {
     client: Mutex<Client>,
     rag: Mutex<Rag>,
     token_signer: TokenSigner<User, Ed25519>,
+    invalidated_tokens: Mutex<VecDeque<String>>,
 }
 
 #[derive(MultipartForm)]
@@ -273,8 +277,8 @@ async fn login(data: web::Data<AppState>, login_details: web::Json<LoginDetails>
     };
     let token_signer = &data.token_signer;
 
-    let mut access = token_signer.create_access_cookie(&user)?;
-    let mut refresh = token_signer.create_refresh_cookie(&user)?;
+    let access = token_signer.create_access_cookie(&user)?;
+    let refresh = token_signer.create_refresh_cookie(&user)?;
     Ok(HttpResponse::Ok().cookie(access).cookie(refresh).finish())
 }
 
@@ -305,20 +309,29 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
 }
 
 #[post("/verify")]
-async fn verify(data: web::Data<AppState>, user: User) -> HttpResponse {
-    println!("Verify {:?}", user);
+async fn verify(data: web::Data<AppState>, user: User, request: HttpRequest) -> HttpResponse {
+    let guard = data.invalidated_tokens.lock().expect("Should be able to lock the mutex");
+    if let Some(access) = request.cookie("access_token") {
+        if guard.contains(&access.value().to_string()) {
+            return HttpResponse::Unauthorized().finish();
+        }
+    }
     HttpResponse::Ok().finish()
 }
 
 #[post("/invalidate")]
-async fn invalidate(data: web::Data<AppState>, user: User) -> HttpResponse {
-    let mut refresh = Cookie::new("refresh_token", "");
-    let mut access = Cookie::new("access_token", "");
-    refresh.set_path("/");
-    access.set_path("/");
-    refresh.make_removal();
-    access.make_removal();
-    HttpResponseBuilder::new(StatusCode::OK).cookie(refresh).cookie(access).finish()
+async fn invalidate(data: web::Data<AppState>, user: User, request: HttpRequest) -> HttpResponse {
+    let mut builder = HttpResponseBuilder::new(StatusCode::OK);
+    let mut tokens = data.invalidated_tokens.lock().expect("Should be able to lock the mutex.");
+    if let Some(mut access) = request.cookie("access_token") {
+        if tokens.len() >= 10 {
+            tokens.pop_back();
+        }
+        tokens.push_front(access.value().to_string());
+        access.make_removal();
+        builder.cookie(access);
+    }
+    builder.finish()
 }
 
 /// Attempts to start the server.
@@ -337,6 +350,7 @@ pub async fn start_server(rag: Rag) {
         client: Mutex::new(client),
         rag: Mutex::new(rag),
         token_signer: TokenSigner::new().signing_key(secret_key.clone()).algorithm(Ed25519).build().expect(""),
+        invalidated_tokens: Mutex::new(VecDeque::new()),
     });
 
     let _ = HttpServer::new(move || {
