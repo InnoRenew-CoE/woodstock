@@ -6,6 +6,8 @@ use crate::db::retrieve_tags;
 use crate::db::setup_db;
 use crate::db::{self};
 use crate::rag::Rag;
+use crate::rag::RagProcessableFile;
+use crate::rag::RagProcessableFileType;
 use actix_cors::Cors;
 use actix_jwt_auth_middleware::use_jwt::UseJWTOnApp;
 use actix_jwt_auth_middleware::AuthResult;
@@ -55,6 +57,7 @@ use std::fs::create_dir_all;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
@@ -166,6 +169,17 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
         .and_then(OsStr::to_str)
         .unwrap_or("unknown")
         .to_uppercase();
+
+    let processable_file_type = match file_extension.as_str() {
+        "txt" => RagProcessableFileType::Text,
+        "md" => RagProcessableFileType::Markdown,
+        "pdf" => RagProcessableFileType::Pdf,
+        _ => {
+            eprintln!("File must be txt, md or pdf - but is: {}", file_extension);
+            return HttpResponse::BadRequest().finish();
+        }
+    };
+
     let file_uuid = uuid::Uuid::new_v4().to_string();
     let base_path = std::env::var("FILES_FOLDER").unwrap_or("/var/woodstock/files/".to_string());
     let file_path = format!("{}/{}", base_path, file_uuid);
@@ -177,7 +191,7 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
     };
 
     // Store the file in the FILES_FOLDER directory using UUID::v4
-    if let Err(error) = tmp_file.file.persist(file_path) {
+    if let Err(error) = tmp_file.file.persist(file_path.clone()) {
         println!("{:?}", error);
         return HttpResponse::BadRequest().body(format!("{:?}", error));
     }
@@ -185,6 +199,29 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
     for answer in answers {
         db::insert_answer(client, answer, &file_id).await.unwrap();
     }
+
+    let Ok(rag) = state.rag.lock() else {
+        println!("State.rag.lock failed");
+        return HttpResponse::InternalServerError().finish();
+    };
+
+
+    let rag_file = RagProcessableFile {
+        path: PathBuf::from(file_path),
+        file_type: processable_file_type,
+        internal_id: format!("{file_id}"),
+        original_name,
+        file_description: None,
+        tags: None,
+    };
+
+    let _  = match rag.insert(rag_file).await {
+        Ok(res) => res,
+        Err(e) => {
+            println!("rag.insert failed: {:#?}", e.to_string());
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
 
     HttpResponse::Ok().finish()
 }
@@ -274,14 +311,14 @@ pub struct LoginDetails {
 }
 
 #[post("/login")]
-async fn login(data: web::Data<AppState>, login_details: web::Json<LoginDetails>) -> AuthResult<HttpResponse> {
+async fn login(token_signer: web::Data<TokenSigner<User, Ed25519>>, data: web::Data<AppState>, login_details: web::Json<LoginDetails>) -> AuthResult<HttpResponse> {
     let Ok(client) = &mut data.client.lock() else {
         return Ok(HttpResponse::InternalServerError().finish());
     };
     let Ok(user) = check_login(client, login_details.0).await else {
         return Ok(HttpResponse::BadRequest().finish());
     };
-    let token_signer = &data.token_signer;
+    let token_signer = &token_signer;
 
     let mut access = token_signer.create_access_cookie(&user)?;
     let mut refresh = token_signer.create_refresh_cookie(&user)?;
