@@ -99,8 +99,7 @@ dependencies = [
 [[package]]
 name = "actix-jwt-auth-middleware"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c192e05843eb10d8929836bcbf65257de9d766865112e94e8aa186c600008a1"
+source = "git+https://github.com/ovalek/actix-jwt-auth-middleware.git#fbee3491e28a01483c044f68e0266c90944624cb"
 dependencies = [
  "actix-jwt-auth-middleware-derive",
  "actix-web",
@@ -114,8 +113,7 @@ dependencies = [
 [[package]]
 name = "actix-jwt-auth-middleware-derive"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b7600869756e6713ca576d662ebe961ce48bc7f077c60f1b9cc4f5cea08bacb"
+source = "git+https://github.com/ovalek/actix-jwt-auth-middleware.git#fbee3491e28a01483c044f68e0266c90944624cb"
 dependencies = [
  "derive-elves",
  "quote",
