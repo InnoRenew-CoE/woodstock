@@ -1,5 +1,5 @@
 use crate::rag::RagProcessableFile;
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use lopdf::Document;
 
 use super::{loaded_data::LoadedFile, FileLoader, RagProcessableFileType};
@@ -8,8 +8,7 @@ pub struct PdfFileLoader;
 
 impl FileLoader for PdfFileLoader {
     fn load_file(file: &RagProcessableFile) -> Result<LoadedFile> {
-        let doc = Document::load(&file.path)
-            .map_err(|err| anyhow!(err.to_string()))?;
+        let doc = Document::load(&file.path).map_err(|err| anyhow!(err.to_string()))?;
 
         let pages = doc.get_pages();
         let mut extracted_text = String::new();
@@ -18,10 +17,8 @@ impl FileLoader for PdfFileLoader {
             if doc.is_encrypted() {
                 println!("ENCRIP");
             }
-            
-            let page_text = doc
-                .extract_text(&vec![page_num])?
-                .replace("?Identity-H Unimplemented?", "");
+
+            let page_text = doc.extract_text(&vec![page_num])?.replace("?Identity-H Unimplemented?", "");
 
             extracted_text.push_str(&page_text);
         }
@@ -35,5 +32,4 @@ impl FileLoader for PdfFileLoader {
             syntetic_file_description: None,
         })
     }
-
 }

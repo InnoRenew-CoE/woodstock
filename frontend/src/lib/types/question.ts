@@ -1,8 +1,18 @@
+export type ResultChunk = {
+  id: string;
+  doc_id: string;
+  doc_seq_num: number;
+  content: string;
+  additional_data: string;
+  score: number;
+};
+
 export enum QuestionType {
   Text,
   Select,
   MultiSelect,
   Tags,
+  MultiText,
 }
 
 export type Question = {
@@ -24,6 +34,7 @@ export type Answer = {
   question_id: number;
   text?: string;
   selection: number[];
+  tags: string[];
 };
 
 export type FileAnswer = {

@@ -1,6 +1,9 @@
-use std::{fs::File, io::{BufReader, Read}};
-use anyhow::Result;
 use crate::rag::RagProcessableFile;
+use anyhow::Result;
+use std::{
+    fs::File,
+    io::{BufReader, Read},
+};
 
 use super::{loaded_data::LoadedFile, FileLoader};
 
@@ -19,7 +22,6 @@ impl FileLoader for MarkdownFileLoader {
             tags: file.tags.clone(),
             original_file_description: file.file_description.clone(),
             syntetic_file_description: None,
-            
         })
     }
 }

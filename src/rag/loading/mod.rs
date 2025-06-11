@@ -1,5 +1,5 @@
+use anyhow::{anyhow, Result};
 use loaded_data::LoadedFile;
-use anyhow::{Result, anyhow};
 use markdown::MarkdownFileLoader;
 use pdf::PdfFileLoader;
 use text::TextFileLoader;
@@ -7,12 +7,9 @@ use text::TextFileLoader;
 use super::{models::RagProcessableFileType, RagProcessableFile};
 
 pub mod loaded_data;
-mod text;
 mod markdown;
 mod pdf;
-
-
-
+mod text;
 
 trait FileLoader {
     fn load_file(file: &RagProcessableFile) -> Result<LoadedFile>;

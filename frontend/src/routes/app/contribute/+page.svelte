@@ -23,6 +23,7 @@
         Array.from($filesStore ?? []).flatMap((file) => {
             const answers: Answer[] = $questionsStore.map((q) => ({
                 question_id: q.id,
+                tags: [],
                 selection: [],
             }));
             return {
@@ -59,12 +60,12 @@
 <svelte:window bind:innerWidth={windowSize} />
 
 {#if windowSize > 640}
-    <div class="grid gap-5 grid-cols-[minmax(min-content,300px)_auto] h-full">
-        <div class="select-none bg-dark-background border p-3 rounded-lg">
-            <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep} / {lastStep}</p>
-            <ul class="p-5 space-y-3">
-                <li class="flex items-center gap-3 {currentStep === 0 ? 'font-semibold' : ''}">
-                    <MaskedIcon src="../{currentStep >= 1 ? 'checkmark.svg' : 'circle.svg'}" class="size-2.5 bg-secondary" />
+    <div class="glass p-5 grid gap-5 grid-cols-[minmax(min-content,300px)_auto] h-full">
+        <div class="select-none glass px-4 py-2">
+            <!-- <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep} / {lastStep}</p> -->
+            <ul class="px-2 py-5 space-y-3">
+                <li class="glass px-3 py-2 flex items-center gap-3 {currentStep === 0 ? 'bg-secondary/5 shadow-secondary/30 border-secondary text-secondary' : ''}">
+                    <MaskedIcon src="../{currentStep >= 1 ? 'checkmark.svg' : 'circle.svg'}" class="size-3 bg-secondary" />
                     File Selection
                 </li>
                 {#if ($filesStore?.length ?? 0) > 0}
@@ -73,19 +74,26 @@
                 {#each Array.from($filesStore ?? []) as file, i}
                     {@const isVisible = currentStep >= i * $questionsStore.length + 1 && currentStep < (i + 1) * $questionsStore.length + 1}
                     {@const isDone = currentStep >= (i + 1) * $questionsStore.length + 1}
-                    {@const backgroundColor = isDone ? "bg-lime-400" : "bg-secondary"}
-                    <div class="px-3 py-1 shadow-sm bg-secondary/5 border rounded-lg {isDone ? 'border-lime-400 bg-lime-400/10' : 'border-secondary/30'}">
-                        <div class="flex items-center gap-2 {isDone ? 'text-lime-500' : ''}">
-                            <MaskedIcon src="../{isVisible ? 'chevron-down.svg' : isDone ? 'checkmark.svg' : 'circle.svg'}" class="{isDone || isVisible ? 'size-3' : 'size-2'} {backgroundColor}" />
-                            {file.name}
+                    {@const backgroundColor = isDone ? "bg-lime-400" : "bg-primary"}
+                    <div class="glass group relative px-3 py-1 shadow-sm border {isDone ? 'border-lime-400 bg-lime-400/10' : ''}">
+                        <div class="flex items-center gap-2 {isDone ? 'text-lime-500' : ''} ">
+                            <div class="text-white glass bg-secondary z-20 absolute top-0 left-0 pr-30 text-nowrap py-1 px-5 cursor-pointer hidden group-hover:block">
+                                {file.name}
+                            </div>
+                            <MaskedIcon src="../{isVisible ? 'chevron-down.svg' : isDone ? 'checkmark.svg' : 'circle.svg'}" class="size-3 {backgroundColor}" />
+                            {#if file.name.length > 10}
+                                {file.name.slice(0, 3)} ... {file.name.slice(-5)}
+                            {:else}
+                                {file.name}
+                            {/if}
                         </div>
                         {#each $questionsStore as question, j}
                             {@const isNow = currentStep == 1 + j + i * $questionsStore.length}
                             {@const isDone = currentStep > 1 + j + i * $questionsStore.length}
                             {#if isVisible}
                                 <div in:slide out:slide>
-                                    <li class="pl-5 {isDone || isNow ? '' : 'opacity-30'}">
-                                        <div class="flex gap-3 items-center {isNow ? 'font-bold' : ''}">
+                                    <li class="pt-2 pl-5 {isDone || isNow ? '' : 'opacity-30'}">
+                                        <div class="flex gap-3 items-center {isNow ? 'text-secondary' : ''}">
                                             <MaskedIcon src="../{isDone ? 'checkmark.svg' : isNow ? 'chevron-right.svg' : 'circle.svg'}" class="w-3 h-3 bg-secondary" />
                                             {question.title}
                                         </div>
@@ -95,13 +103,13 @@
                         {/each}
                     </div>
                 {/each}
-                <li class="flex items-center gap-3 {currentStep === lastStep ? 'font-bold' : 'opacity-45'}">
-                    <MaskedIcon src="../{currentStep === lastStep ? 'checkmark.svg' : 'circle.svg'}" class="size-2.5 bg-secondary" />
+                <li class="glass px-3 py-2 flex items-center gap-3 {currentStep === lastStep ? 'font-bold' : ''}">
+                    <MaskedIcon src="../{currentStep === lastStep ? 'checkmark.svg' : 'circle.svg'}" class="z-0 size-3 bg-secondary" />
                     Submission
                 </li>
             </ul>
         </div>
-        <div class="bg-dark-background border rounded-lg p-5 grid grid-rows-[auto_min-content]">
+        <div class="glass p-10 grid grid-rows-[auto_min-content]">
             {#if currentStep === 0}
                 <FileUpload bind:proceed />
             {:else if currentStep === lastStep}
@@ -109,29 +117,31 @@
             {:else if answer}
                 {@const question = $questionsStore.filter((x) => x.id === answer?.question_id)[0]}
                 {#key currentStep}
-                    <div in:fade>
-                        <div class="text-center">
-                            <div class="font-bold">{file?.file}</div>
-                            <div>
-                                <span class="text-accent">{((currentStep - 1) % $questionsStore.length) + 1}</span>
+                    <div in:fade class="flex flex-col gap-4">
+                        <div class="flex gap-5 m-auto text-center whitespace-nowrap">
+                            <div class="glass w-min p-5 py-2 rounded-full">{file?.file}</div>
+                            <div class="glass w-min p-5 py-2 rounded-full">
+                                <span class="text-secondary">{((currentStep - 1) % $questionsStore.length) + 1}</span>
                                 |
                                 <span class="opacity-30">{$questionsStore.length}</span>
                             </div>
                         </div>
-                        <QuestionComponent bind:proceed {question} {answer} />
+                        <div class="flex-1">
+                            <QuestionComponent bind:proceed {question} {answer} />
+                        </div>
                     </div>
                 {/key}
             {/if}
             <div class="flex justify-between gap-5 py-5">
                 {#if currentStep >= 1 && currentStep !== lastStep}
-                    <button class="py-1 px-3 rounded bg-primary text-white opacity-70 hover:opacity-100" onclick={() => step(false)}>Back</button>
+                    <button class="transition-all py-1 px-3 rounded bg-black text-white hover:bg-amber-500 cursor-pointer" onclick={() => step(false)}>Back</button>
                 {/if}
                 <Spacer />
                 {#if currentStep < lastStep}
                     {#if proceed}
-                        <button class="py-1 px-3 rounded bg-primary text-white opacity-70 hover:opacity-100 disabled:bg-gray-400" onclick={() => step(true)}>Next</button>
+                        <button class="transition-all py-1 px-3 rounded bg-black text-white hover:bg-accent cursor-pointer disabled:bg-gray-400" onclick={() => step(true)}>Next</button>
                     {:else}
-                        <span class="text-secondary font-nunito flex items-center gap-2">
+                        <span class="font-nunito flex items-center gap-2">
                             <MaskedIcon src="../chevron-right.svg" class="size-3 bg-secondary animate-pulse" />
                             Required
                         </span>

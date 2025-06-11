@@ -18,7 +18,7 @@
         <div>Thank you for answering our questions. Your files and answers have been safely stored.</div>
         <button class="my-3 flex items-center gap-2 justify-center w-full py-5" onclick={reset}>
             <MaskedIcon src="../chevron-right.svg" class="size-3 bg-secondary" />
-            Return to file upload <b class="text-secondary">here</b> or wait 15s for auto-redirection.
+            Return to file upload <b class="text-primary">here</b> or wait 15s for auto-redirection.
         </button>
     </div>
 </div>

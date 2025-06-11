@@ -1,22 +1,71 @@
-use crate::server::{Answer, Question, SelectionAnswer};
-use std::{collections::HashMap, env};
-use tokio_postgres::{Client, Error, NoTls};
+use crate::server::Answer;
+use crate::server::LoginDetails;
+use crate::server::Question;
+use crate::server::SelectionAnswer;
+use crate::server::User;
+use crate::server::UserRole;
+use anyhow::bail;
+use chrono::Local;
+use chrono::NaiveDate;
+use chrono::Utc;
+use serde::Deserialize;
+use serde::Serialize;
+use std::collections::HashMap;
+use std::env;
+use std::io::Error;
+use std::iter::Map;
+use std::time::Duration;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
+use tokio_postgres::types::Date;
+use tokio_postgres::types::Timestamp;
+use tokio_postgres::Client;
+use tokio_postgres::NoTls;
 
 const INSERT_FILES_QUERY: &'static str = r#"insert into files (original_name, name, type, submitted_by) values ($1, $2, $3, $4) returning id"#;
 const INSERT_SELECTION_ANSWER_QUERY: &'static str = r#"insert into answers_selection (file_id, question_id, answer_id) values ($1, $2, $3)"#;
 const INSERT_TEXT_ANSWER_QUERY: &'static str = r#"insert into answers_text (file_id, question_id, text) values ($1, $2, $3)"#;
+const SELECT_USER: &'static str = "select users.id as id, user_roles.title as role from users left join user_roles on users.role = user_roles.id where email = $1 and password = $2";
+const SET_PASSWORD: &'static str = "update users set password = $2, last_password_change = now() where email = $1;";
 const SELECT_QUESTIONS: &'static str = "select * from questions";
 const SELECT_QUESTION_OPTIONS: &'static str = "select * from question_options";
-const SELECT_DISTINCT_TAGS: &'static str = "select distinct (value) from tags;";
+const SELECT_DISTINCT_TAGS: &'static str = "select distinct tag from tags";
+const SELECT_UPLOADED_FILES: &'static str = r#"select *
+from files
+         left join tag_file on tag_file.file_id = files.id
+         left join tags on tags.id = tag_file.tag_id
+where submitted_by = $1
+"#;
+
+const SELECT_TOTAL_ANSWERS: &'static str =
+    "select SUM(coalesce((select count(*) from answers_text)) + (select count(*) from answers_selection)) as total";
+
+const SELECT_FILE_TYPE_STATISTICS: &'static str = "select type,
+       round(100 * count(*) /
+             Sum(count(*)) OVER (),
+             1) AS percentage
+from files
+group by type
+order by percentage DESC
+limit 5
+";
 
 const TABLES_SETUP: &'static str = r#"
+
+create table if not exists user_roles
+(
+    id    serial primary key,
+    title varchar(50)
+);
+
 create table if not exists users
 (
-    id        serial primary key,
-    email     varchar(100),
-    password  varchar(150),
-    joined_on date default now(),
-    role      int  default 0
+    id                   serial primary key,
+    email                varchar(100),
+    password             varchar(150),
+    joined_on            date default now(),
+    role                 int references user_roles,
+    last_password_change date
 );
 
 create table if not exists questions
@@ -60,13 +109,35 @@ create table if not exists answers_text
     question_id int references questions,
     text        text
 );
+
+create table if not exists tags
+(
+    id  serial primary key,
+    tag varchar(50) unique
+);
+
+create table if not exists tag_file
+(
+    id          serial primary key,
+    file_id     int references files,
+    tag_id int references tags
+);
+
+create table if not exists feedback
+(
+    id           serial primary key,
+    submitted_by int references users,
+    text         text
+);
 "#;
 
 /// Attempts to create all tables required by this software.
 pub async fn setup_db(client: &Client) {
+    println!("Executing tables setup.");
     if let Err(error) = client.batch_execute(TABLES_SETUP).await {
         panic!("Unable to setup the database tables. {:?}", error);
     }
+    println!("Executed tables setup.");
 }
 
 /// Attempts to connect to the database and return the built Client.
@@ -74,8 +145,12 @@ pub async fn build_db_client() -> Client {
     let db_host = env::var("DB_HOST").expect("Missing DB_HOST in .env!");
     let db_user = env::var("DB_USER").expect("Missing DB_USER in .env!");
     let db_password = env::var("DB_PASSWORD").expect("Missing DB_PASSWORD in .env!");
+    let db_port = env::var("DB_PORT").unwrap_or_else(|_| {
+        println!("Defaulting to port 5432!");
+        return "5432".to_string();
+    });
 
-    let connection_string = format!("host={db_host} user={db_user} password={db_password}");
+    let connection_string = format!("host={db_host} user={db_user} password={db_password} port={db_port}");
     let (client, connection) = tokio_postgres::connect(&connection_string, NoTls)
         .await
         .expect("Unable to conenct to database");
@@ -126,6 +201,51 @@ pub async fn retrieve_questions(client: &mut Client) -> Vec<Question> {
     questions.into_iter().map(|(_id, q)| q).collect()
 }
 
+/// Retrieves all possible tags from the database.
+pub async fn retrieve_tags(client: &Client) -> Result<Vec<String>, tokio_postgres::Error> {
+    Ok(client
+        .query(SELECT_DISTINCT_TAGS, &[])
+        .await
+        .expect("Unable to query tags.")
+        .into_iter()
+        .map(|row| row.get("tag"))
+        .collect())
+}
+
+#[derive(Serialize, Debug, Deserialize)]
+pub struct UploadedFile {
+    name: String,
+    date: chrono::NaiveDate,
+    file_type: String,
+    tags: Vec<String>,
+}
+/// Retrieves all uploaded files by the user from the database.
+pub async fn retrieve_files(user_id: &i32, client: &Client) -> Result<Vec<UploadedFile>, tokio_postgres::Error> {
+    let mut files: HashMap<String, UploadedFile> = HashMap::new();
+    client
+        .query(SELECT_UPLOADED_FILES, &[user_id])
+        .await
+        .expect("Unable to query files.")
+        .into_iter()
+        .for_each(|row| {
+            let name: String = row.get("original_name");
+            let date: chrono::NaiveDate = row.get("submission_date");
+            let file_type: String = row.get("type");
+            let tag: Option<String> = row.get("tag");
+
+            let existing = files.entry(name.clone()).or_insert(UploadedFile {
+                name,
+                date,
+                file_type,
+                tags: vec![],
+            });
+            if let Some(tag) = tag {
+                existing.tags.push(tag);
+            }
+        });
+    Ok(files.into_values().collect())
+}
+
 /// Inserts the information about the file into the database.
 pub async fn insert_file(
     client: &Client,
@@ -140,11 +260,12 @@ pub async fn insert_file(
     Ok(row.get("id"))
 }
 
-pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) {
+pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) -> Result<(), anyhow::Error> {
     let Answer {
         text,
         question_id,
         selection,
+        tags,
     } = answer;
     match text {
         Some(text) => {
@@ -158,14 +279,89 @@ pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) {
             }
         }
     }
+    for tag in tags {
+        println!("Looking for a tag: {}", tag);
+        let tagRow = match client.query_one("SELECT id from tags where tag = $1 limit 1", &[&tag]).await {
+            Ok(row) => Ok(row),
+            Err(_) => {
+                // insert new tag
+                println!("Inserting {tag:?}");
+                client.query_one("insert into tags (tag) values ($1) returning id", &[&tag.trim()]).await
+            }
+        };
+        println!("{:?}", tagRow);
+        let Ok(row) = tagRow else { bail!("Unable to add tag to the database.") };
+        let tag_id: i32 = row.get("id");
+        client
+            .execute("insert into tag_file (file_id, tag_id) values ($1, $2)", &[file_id, &tag_id])
+            .await?;
+        // Insert into file_tags relation.
+    }
+    Ok(())
 }
 
-/// Retrieves all possible tags from the database.
-pub async fn retrieve_tags(client: &Client) -> Result<Vec<String>, Error> {
-    Ok(client
-        .query(SELECT_DISTINCT_TAGS, &[])
-        .await?
-        .into_iter()
-        .map(|row| row.get("value"))
-        .collect())
+use sha2::Digest;
+use sha2::Sha256;
+
+pub async fn check_login(client: &Client, login_details: LoginDetails) -> Result<User, String> {
+    let Some(password) = login_details.password else {
+        return Err("Missing password field.".to_string());
+    };
+
+    let mut hasher = Sha256::new();
+    hasher.update(password.as_bytes());
+    let hashed = hex::encode(hasher.finalize());
+
+    match client.query_one(SELECT_USER, &[&login_details.email, &hashed]).await {
+        Ok(row) => {
+            let user_role: &str = row.get("role");
+            let user_role: UserRole = match user_role {
+                "admin" => UserRole::Admin,
+                _ => panic!("No such role"),
+            };
+            let user = User {
+                id: row.get("id"),
+                role: user_role,
+            };
+            Ok(user)
+        }
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+pub async fn insert_new_password(client: &Client, login_details: LoginDetails) -> Result<(), String> {
+    let Some(password) = login_details.password else {
+        return Err("Missing password field.".to_string());
+    };
+    let user = client
+        .query_one("select last_password_change as date from users where email = $1", &[&login_details.email])
+        .await;
+
+    match user {
+        Ok(row) => {
+            let date: Option<NaiveDate> = row.get("date");
+            let now = Local::now().date_naive();
+            if let Some(date) = date {
+                if date >= now {
+                    return Err("Too many password reset attempts".to_string());
+                }
+            }
+        }
+        Err(error) => {
+            return Err(format_args!("Invalid query: {}", error).to_string());
+        }
+    };
+    let mut hasher = Sha256::new();
+    hasher.update(password);
+    let hashed = hex::encode(hasher.finalize());
+    match client.execute(SET_PASSWORD, &[&login_details.email, &hashed]).await {
+        Ok(_) => Ok(()),
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+pub async fn insert_feedback(feedback: String, user: &i32, client: &mut Client) {
+    client
+        .execute("insert into feedback (text, submitted_by) values ($1, $2)", &[&feedback, user])
+        .await;
 }

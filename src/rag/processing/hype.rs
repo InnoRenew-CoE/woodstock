@@ -1,24 +1,21 @@
 use regex::RegexBuilder;
 
-use crate::rag::{comm::{question::Question, OllamaClient}, models::{chunks::{Chunk, HypeChunk}, ChunkedFile}};
+use crate::rag::{
+    comm::{question::Question, OllamaClient},
+    models::{
+        chunks::{Chunk, HypeChunk},
+        ChunkedFile,
+    },
+};
+
+use super::summarize::summarize_document;
 
 pub async fn hype(file: ChunkedFile<Chunk>, ollama: &OllamaClient) -> ChunkedFile<HypeChunk> {
-    let summary_prompts = generate_questions(&file);
-    let chunk_summaries = answer_all(summary_prompts, ollama).await;
-    let summary = create_document_summary(chunk_summaries, ollama).await;
+    let summary = summarize_document(&file, ollama).await;
     let hype_question_prompts = generate_hype_prompt_questions(summary, &file);
-    let hype_questions = answer_all(hype_question_prompts, ollama).await;
+    let hype_questions = ollama.answer_all(hype_question_prompts).await;
     let hype_chunks = generate_hype_chunks(&file.chunks, hype_questions);
     replace_chunks(file, hype_chunks)
-}
-
-async fn create_document_summary(chunk_summaries: Vec<String>, ollama: &OllamaClient) -> String {
-    match ollama
-        .generate(Question::from("Summarize this document in context into 2 sentances.").set_context(vec![chunk_summaries.join(" ")]))
-        .await {
-            Ok(r) => r.response,
-            Err(_) => "".into(),
-        }
 }
 
 fn replace_chunks(file: ChunkedFile<Chunk>, hype_chunks: Vec<HypeChunk>) -> ChunkedFile<HypeChunk> {
@@ -27,6 +24,8 @@ fn replace_chunks(file: ChunkedFile<Chunk>, hype_chunks: Vec<HypeChunk>) -> Chun
         chunks: _,
         internal_id,
         tags,
+        original_file_description,
+        syntetic_file_description,
     } = file;
 
     ChunkedFile {
@@ -34,15 +33,17 @@ fn replace_chunks(file: ChunkedFile<Chunk>, hype_chunks: Vec<HypeChunk>) -> Chun
         chunks: hype_chunks,
         internal_id,
         tags,
+        original_file_description,
+        syntetic_file_description,
     }
 }
 
-fn generate_hype_chunks(chunks: &[Chunk], hype_questions: Vec<String>) -> Vec<HypeChunk> {    
+fn generate_hype_chunks(chunks: &[Chunk], hype_questions: Vec<String>) -> Vec<HypeChunk> {
     let list_pattern = RegexBuilder::new(r"^\s*[\-\*]|\s*\d+\.\s*|\s*[a-zA-Z]\)\s*|\s*\(\d+\)\s*|\s*\([a-zA-Z]\)\s*|\s*\([ivxlcdm]+\)\s*")
         .case_insensitive(true)
         .build()
         .unwrap();
-    
+
     let mut hype_chunks = vec![];
     for (i, chunk) in chunks.into_iter().enumerate() {
         let questions: Vec<String> = hype_questions[i]
@@ -70,39 +71,12 @@ fn generate_hype_prompt_questions(summary: String, file: &ChunkedFile<Chunk>) ->
         summary);
     let system_prompt = "You are an agent specialized to only answer in form of questions.";
 
-    file
-        .chunks
+    file.chunks
         .iter()
-        .map(|c| Question::from(question.clone())
-            .set_system_prompt(&system_prompt)
-            .set_context(vec![format!("\nCONTEXT PASSAGE:\n{}", c.text)])
-        )
-        .collect()
-}
-
-
-fn generate_questions(file: &ChunkedFile<Chunk>) -> Vec<Question> {
-    let system_prompt = "You are the best summarizer language model out there.";
-    let question = "Given a context paragraph wirite one sentance that best \
-        captures what the context is describing";
-    
-    file
-        .chunks
-        .iter()
-        .map(|c| Question::from(question)
-            .set_system_prompt(&system_prompt)
-            .set_context(vec![c.text.clone()])
-        )
-        .collect()
-}
-
-async fn answer_all(questions: Vec<Question>, ollama: &OllamaClient) -> Vec<String> {
-    let futures = questions.into_iter().map(|q| async move {
-        ollama.generate(q.clone()).await.ok()
-    });
-
-    let results = futures::future::join_all(futures).await;
-    results.into_iter()
-        .map(|r| r.map_or_else(|| "".to_owned(), |resp| resp.response))
+        .map(|c| {
+            Question::from(question.clone())
+                .set_system_prompt(&system_prompt)
+                .set_context(vec![format!("\nCONTEXT PASSAGE:\n{}", c.text)])
+        })
         .collect()
 }

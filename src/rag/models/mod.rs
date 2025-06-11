@@ -1,8 +1,8 @@
 pub mod chunks;
 mod files;
-mod output;
 mod input;
+mod output;
 
 pub use files::chunked_file::ChunkedFile;
-pub use output::SearchResult;
 pub use input::{RagProcessableFile, RagProcessableFileType};
+pub use output::SearchResult;

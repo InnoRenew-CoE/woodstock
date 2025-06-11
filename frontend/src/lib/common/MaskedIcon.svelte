@@ -1,8 +1,10 @@
 <script lang="ts">
-    let { src = undefined, class: className = "w-4 h-4 bg-primary" } = $props();
+    import { twMerge } from "tailwind-merge";
+
+    let { src = undefined, class: className = "" } = $props();
 </script>
 
-<div style="mask-image: url({src});" class={className}></div>
+<div style="mask-image: url({src})" class={twMerge("w-4 h-4 bg-primary", className)}></div>
 
 <style>
     div {

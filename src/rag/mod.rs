@@ -1,5 +1,9 @@
-use comm::{embedding::EmbeddingVector, qdrant::{insert_chunks_to_qdrant, vector_search}, OllamaClient};
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
+use comm::{
+    embedding::EmbeddingVector,
+    qdrant::{insert_chunks_to_qdrant, vector_search},
+    OllamaClient,
+};
 use loading::load_file;
 use models::SearchResult;
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
@@ -17,9 +21,8 @@ pub struct Rag {
     ollama: OllamaClient,
 }
 
-
 impl Rag {
-    pub async fn insert(&self, file: RagProcessableFile) -> Result<()>{
+    pub async fn insert(&self, file: RagProcessableFile) -> Result<()> {
         let loaded_file = load_file(&file)?;
         let chunked_file = chunk(loaded_file, processing::ChunkingStrategy::Word(250, 30));
         let enriched_file = hype(chunked_file, &self.ollama).await;
@@ -27,12 +30,8 @@ impl Rag {
         insert_chunks_to_qdrant(embedded_chunks).await
     }
 
-
     pub async fn search(&self, query: String) -> Result<SearchResult> {
-        let emb_query = GenerateEmbeddingsRequest::new(
-            "bge-m3".to_owned(), 
-            EmbeddingsInput::Single(query.clone())
-        );
+        let emb_query = GenerateEmbeddingsRequest::new("bge-m3".to_owned(), EmbeddingsInput::Single(query.clone()));
         let embedding = match self.ollama.embed(emb_query).await {
             Ok(resp) => EmbeddingVector(resp.embeddings[0].clone()),
             Err(e) => return Err(anyhow!(format!("Failed embedding the query: {}", e))),
@@ -46,4 +45,3 @@ impl Rag {
         }
     }
 }
-

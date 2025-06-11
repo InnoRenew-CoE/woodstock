@@ -1,14 +1,11 @@
 use crate::rag::{
-    loading::loaded_data::LoadedFile, 
-    models::{chunks::Chunk, ChunkedFile}};
+    loading::loaded_data::LoadedFile,
+    models::{chunks::Chunk, ChunkedFile},
+};
 
 use super::{ChunkOverlap, ChunkSize};
 
-pub fn simple_word_chunking(
-    file: LoadedFile, 
-    chunk_size: &ChunkSize, 
-    overlap: &ChunkOverlap
-) -> ChunkedFile<Chunk> {
+pub fn simple_word_chunking(file: LoadedFile, chunk_size: &ChunkSize, overlap: &ChunkOverlap) -> ChunkedFile<Chunk> {
     let chunk_size = *chunk_size as usize;
     let overlap = *overlap as usize;
 
@@ -17,7 +14,7 @@ pub fn simple_word_chunking(
     let mut chunks = Vec::new();
     let mut start_index = 0;
     let mut chunk_id = 0;
- 
+
     while start_index < words.len() {
         let end_index = std::cmp::min(start_index + chunk_size, words.len());
         let chunk_words = &words[start_index..end_index];

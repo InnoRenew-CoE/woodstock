@@ -1,14 +1,16 @@
 use std::env;
 
-use once_cell::sync::Lazy;
-use qdrant_client::{qdrant::{PointStruct, SearchResponse, UpsertPointsBuilder}, Qdrant};
-use tokio::sync::Mutex;
 use anyhow::Result;
+use once_cell::sync::Lazy;
+use qdrant_client::{
+    qdrant::{PointStruct, SearchResponse, UpsertPointsBuilder},
+    Qdrant,
+};
+use tokio::sync::Mutex;
 
 use crate::rag::models::chunks::EmbeddedChunk;
 
 use super::embedding::EmbeddingVector;
-
 
 /// Static global client for accessing the Qdrant database.
 ///
@@ -42,9 +44,7 @@ static QDRANT_CLIENT: Lazy<Mutex<Qdrant>> = Lazy::new(|| {
 /// - Returns an error if the tensor conversion fails or if the Qdrant search query encounters issues.
 pub async fn vector_search(embedding: EmbeddingVector) -> Result<SearchResponse> {
     let client = QDRANT_CLIENT.lock().await;
-    let search_result = client
-        .search_points(embedding)
-        .await?;
+    let search_result = client.search_points(embedding).await?;
     Ok(search_result.into())
 }
 
@@ -53,16 +53,9 @@ pub async fn insert_chunks_to_qdrant(embedded_chunks: Vec<EmbeddedChunk>) -> Res
     let client = QDRANT_CLIENT.lock().await;
     let qdrant_collection = env::var("QDRANT_COLLECTION").expect("QDRANT_COLLECTION not defined");
 
+    let points: Vec<PointStruct> = embedded_chunks.into_iter().map(|c| c.into()).collect();
 
-    let points: Vec<PointStruct> = embedded_chunks
-        .into_iter()
-        .map(|c| c.into())
-        .collect();
-
-
-    client
-        .upsert_points(UpsertPointsBuilder::new(qdrant_collection, points))
-        .await?;
+    client.upsert_points(UpsertPointsBuilder::new(qdrant_collection, points)).await?;
 
     Ok(())
 }

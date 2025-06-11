@@ -1,6 +1,5 @@
 use ollama_rs::generation::completion::request::GenerationRequest;
 
-
 #[derive(Debug, Clone)]
 pub struct Question {
     system_prompt: String,
@@ -15,7 +14,7 @@ impl From<String> for Question {
             system_prompt: "You are a helpful assistant. Answer users question based on provided context.".to_owned(),
             question: value,
             context: vec![],
-            model: "mistral-nemo".to_owned(),
+            model: "phi4".to_owned(),
         }
     }
 }
@@ -26,7 +25,7 @@ impl From<&str> for Question {
             system_prompt: "You are a helpful assistant. Answer users question based on provided context.".to_owned(),
             question: value.to_owned(),
             context: vec![],
-            model: "mistral-nemo".to_owned(),
+            model: "phi4".to_owned(),
         }
     }
 }
@@ -38,13 +37,8 @@ impl Into<GenerationRequest> for Question {
         } else {
             self.context.join("\n")
         };
-        
-        let final_prompt = format!(
-            "{}\n{}\n{}", 
-            self.system_prompt,
-            self.question,
-            context
-        );
+
+        let final_prompt = format!("{}\n{}\n{}", self.system_prompt, self.question, context);
         GenerationRequest::new(self.model, final_prompt)
     }
 }
@@ -59,7 +53,7 @@ impl Question {
         self.model = model.to_string();
         self
     }
-    
+
     pub fn set_question(mut self, question: &str) -> Self {
         self.question = question.to_string();
         self
