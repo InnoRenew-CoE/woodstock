@@ -221,19 +221,20 @@ pub struct UploadedFile {
 }
 /// Retrieves all uploaded files by the user from the database.
 pub async fn retrieve_files(user_id: &i32, client: &Client) -> Result<Vec<UploadedFile>, tokio_postgres::Error> {
-    let mut files: HashMap<String, UploadedFile> = HashMap::new();
+    let mut files: HashMap<i32, UploadedFile> = HashMap::new();
     client
         .query(SELECT_UPLOADED_FILES, &[user_id])
         .await
         .expect("Unable to query files.")
         .into_iter()
         .for_each(|row| {
+            let id: i32 = row.get("id");
             let name: String = row.get("original_name");
             let date: chrono::NaiveDate = row.get("submission_date");
             let file_type: String = row.get("type");
             let tag: Option<String> = row.get("tag");
 
-            let existing = files.entry(name.clone()).or_insert(UploadedFile {
+            let existing = files.entry(id).or_insert(UploadedFile {
                 name,
                 date,
                 file_type,

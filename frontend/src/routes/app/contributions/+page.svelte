@@ -26,7 +26,7 @@
             <div class="glass hover:bg-white/60 px-4 py-1 text-center">Date</div>
             <div class="glass hover:bg-white/60 px-4 py-1 text-center">Type</div>
         </div>
-        <div id="body" class="glass py-5 grid max-h-[800px] overflow-auto px-2">
+        <div id="body" class="glass py-5 grid max-h-[600px] overflow-auto px-2">
             {#each files as file, i}
                 <div class="transition-all grid grid-cols-[1fr_1fr_10%_5%] gap-x-3 rounded-lg hover:bg-secondary/5 hover:border-secondary/50 border border-transparent py-2">
                     <div class="px-10 flex items-center">{file.name}</div>

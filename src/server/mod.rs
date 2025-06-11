@@ -19,6 +19,7 @@ use actix_multipart::form::MultipartForm;
 use actix_web::cookie::time::Duration;
 use actix_web::cookie::Cookie;
 use actix_web::dev::ResourcePath;
+use actix_web::error::ErrorUnauthorized;
 use actix_web::get;
 use actix_web::guard::Guard;
 use actix_web::guard::GuardContext;
@@ -30,6 +31,7 @@ use actix_web::web::Data;
 use actix_web::web::Query;
 use actix_web::web::{self};
 use actix_web::App;
+use actix_web::Handler;
 use actix_web::HttpRequest;
 use actix_web::HttpResponse;
 use actix_web::HttpResponseBuilder;
@@ -279,8 +281,8 @@ async fn login(data: web::Data<AppState>, login_details: web::Json<LoginDetails>
 
     let mut access = token_signer.create_access_cookie(&user)?;
     let mut refresh = token_signer.create_refresh_cookie(&user)?;
-    access.set_path("/");
-    refresh.set_path("/");
+    access.unset_path();
+    refresh.unset_path();
     Ok(HttpResponse::Ok().cookie(access).cookie(refresh).finish())
 }
 
@@ -312,11 +314,11 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
 
 #[post("/verify")]
 async fn verify(data: web::Data<AppState>, user: User, request: HttpRequest) -> HttpResponse {
-    println!("Verify called!");
     let guard = data.invalidated_tokens.lock().expect("Should be able to lock the mutex");
     if let Some(mut access) = request.cookie("access_token") {
         if guard.contains(&access.value().to_string()) {
             access.make_removal();
+            access.unset_path();
             return HttpResponse::Unauthorized().cookie(access).finish();
         }
     }
@@ -335,8 +337,27 @@ async fn invalidate(data: web::Data<AppState>, user: User, request: HttpRequest)
         access.make_removal();
         builder.cookie(access);
     }
-    println!("Tokens: {:?}", tokens);
+
+    if let Some(mut refresh) = request.cookie("refresh_token") {
+        if tokens.len() >= 10 {
+            tokens.pop_back();
+        }
+        tokens.push_front(refresh.value().to_string());
+        refresh.make_removal();
+        builder.cookie(refresh);
+    }
     builder.finish()
+}
+
+async fn check_refresh(data: Data<AppState>, request: HttpRequest) -> Result<(), actix_web::Error> {
+    let guard = data.invalidated_tokens.lock().expect("Should be able to lock the mutex");
+    if let Some(mut refresh) = request.cookie("refresh_token") {
+        if guard.contains(&refresh.value().to_string()) {
+            refresh.make_removal();
+            return Err(ErrorUnauthorized("Access Denied"));
+        }
+    }
+    Ok(())
 }
 
 /// Attempts to start the server.
@@ -360,7 +381,7 @@ pub async fn start_server(rag: Rag) {
 
     let _ = HttpServer::new(move || {
         let authority = Authority::<User, Ed25519, _, _>::new()
-            .refresh_authorizer(|| async move { Ok(()) })
+            .refresh_authorizer(check_refresh)
             .token_signer(Some(state.token_signer.clone()))
             .verifying_key(public_key)
             .build()
