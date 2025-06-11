@@ -21,7 +21,7 @@ impl Into<SearchPoints> for EmbeddingVector {
         SearchPoints {
             collection_name: qdrant_collection,
             vector: self.0,
-            limit: 10,
+            limit: 7,
             with_payload: Some(true.into()),
             with_vectors: Some(false.into()),
             ..Default::default()
