@@ -367,6 +367,8 @@ async fn check_refresh(data: Data<AppState>, request: HttpRequest) -> Result<(),
 
 /// Attempts to start the server.
 pub async fn start_server(rag: Rag) {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
     let server_port = env::var("SERVER_PORT").ok().and_then(|x| x.parse::<u16>().ok()).unwrap_or(6969);
     let client = build_db_client().await;
     setup_db(&client).await;
