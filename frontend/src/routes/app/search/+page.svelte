@@ -63,6 +63,10 @@
 
             data += decoded;
         }
+        const datas = data.split("</think>");
+        const think = datas[0];
+        const notThink = datas[1];
+        data = notThink;
         waiting = false;
     }
 </script>
