@@ -350,6 +350,7 @@ async fn invalidate(data: web::Data<AppState>, user: User, request: HttpRequest)
 }
 
 async fn check_refresh(data: Data<AppState>, request: HttpRequest) -> Result<(), actix_web::Error> {
+    println!("Refresh!");
     let guard = data.invalidated_tokens.lock().expect("Should be able to lock the mutex");
     if let Some(mut refresh) = request.cookie("refresh_token") {
         if guard.contains(&refresh.value().to_string()) {
@@ -386,9 +387,9 @@ pub async fn start_server(rag: Rag) {
             .verifying_key(public_key)
             .build()
             .expect("");
-        let cors = Cors::default().send_wildcard().allow_any_origin().allow_any_header().allow_any_method();
+        // let cors = Cors::default().send_wildcard().allow_any_origin().allow_any_header().allow_any_method();
         App::new()
-            .wrap(cors)
+            // .wrap(cors)
             .app_data(state.clone())
             .service(login)
             .service(register)
