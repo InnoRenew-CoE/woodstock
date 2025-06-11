@@ -24,7 +24,7 @@ async fn create_document_summary(chunk_summaries: Vec<String>, original_doc_summ
 }
 
 fn generate_prompts(file: &ChunkedFile<Chunk>) -> Vec<Question> {
-    let system_prompt = "You are the best summarizer language model out there.";
+    let system_prompt = "/no_think You are the best summarizer language model out there.";
     let question = "Given a context paragraph wirite one sentance that best \
         captures what the context is describing";
 

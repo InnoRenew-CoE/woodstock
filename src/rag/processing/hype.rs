@@ -62,7 +62,7 @@ fn generate_hype_chunks(chunks: &[Chunk], hype_questions: Vec<String>) -> Vec<Hy
 }
 
 fn generate_hype_prompt_questions(summary: String, file: &ChunkedFile<Chunk>) -> Vec<Question> {
-    let question = format!("You will be given a passage from a document, that talks about: {}\n Your task is to analyze the context text (passage) and \
+    let question = format!("/no_think You will be given a passage from a document, that talks about: {}\n Your task is to analyze the context text (passage) and \
         generate essential questions that, when answered, capture the main points and core meaning of the text. \
         The questions should be exhaustive and understandable without context. When possible, named entities should be referenced by their full name. \
         However add questions that are diverse in topic. \
