@@ -59,7 +59,7 @@
 
 <svelte:window bind:innerWidth={windowSize} />
 
-{#if windowSize > 640}
+{#if windowSize > 1000}
     <div class="glass p-5 grid gap-5 grid-cols-[minmax(min-content,300px)_auto] h-full">
         <div class="select-none glass px-4 py-2">
             <!-- <p class="text-xs opacity-40 uppercase pb-2">Step {currentStep} / {lastStep}</p> -->
@@ -151,5 +151,7 @@
         </div>
     </div>
 {:else}
-    <p class="text-accent text-center">Contribution is not supported on mobile devices due to poor user experience.</p>
+    <div class="flex items-center justify-center h-full">
+        <div class="glass text-primary p-10 shadow-lg w-[90%] max-w-[500px]">Contribution is not supported on mobile devices due to poor user experience.</div>
+    </div>
 {/if}

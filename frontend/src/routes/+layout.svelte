@@ -16,8 +16,8 @@
     let layout_component: HTMLDivElement | undefined = $state(undefined);
 
     $effect(() => {
-        let header_height = header_component?.clientHeight ?? 0;
-        let footer_height = footer_component?.clientHeight ?? 0;
+        // let header_height = header_component?.clientHeight ?? 0;
+        // let footer_height = footer_component?.clientHeight ?? 0;
         if (layout_component) {
             // layout_component.style.display = "grid";
             // layout_component.style.gridTemplateRows = `auto minmax(calc(100vh - ${header_height}px - ${footer_height}px), auto) ${footer_height}px`;
@@ -38,7 +38,7 @@
     });
 </script>
 
-<div id="layout" bind:this={layout_component} class="font-sans from-light-background to-background bg-gradient-to-b text-sm min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
+<div id="layout" bind:this={layout_component} class="font-sans from-light-background to-background bg-gradient-to-b min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
     <div bind:this={header_component}>
         <Header />
     </div>

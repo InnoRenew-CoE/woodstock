@@ -7,7 +7,7 @@
     let currentText = $state("");
 
     async function change(e: KeyboardEvent) {
-        if (e.code.match(/Space|Comma|Enter/)) {
+        if (e.code.match(/Comma|Enter/)) {
             e.preventDefault();
             const tag = currentText;
             currentText = "";
@@ -30,14 +30,14 @@
 </script>
 
 <div class="grid w-full gap-3 relative">
+    <input autocomplete="off" id="tag-input" class="outline-none focus:border-secondary rounded-xl glass appearance-none px-3 py-2 w-full" placeholder="Eg: wood, glue, ..." bind:value={currentText} onkeypress={change} />
     <ul class="flex gap-3">
         {#each selected as tag}
-            <li in:fly={{ x: 150 }} class="select-none rounded-sm border bg-secondary/20 border-secondary text-secondary px-3 py-1 hover:bg-red-400 hover:border-red-500 cursor-pointer hover:text-white transition-all" onclick={() => remove(tag)}>
+            <li in:fly={{ x: 150 }} class="transition-all glass px-3 py-2 rounded-lg" onclick={() => remove(tag)}>
                 {tag}
             </li>
         {/each}
     </ul>
-    <input autocomplete="off" id="tag-input" class="outline-none focus:border-accent border border-secondary rounded-md appearance-none px-3 py-2 w-full" placeholder="Eg: wood, glue, ..." bind:value={currentText} onkeypress={change} />
     {#if currentText.length > 0}
         <div in:fade class="select-none z-10 absolute top-[110%] right-0 left-0 bg-gray-50 p-5 rounded-lg shadow border border-white">
             <div class="opacity-50 font-mono pb-3">Tag Suggestions</div>
