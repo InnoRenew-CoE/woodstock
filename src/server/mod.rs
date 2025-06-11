@@ -281,8 +281,8 @@ async fn login(data: web::Data<AppState>, login_details: web::Json<LoginDetails>
 
     let mut access = token_signer.create_access_cookie(&user)?;
     let mut refresh = token_signer.create_refresh_cookie(&user)?;
-    access.unset_path();
-    refresh.unset_path();
+    access.set_path("/");
+    refresh.set_path("/");
     Ok(HttpResponse::Ok().cookie(access).cookie(refresh).finish())
 }
 
@@ -318,7 +318,7 @@ async fn verify(data: web::Data<AppState>, user: User, request: HttpRequest) -> 
     if let Some(mut access) = request.cookie("access_token") {
         if guard.contains(&access.value().to_string()) {
             access.make_removal();
-            access.unset_path();
+            access.set_path("/");
             return HttpResponse::Unauthorized().cookie(access).finish();
         }
     }
@@ -382,6 +382,7 @@ pub async fn start_server(rag: Rag) {
 
     let _ = HttpServer::new(move || {
         let authority = Authority::<User, Ed25519, _, _>::new()
+            .enable_cookie_tokens(true)
             .refresh_authorizer(check_refresh)
             .token_signer(Some(state.token_signer.clone()))
             .verifying_key(public_key)
