@@ -10,3 +10,16 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - 5432:${DB_PORT}
+
+  qdrant:
+    container_name: qdrant
+    image: qdrant/qdrant:latest
+    restart: always
+    ports:
+      # Port for gRPC, used by most clients (e.g., Python, Rust)
+      - "6333:6333"
+      # Port for the HTTP REST API and web UI
+      - "6334:6334"
+    volumes:
+      # Using a named volume for persistent Qdrant storage
+      - ./qdrant_storage:/qdrant/storage
