@@ -170,7 +170,7 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
         .unwrap_or("unknown")
         .to_uppercase();
 
-    let processable_file_type = match file_extension.as_str() {
+    let processable_file_type = match file_extension.to_ascii_lowercase().as_str() {
         "txt" => RagProcessableFileType::Text,
         "md" => RagProcessableFileType::Markdown,
         "pdf" => RagProcessableFileType::Pdf,
