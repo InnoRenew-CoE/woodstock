@@ -30,8 +30,8 @@ impl From<&str> for Question {
     }
 }
 
-impl Into<GenerationRequest> for Question {
-    fn into(self) -> GenerationRequest {
+impl<'a> Into<GenerationRequest<'a>> for &'a Question {
+    fn into(self) -> GenerationRequest<'a> {
         let context = if self.context.is_empty() {
             "".to_string()
         } else {
@@ -39,7 +39,7 @@ impl Into<GenerationRequest> for Question {
         };
 
         let final_prompt = format!("{}\n{}\n{}", self.system_prompt, self.question, context);
-        GenerationRequest::new(self.model, final_prompt)
+        GenerationRequest::new(self.model.clone(), final_prompt)
     }
 }
 

@@ -362,7 +362,7 @@ pub async fn insert_new_password(client: &Client, login_details: LoginDetails) -
 }
 
 pub async fn insert_feedback(feedback: String, user: &i32, client: &mut Client) {
-    client
+    let _ = client
         .execute("insert into feedback (text, submitted_by) values ($1, $2)", &[&feedback, user])
         .await;
 }
