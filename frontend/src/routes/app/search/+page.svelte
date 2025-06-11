@@ -13,6 +13,27 @@
     let maxHeight = $derived((component?.clientHeight ?? 100) * 0.8);
     let chunks: ResultChunk[] = $state([]);
 
+    // chunks = [
+    //     {
+    //         id: 'PointId { point_id_options: Some(Uuid("c0f02548-4da3-4fcd-82bf-c63dadbb445a")) }',
+    //         doc_id: "2",
+    //         doc_seq_num: 7,
+    //         content:
+    //             "vector space. When a user query q arrives, it is embedded into q = f ( q ) . The system then locates the nearest v ij vectors within E , and retrieves the associated chunks for nal answer generation by an LLM. Although the pipeline remains structurally similar to a Naive RAG, the key difference is that HyPE matches questions against questions, rather than questions against chunk text. This questionquestion alignment increases the probabil- ity of nding the correct chunks for two main reasons. First, many embedding models exhibit style-based clustering [13]. Texts of similar form (e.g., interrogative sentences) often lie closer in the vector space. As a result, a user’s real-world query naturally aligns more closely with the hypothetical prompts that share its interrogative style. Second, generating multiple hypothetical queries per chunk broadens the se- mantic reach, covering a wider range of possible question formulations. Even if a user query is phrased in a slightly different way, there is a higher chance that at least one of the chunk’s hypothetical questions closely corresponds to it. Another advantage of HyPE lies in how it addresses the inherent chunking tradeoff in retrieval systems. If chunks are too large, their embeddings become less precise because they encode a mix of multiple concepts, making vector-based similarity less reliable [14]. Conversely, reducing chunk size improves embedding specicity but risks losing crucial sur- rounding context. HyPE mitigates this issue by ensuring that each stored vector represents a specic piece of information within a chunk,",
+    //         additional_data: "What is HyPE?",
+    //         score: 0.687968,
+    //     },
+    //     {
+    //         id: 'PointId { point_id_options: Some(Uuid("1e717a2c-fab1-4460-b8c0-03f64f0bbbff")) }',
+    //         doc_id: "2",
+    //         doc_seq_num: 5,
+    //         content:
+    //             "time and, instead, alters how we store the passages (i.e., their hypothetical question embeddings). More recently, HyDE [5] addresses querydocument mis- match by generating a hypothetical answer or short passage at query time. Instead of embedding the user’s question directly, HyDE prompts an LLM to produce an approximate response, then embeds that synthetic text. This is used to retrieve relevant real documents from a vector index. While HyDE can improve retrieval accuracy for zero-shot question answering, it incurs an extra inference cost per user query. Additionally, the method may struggle, where the prompt queries for niche domain knowledge, where the model may not have sufcient knowledge to produce a representative sample. III. METHODOLOGY HyPE addresses the challenge of aligning user queries and relevant content by pre-computing hypothetical prompts at the indexing stage, contrasting with HyDE’s runtime genera- tion of synthetic answers. This shift avoids additional infer- ence overhead per query and improves retrieval precision by ensuring that both user queries and stored embeddings share a question-like form. The method begins by splitting the corpus D into coherent chunks C 1 ; C 2 ; : : : ; C n , where each chunk provides a self-contained unit of information. For each chunk C i , an LLM G generates multiple hypothetical prompts Q i = q i 1 ; q i 2 ; : : : ; q ik , simu- lating possible user queries that the chunk might answer. This ofine step does not introduce any additional computational",
+    //         additional_data: "What is the main idea of HyPE according to the passage?",
+    //         score: 0.65756434,
+    //     },
+    // ];
+
     async function sendQuery() {
         data = "";
         chunks = [];
@@ -49,33 +70,33 @@
 <div class="flex flex-wrap sm:grid grid-cols-2 h-full gap-5 min-h-[80vh] glass p-3">
     <div class="p-5 glass w-full">
         <form class="flex gap-5 items-stretch">
-            <input bind:value={query} type="text" class="w-full py-2 px-4 glass border-2" placeholder="Ask a question ..." />
-            <button type="submit" onclick={sendQuery} class="glass px-5 flex-1 flex gap-3 items-center hover:bg-secondary/10">
+            <input bind:value={query} type="text" class="w-full py-2 px-4 glass border-1 rounded-xl placholder:text-accent" placeholder="Ask a question ..." />
+            <button type="submit" onclick={sendQuery} class="glass rounded-xl px-5 flex-1 flex gap-3 items-center hover:bg-secondary/10">
                 <MaskedIcon src="../contact.svg" class="size-3 bg-secondary" />
                 Ask
             </button>
         </form>
         {#if chunks.length > 0}
-            <div class="pt-5 text-gray-500">Data retrieved from files:</div>
+            <div class="pt-5 pl-5 opacity-50 font-mono text-xs">Data retrieved from files:</div>
         {/if}
 
-        <ul class="spacing-y-5 py-5">
+        <ul class="grid gap-5 py-3">
             {#each chunks.slice(0, 5) as chunk, i}
-                <li class="bg-secondary/5 group shadow-secondary/30 border-secondary/30 mb-5 hover:border-accent hover:shadow-accent/50 hover:bg-accent/5 border p-3 rounded-lg" in:slide={{ delay: i * 1000 }}>
+                <li class="glass p-3" in:slide={{ delay: i * 1000 }}>
                     <div>
-                        <div class="flex justify-between items-center bg-white py-2 px-5 rounded-lg border">
+                        <div class="p-3 flex gap-3 items-center">
                             <div class="flex gap-2">
-                                <div class="text-xs bg-secondary/5 px-2 rounded border-secondary/50 border group-hover:border-accent/50 group-hover:bg-accent/5 group-hover:text-accent">#{i + 1}</div>
-                                <div>{chunk.additional_data}</div>
+                                <div class="text-secondary bg-secondary/5 border-secondary/50 p-2 shadow-secondary/30 glass rounded-full font-mono text-xs">#{i + 1}</div>
                             </div>
-                            <button disabled class="disabled:opacity-50 bg-gray-50 border py-1 px-2 rounded flex items-center gap-2">
+                            <div class="flex-1">{chunk.additional_data}</div>
+                            <button disabled class="disabled:opacity-50 disabled:!cursor-no-drop glass px-3 py-2 flex gap-2 items-center">
                                 <MaskedIcon src="../download.svg" class="size-3 bg-secondary group-hover:bg-accent/50" />
                                 Download
                             </button>
                         </div>
-                        <div class="text-wrap text-xs p-2 truncate bg-light-background border rounded-lg mt-3">
-                            <div class="uppercase text-gray-400">Preview</div>
-                            <div class="response preview p-3 prose-sm text-xs">
+                        <div class="">
+                            <div class="transition-all response preview p-3 prose-sm glass hover:bg-white text-sm hover:!text-lg hover:shadow-secondary/30 hover:shadow-2xl">
+                                <div class="uppercase text-accent/50 font-mono text-xs pb-2">Preview</div>
                                 <div class="">{@html marked("... " + chunk.content.slice(0, 3000) + " ...")}</div>
                             </div>
                         </div>
@@ -98,7 +119,7 @@
                 Waiting for data!
             </div>
         {:else}
-            <div class="text-center text-gray-500">You haven't asked or queried for anything yet.</div>
+            <div class="text-center text-accent glass p-5">You haven't asked or queried for anything yet.</div>
         {/if}
     </div>
 </div>
