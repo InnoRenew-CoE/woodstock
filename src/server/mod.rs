@@ -18,6 +18,7 @@ use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
 use actix_web::cookie::time::Duration;
 use actix_web::cookie::Cookie;
+use actix_web::cookie::CookieBuilder;
 use actix_web::dev::ResourcePath;
 use actix_web::error::ErrorUnauthorized;
 use actix_web::get;
@@ -382,13 +383,17 @@ pub async fn start_server(rag: Rag) {
     let state = web::Data::new(AppState {
         client: Mutex::new(client),
         rag: Mutex::new(rag),
-        token_signer: TokenSigner::new().signing_key(secret_key.clone()).algorithm(Ed25519).build().expect(""),
+        token_signer: TokenSigner::new()
+            .signing_key(secret_key.clone())
+            .algorithm(Ed25519)
+            .cookie_builder(Cookie::build("", "").path("/"))
+            .build()
+            .expect(""),
         invalidated_tokens: Mutex::new(VecDeque::new()),
     });
 
     let _ = HttpServer::new(move || {
         let authority = Authority::<User, Ed25519, _, _>::new()
-            // .enable_cookie_tokens(true)
             .refresh_authorizer(check_refresh)
             .token_signer(Some(state.token_signer.clone()))
             .verifying_key(public_key)
@@ -401,9 +406,9 @@ pub async fn start_server(rag: Rag) {
             .app_data(state.clone())
             .service(login)
             .service(register)
-            // .use_jwt(
-            // authority,
-            .service(
+            .use_jwt(
+                authority,
+                // .service(
                 web::scope("/api")
                     .service(submit_answers)
                     .service(search)
@@ -415,7 +420,6 @@ pub async fn start_server(rag: Rag) {
                     .service(submit_feedback)
                     .service(invalidate),
             )
-            // )
             .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
     })
     .bind(("localhost", server_port))
