@@ -50,3 +50,24 @@ impl From<ScoredPoint> for ResultChunk {
         }
     }
 }
+
+impl Into<String> for &ResultChunk {
+    fn into(self) -> String {
+        format!(r#"
+            ---
+            Document containing this passage: {}
+            Metadata: {:#?}
+
+            Passage content: 
+            
+            {}
+            
+            ---
+
+            "#,
+            self.doc_id,
+            self.additional_data,
+            self.content
+        )
+    }
+}
