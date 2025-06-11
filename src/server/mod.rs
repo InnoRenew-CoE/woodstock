@@ -25,6 +25,7 @@ use actix_web::guard::Guard;
 use actix_web::guard::GuardContext;
 use actix_web::http::header;
 use actix_web::http::StatusCode;
+use actix_web::middleware::Logger;
 use actix_web::post;
 use actix_web::web::Bytes;
 use actix_web::web::Data;
@@ -394,6 +395,7 @@ pub async fn start_server(rag: Rag) {
         // let cors = Cors::default().send_wildcard().allow_any_origin().allow_any_header().allow_any_method();
         App::new()
             // .wrap(cors)
+            .wrap(Logger::default())
             .app_data(state.clone())
             .service(login)
             .service(register)
