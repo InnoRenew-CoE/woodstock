@@ -312,6 +312,7 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
 
 #[post("/verify")]
 async fn verify(data: web::Data<AppState>, user: User, request: HttpRequest) -> HttpResponse {
+    println!("Verify called!");
     let guard = data.invalidated_tokens.lock().expect("Should be able to lock the mutex");
     if let Some(mut access) = request.cookie("access_token") {
         if guard.contains(&access.value().to_string()) {

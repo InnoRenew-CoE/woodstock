@@ -73,7 +73,7 @@
                     <p class="bg-white/70 p-3 rounded-lg shadow-sm border border-white text-secondary/80">You'll receive an email with password for you to access the app.</p>
                 </div>
             {/if}
-            <button type="submit" class="transition-all hover:bg-primary cursor-pointer bg-primary border border-accent/80 rounded-lg p-2 text-white grid grid-cols-[1rem_auto_1rem] items-center gap-4 group" onclick={login}>
+            <button type="submit" class="transition-all hover:bg-secondary/80 hover:border-secondary cursor-pointer bg-primary border border-accent/80 rounded-lg p-2 text-white grid grid-cols-[1rem_auto_1rem] items-center gap-4 group" onclick={login}>
                 <div class="row-start-1 col-start-2">{requestPassword ? "Request" : "Login"}</div>
             </button>
         </form>
