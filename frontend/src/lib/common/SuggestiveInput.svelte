@@ -33,7 +33,7 @@
     <input autocomplete="off" id="tag-input" class="outline-none focus:border-secondary rounded-xl glass appearance-none px-3 py-2 w-full" placeholder="Eg: wood, glue, ..." bind:value={currentText} onkeypress={change} />
     <ul class="flex gap-3">
         {#each selected as tag}
-            <li in:fly={{ x: 150 }} class="transition-all glass px-3 py-2 rounded-lg" onclick={() => remove(tag)}>
+            <li in:fly={{ x: 150 }} class="transition-all glass px-3 py-2 rounded-lg bg-secondary/5 border-secondary/20 shadow-secondary/10 cursor-pointer hover:bg-red-300/10 hover:border-red-300 hover:shadow-red-300" onclick={() => remove(tag)}>
                 {tag}
             </li>
         {/each}
