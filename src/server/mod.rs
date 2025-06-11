@@ -388,7 +388,7 @@ pub async fn start_server(rag: Rag) {
 
     let _ = HttpServer::new(move || {
         let authority = Authority::<User, Ed25519, _, _>::new()
-            .enable_cookie_tokens(true)
+            // .enable_cookie_tokens(true)
             .refresh_authorizer(check_refresh)
             .token_signer(Some(state.token_signer.clone()))
             .verifying_key(public_key)
@@ -397,12 +397,13 @@ pub async fn start_server(rag: Rag) {
         // let cors = Cors::default().send_wildcard().allow_any_origin().allow_any_header().allow_any_method();
         App::new()
             // .wrap(cors)
-            .wrap(Logger::default())
+            // .wrap(Logger::default())
             .app_data(state.clone())
             .service(login)
             .service(register)
-            .use_jwt(
-                authority,
+            // .use_jwt(
+            // authority,
+            .service(
                 web::scope("/api")
                     .service(submit_answers)
                     .service(search)
@@ -414,6 +415,7 @@ pub async fn start_server(rag: Rag) {
                     .service(submit_feedback)
                     .service(invalidate),
             )
+            // )
             .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
     })
     .bind(("localhost", server_port))
