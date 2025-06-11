@@ -25,6 +25,7 @@ use actix_web::guard::Guard;
 use actix_web::guard::GuardContext;
 use actix_web::http::header;
 use actix_web::http::StatusCode;
+use actix_web::middleware::Logger;
 use actix_web::post;
 use actix_web::web::Bytes;
 use actix_web::web::Data;
@@ -284,8 +285,8 @@ async fn login(data: web::Data<AppState>, login_details: web::Json<LoginDetails>
 
     let mut access = token_signer.create_access_cookie(&user)?;
     let mut refresh = token_signer.create_refresh_cookie(&user)?;
-    access.unset_path();
-    refresh.unset_path();
+    access.set_path("/");
+    refresh.set_path("/");
     Ok(HttpResponse::Ok().cookie(access).cookie(refresh).finish())
 }
 
@@ -321,7 +322,7 @@ async fn verify(data: web::Data<AppState>, user: User, request: HttpRequest) -> 
     if let Some(mut access) = request.cookie("access_token") {
         if guard.contains(&access.value().to_string()) {
             access.make_removal();
-            access.unset_path();
+            access.set_path("/");
             return HttpResponse::Unauthorized().cookie(access).finish();
         }
     }
@@ -366,6 +367,8 @@ async fn check_refresh(data: Data<AppState>, request: HttpRequest) -> Result<(),
 
 /// Attempts to start the server.
 pub async fn start_server(rag: Rag) {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
     let server_port = env::var("SERVER_PORT").ok().and_then(|x| x.parse::<u16>().ok()).unwrap_or(6969);
     let client = build_db_client().await;
     setup_db(&client).await;
@@ -385,6 +388,7 @@ pub async fn start_server(rag: Rag) {
 
     let _ = HttpServer::new(move || {
         let authority = Authority::<User, Ed25519, _, _>::new()
+            // .enable_cookie_tokens(true)
             .refresh_authorizer(check_refresh)
             .token_signer(Some(state.token_signer.clone()))
             .verifying_key(public_key)
@@ -393,11 +397,13 @@ pub async fn start_server(rag: Rag) {
         // let cors = Cors::default().send_wildcard().allow_any_origin().allow_any_header().allow_any_method();
         App::new()
             // .wrap(cors)
+            // .wrap(Logger::default())
             .app_data(state.clone())
             .service(login)
             .service(register)
-            .use_jwt(
-                authority,
+            // .use_jwt(
+            // authority,
+            .service(
                 web::scope("/api")
                     .service(submit_answers)
                     .service(search)
@@ -409,6 +415,7 @@ pub async fn start_server(rag: Rag) {
                     .service(submit_feedback)
                     .service(invalidate),
             )
+            // )
             .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
     })
     .bind(("localhost", server_port))
