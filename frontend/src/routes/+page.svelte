@@ -12,6 +12,7 @@
     import { passive } from "svelte/legacy";
     import { fade } from "svelte/transition";
 
+    let windowSize = $state(0);
     let email = $state("");
     let password = $state("");
     let requestPassword = $state(false);
@@ -50,8 +51,10 @@
     });
 </script>
 
-<div class="flex items-center justify-center h-full p-10">
-    <div class="grid gap-2 max-w-[400px] w-[80%] h-min">
+<svelte:window bind:innerWidth={windowSize} />
+
+<div class="flex sm:items-center justify-center h-full p-10">
+    <div class="grid gap-2 max-w-[500px] w-full sm:w-[80%] h-min">
         <form class="grid p-8 px-10 glass gap-5 bg-white/60">
             <div class="flex gap-3 items-center font-roboto font-semibold text-2xl text-black">
                 Login <span><img src="./info.svg" alt="Information" class="w-3" /></span>

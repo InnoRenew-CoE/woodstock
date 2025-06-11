@@ -277,8 +277,10 @@ async fn login(data: web::Data<AppState>, login_details: web::Json<LoginDetails>
     };
     let token_signer = &data.token_signer;
 
-    let access = token_signer.create_access_cookie(&user)?;
-    let refresh = token_signer.create_refresh_cookie(&user)?;
+    let mut access = token_signer.create_access_cookie(&user)?;
+    let mut refresh = token_signer.create_refresh_cookie(&user)?;
+    access.set_path("/");
+    refresh.set_path("/");
     Ok(HttpResponse::Ok().cookie(access).cookie(refresh).finish())
 }
 
@@ -311,9 +313,10 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
 #[post("/verify")]
 async fn verify(data: web::Data<AppState>, user: User, request: HttpRequest) -> HttpResponse {
     let guard = data.invalidated_tokens.lock().expect("Should be able to lock the mutex");
-    if let Some(access) = request.cookie("access_token") {
+    if let Some(mut access) = request.cookie("access_token") {
         if guard.contains(&access.value().to_string()) {
-            return HttpResponse::Unauthorized().finish();
+            access.make_removal();
+            return HttpResponse::Unauthorized().cookie(access).finish();
         }
     }
     HttpResponse::Ok().finish()
@@ -331,6 +334,7 @@ async fn invalidate(data: web::Data<AppState>, user: User, request: HttpRequest)
         access.make_removal();
         builder.cookie(access);
     }
+    println!("Tokens: {:?}", tokens);
     builder.finish()
 }
 

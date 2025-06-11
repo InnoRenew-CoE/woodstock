@@ -4,6 +4,8 @@
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
     import { goto, invalidateAll } from "$app/navigation";
     import { PUBLIC_API_BASE_URL } from "$env/static/public";
+    import { onMount } from "svelte";
+    import { verify } from "$lib";
 
     let { children } = $props();
     let width = $state(0);
@@ -43,11 +45,11 @@
                     </button>
                 {/if}
                 {#if isVisible || !isSmall}
-                    <div out:slide={{ duration: 100 }} class="transition-all glass p-2 rounded-full bg-white/60 hover:px-5">
+                    <div out:slide={{ duration: 100 }} class="transition-all glass p-1.5 rounded-full bg-white/60 hover:px-5">
                         <div class="grid sm:flex gap-3 sm:gap-2" onclick={() => (isVisible = false)}>
                             {#each paths as { link, text }}
                                 {@const isSelected = link == $page.url.pathname}
-                                <a class="p-1 glass rounded-full overflow-hidden px-8 {isSelected ? 'text-white bg-secondary/60 shadow-secondary/50 shadow-lg border-secondary' : 'bg-white/5 hover:bg-white'} " href={link}>
+                                <a class="transition-all p-1.5 glass rounded-full overflow-hidden px-8 {isSelected ? 'text-white bg-secondary/60 shadow-secondary/50 shadow-lg border-secondary' : 'bg-white/5 backdrop-blur-none shadow-transparent border-transparent hover:bg-white'} " href={link}>
                                     {text}
                                 </a>
                             {/each}
