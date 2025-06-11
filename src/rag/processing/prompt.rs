@@ -6,6 +6,7 @@ use ollama_rs::{error::OllamaError, generation::completion::GenerationResponseSt
 
 pub async fn prompt(prompt: String, chunks: Vec<ResultChunk>, ollama: &OllamaClient) -> Result<SearchResult, OllamaError> {
     let llm_prompt = construct_prompt(prompt, &chunks);
+    println!("Prompt: {:#?}", llm_prompt);
     let stream: GenerationResponseStream = ollama.generate_stream(llm_prompt).await?;
     Ok(SearchResult { chunks, stream })
 }
