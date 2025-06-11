@@ -207,9 +207,12 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) ->
         println!("State.rag.lock failed");
         return HttpResponse::InternalServerError().finish();
     };
-    let Ok(mut result) = rag.search(search_query.query.clone()).await else {
-        println!("rag.search failed");
-        return HttpResponse::InternalServerError().finish();
+    let mut result = match rag.search(search_query.query.clone()).await {
+        Ok(res) => res,
+        Err(e) => {
+            println!("rag.search failed: {:#?}", e.to_string());
+            return HttpResponse::InternalServerError().finish();
+        }
     };
 
     let (tx, rx) = mpsc::channel::<Result<Bytes, Infallible>>(10_000);
@@ -396,8 +399,8 @@ pub async fn start_server(rag: Rag) {
             .use_jwt(
                 authority,
                 web::scope("/api")
-                    .service(search)
                     .service(submit_answers)
+                    .service(search)
                     .service(fetch_questions)
                     .service(download)
                     .service(verify)

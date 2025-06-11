@@ -22,4 +22,4 @@ services:
       - "6334:6334"
     volumes:
       # Using a named volume for persistent Qdrant storage
-      - qdrant_storage:/qdrant/storage
+      - ./qdrant_storage:/qdrant/storage
