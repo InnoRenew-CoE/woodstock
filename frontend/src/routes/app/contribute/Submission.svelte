@@ -1,14 +1,24 @@
 <script lang="ts">
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
     import { filesStore } from "$lib/stores/questions";
-    import type { Question } from "$lib/types/question";
+    import { onMount } from "svelte";
 
     let { step = $bindable(), files = $bindable() }: { step: number; files: FileList | undefined } = $props();
 
+    let timer = $state(0);
     function reset() {
         step = 0;
         files = undefined;
+        clearTimeout(timer);
     }
+
+    onMount(() => {
+        timer = setTimeout(() => {
+            $filesStore = undefined;
+            step = 0;
+            reset();
+        }, 15_000);
+    });
 </script>
 
 <div class="flex justify-center p-5">
