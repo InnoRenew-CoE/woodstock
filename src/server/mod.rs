@@ -21,6 +21,7 @@ use actix_multipart::form::MultipartForm;
 use actix_web::cookie::time::Duration;
 use actix_web::cookie::Cookie;
 use actix_web::cookie::CookieBuilder;
+use actix_web::cookie::SameSite;
 use actix_web::dev::ResourcePath;
 use actix_web::error::ErrorUnauthorized;
 use actix_web::get;
@@ -206,7 +207,6 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
         return HttpResponse::InternalServerError().finish();
     };
 
-
     let rag_file = RagProcessableFile {
         path: PathBuf::from(file_path),
         file_type: processable_file_type,
@@ -216,7 +216,7 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
         tags: None,
     };
 
-    let _  = match rag.insert(rag_file).await {
+    let _ = match rag.insert(rag_file).await {
         Ok(res) => res,
         Err(e) => {
             println!("rag.insert failed: {:#?}", e.to_string());
@@ -312,7 +312,11 @@ pub struct LoginDetails {
 }
 
 #[post("/login")]
-async fn login(token_signer: web::Data<TokenSigner<User, Ed25519>>, data: web::Data<AppState>, login_details: web::Json<LoginDetails>) -> AuthResult<HttpResponse> {
+async fn login(
+    token_signer: web::Data<TokenSigner<User, Ed25519>>,
+    data: web::Data<AppState>,
+    login_details: web::Json<LoginDetails>,
+) -> AuthResult<HttpResponse> {
     let Ok(client) = &mut data.client.lock() else {
         return Ok(HttpResponse::InternalServerError().finish());
     };
@@ -423,7 +427,7 @@ pub async fn start_server(rag: Rag) {
         token_signer: TokenSigner::new()
             .signing_key(secret_key.clone())
             .algorithm(Ed25519)
-            .cookie_builder(Cookie::build("", "").path("/"))
+            .cookie_builder(Cookie::build("", "").path("/").same_site(SameSite::None))
             .build()
             .expect(""),
         invalidated_tokens: Mutex::new(VecDeque::new()),
