@@ -207,6 +207,7 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
         return HttpResponse::InternalServerError().finish();
     };
 
+    println!("Processing document_id: {file_id} | {file_uuid} | {original_name}");
     let rag_file = RagProcessableFile {
         path: PathBuf::from(file_path),
         file_type: processable_file_type,
