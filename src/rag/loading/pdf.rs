@@ -1,6 +1,5 @@
 use crate::rag::RagProcessableFile;
 use anyhow::{anyhow, Result};
-use lopdf::Document;
 
 use super::{loaded_data::LoadedFile, FileLoader, RagProcessableFileType};
 
@@ -8,19 +7,14 @@ pub struct PdfFileLoader;
 
 impl FileLoader for PdfFileLoader {
     fn load_file(file: &RagProcessableFile) -> Result<LoadedFile> {
-        let doc = Document::load(&file.path).map_err(|err| anyhow!(err.to_string()))?;
+        let extracted_text = pdf_extract::extract_text(&file.path)
+            .map_err(|err| anyhow!("Failed to extract text from PDF: {}", err))?;
 
-        let pages = doc.get_pages();
-        let mut extracted_text = String::new();
-
-        for (page_num, _) in pages {
-            if doc.is_encrypted() {
-                println!("ENCRIP");
-            }
-
-            let page_text = doc.extract_text(&vec![page_num])?.replace("?Identity-H Unimplemented?", "");
-
-            extracted_text.push_str(&page_text);
+        if extracted_text.trim().is_empty() {
+            println!(
+                "Warning: No text could be extracted from '{}'. It may be an image-only PDF.",
+                file.path.display()
+            );
         }
 
         Ok(LoadedFile {
