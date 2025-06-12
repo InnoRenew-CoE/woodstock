@@ -49,10 +49,6 @@
             if (files && files.length > 0) {
                 submitAnswers(files, fileAnswers);
             }
-            setTimeout(() => {
-                $filesStore = undefined;
-                currentStep = 0;
-            }, 15_000);
         }
     });
 </script>
