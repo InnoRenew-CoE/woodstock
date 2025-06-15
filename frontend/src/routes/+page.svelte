@@ -31,7 +31,7 @@
                 pushNotification({ body: "You'll receive an email with newly generated password.", title: "Request successful" });
                 requestPassword = false;
             } else {
-                pushNotification({ body: "An error occured, please notify us at woodstock@innorenew.eu", title: "Request failed" });
+                pushNotification({ body: "You're not on our whitelist. Please notify us at ewco@innorenew.eu", title: "Request failed" });
             }
         } else {
             const response = await fetch(`${PUBLIC_API_BASE_URL}/login`, init);

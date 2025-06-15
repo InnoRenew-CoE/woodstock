@@ -341,7 +341,7 @@ pub async fn insert_new_password(client: &Client, login_details: LoginDetails) -
             }
         }
         Err(error) => {
-            return Err(format_args!("Invalid query: {}", error).to_string());
+            return Err(format_args!("User is not on a whitelist: {:?}", error).to_string());
         }
     };
     let mut hasher = Sha256::new();
