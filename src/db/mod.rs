@@ -7,18 +7,10 @@ use crate::server::UserRole;
 use anyhow::bail;
 use chrono::Local;
 use chrono::NaiveDate;
-use chrono::Utc;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::env;
-use std::io::Error;
-use std::iter::Map;
-use std::time::Duration;
-use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
-use tokio_postgres::types::Date;
-use tokio_postgres::types::Timestamp;
 use tokio_postgres::Client;
 use tokio_postgres::NoTls;
 
