@@ -313,7 +313,7 @@ pub async fn check_login(client: &Client, login_details: LoginDetails) -> Result
     hasher.update(password.as_bytes());
     let hashed = hex::encode(hasher.finalize());
 
-    match client.query_one(SELECT_USER, &[&login_details.email, &hashed]).await {
+    match client.query_one(SELECT_USER, &[&login_details.email.to_lowercase(), &hashed]).await {
         Ok(row) => {
             let user_role: &str = row.get("role");
             let user_role: UserRole = match user_role {
