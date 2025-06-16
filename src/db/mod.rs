@@ -322,8 +322,8 @@ pub async fn check_login(client: &Client, login_details: LoginDetails) -> Result
     }
 }
 
-pub async fn insert_new_password(client: &Client, login_details: LoginDetails) -> Result<(), String> {
-    let Some(password) = login_details.password else {
+pub async fn insert_new_password(client: &Client, login_details: &LoginDetails) -> Result<(), String> {
+    let Some(password) = login_details.password.clone() else {
         return Err("Missing password field.".to_string());
     };
     let user = client

@@ -36,6 +36,12 @@ use actix_web::Responder;
 use actix_web_lab::web::spa;
 use ed25519_compact::KeyPair;
 use jwt_compact::alg::Ed25519;
+use lettre::message::header::ContentType;
+use lettre::message::Mailbox;
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::Message;
+use lettre::SmtpTransport;
+use lettre::Transport;
 use passwords::PasswordGenerator;
 use serde::Deserialize;
 use serde::Serialize;
@@ -342,11 +348,11 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
     let password = pg.generate_one().expect("Unable to generate a secure password");
     login_details.password = Some(password.clone());
 
-    if let Err(error) = insert_new_password(client, login_details.0).await {
+    if let Err(error) = insert_new_password(client, &login_details.0).await {
         return Ok(HttpResponse::BadRequest().body(error));
     };
+    println!("Generated: {},{}", login_details.0.email, password);
     // TODO: Send mail with the password...
-    println!("Sending mail with newly generated password: {:?}", password);
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -401,6 +407,7 @@ async fn check_refresh(data: Data<AppState>, request: HttpRequest) -> Result<(),
 
 /// Attempts to start the server.
 pub async fn start_server(rag: Rag) {
+    send_mail("mihael@regnum.si", "sample").await;
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     let server_port = env::var("SERVER_PORT").ok().and_then(|x| x.parse::<u16>().ok()).unwrap_or(6969);
@@ -459,4 +466,32 @@ pub async fn start_server(rag: Rag) {
     .expect("Unable to start the server")
     .run()
     .await;
+}
+
+async fn send_mail(recipient: &str, password: &str) {
+    // "smtp-mail.outlook.com".into(),
+    // 587,
+
+    let email = Message::builder()
+        .from(Mailbox::new(
+            Some("EWCO No Reply".to_string()),
+            "ewco-no-reply@innorenew.eu".parse().unwrap(),
+        ))
+        .to(Mailbox::new(None, recipient.parse().unwrap()))
+        .subject("Observatory Access")
+        .header(ContentType::TEXT_HTML)
+        .body(format!(
+            "Your password to access the observatory is <b style='color:#D5451B'>{}</b>",
+            password
+        ))
+        .unwrap();
+
+    let creds = Credentials::new("ewco-no-reply@innorenew.eu".to_owned(), env::var("MAIL_SECRET").unwrap());
+    let mailer = SmtpTransport::starttls_relay("smtp-mail.outlook.com").unwrap().credentials(creds).build();
+    match mailer.send(&email) {
+        Ok(_) => println!("Email sent successfully!"),
+        Err(e) => panic!("Could not send email: {e:?}"),
+    }
+
+    // mailer.send_mail(message).await?;
 }
