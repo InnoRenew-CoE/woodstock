@@ -352,6 +352,7 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
         return Ok(HttpResponse::BadRequest().body(error));
     };
     println!("Generated: {},{}", login_details.0.email, password);
+    send_mail(&login_details.0.email, &password).await;
     // TODO: Send mail with the password...
     Ok(HttpResponse::Ok().finish())
 }
