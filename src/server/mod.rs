@@ -151,7 +151,7 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
         eprintln!("Unable to parse answers json!");
         return HttpResponse::BadRequest().finish();
     };
-    let Ok(client) = &mut state.client.lock() else {
+    let Ok(mut client) = state.client.lock() else {
         return HttpResponse::InternalServerError().finish();
     };
 
@@ -177,7 +177,7 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
     let file_path = format!("{}/{}", base_path, file_uuid);
 
     let user_id = user.id;
-    let Ok(file_id) = db::insert_file(client, &original_name, &file_uuid, &file_extension, &user_id).await else {
+    let Ok(file_id) = db::insert_file(&mut client, &original_name, &file_uuid, &file_extension, &user_id).await else {
         eprintln!("Unable to insert the file into the database!");
         return HttpResponse::BadRequest().finish();
     };
@@ -189,9 +189,10 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
     }
 
     for answer in answers {
-        db::insert_answer(client, answer, &file_id).await.unwrap();
+        db::insert_answer(&mut client, answer, &file_id).await.unwrap();
     }
 
+    drop(client);
     let Ok(rag) = state.rag.lock() else {
         println!("State.rag.lock failed");
         return HttpResponse::InternalServerError().finish();
