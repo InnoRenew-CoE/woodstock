@@ -61,6 +61,7 @@ use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::thread;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
 use tokio_postgres::Client;
@@ -202,11 +203,6 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
         db::insert_answer(client, answer, &file_id).await.unwrap();
     }
 
-    let Ok(rag) = state.rag.lock() else {
-        println!("State.rag.lock failed");
-        return HttpResponse::InternalServerError().finish();
-    };
-
     println!("Processing document_id: {file_id} | {file_uuid} | {original_name}");
     let rag_file = RagProcessableFile {
         path: PathBuf::from(file_path),
@@ -217,14 +213,14 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
         tags: None,
     };
 
-    let _ = match rag.insert(rag_file).await {
-        Ok(res) => res,
-        Err(e) => {
-            println!("rag.insert failed: {:#?}", e.to_string());
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
-
+    std::thread::spawn(async move ||{
+        let _ = match Rag::default().insert(rag_file).await {
+            Ok(res) => res,
+            Err(e) => {
+                println!("rag.insert failed: {:#?}", e.to_string());
+            }
+        };
+    });
     HttpResponse::Ok().finish()
 }
 
