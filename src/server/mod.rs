@@ -482,7 +482,7 @@ async fn send_mail(recipient: &str, password: &str) {
         .subject("Observatory Access")
         .header(ContentType::TEXT_HTML)
         .body(format!(
-            "Your password to access the observatory is <b style='color:#D5451B'>{}</b>",
+            "Your password to access the observatory is <b style='color:#D5451B'>{}</b>. Please visit us at https://observatory.innorenew.eu",
             password
         ))
         .unwrap();
