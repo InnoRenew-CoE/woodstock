@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use loaded_data::LoadedFile;
 use markdown::MarkdownFileLoader;
 use pdf::PdfFileLoader;

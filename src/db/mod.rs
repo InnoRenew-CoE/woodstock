@@ -7,18 +7,10 @@ use crate::server::UserRole;
 use anyhow::bail;
 use chrono::Local;
 use chrono::NaiveDate;
-use chrono::Utc;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::env;
-use std::io::Error;
-use std::iter::Map;
-use std::time::Duration;
-use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
-use tokio_postgres::types::Date;
-use tokio_postgres::types::Timestamp;
 use tokio_postgres::Client;
 use tokio_postgres::NoTls;
 
@@ -313,7 +305,7 @@ pub async fn check_login(client: &Client, login_details: LoginDetails) -> Result
     hasher.update(password.as_bytes());
     let hashed = hex::encode(hasher.finalize());
 
-    match client.query_one(SELECT_USER, &[&login_details.email, &hashed]).await {
+    match client.query_one(SELECT_USER, &[&login_details.email.to_lowercase(), &hashed]).await {
         Ok(row) => {
             let user_role: &str = row.get("role");
             let user_role: UserRole = match user_role {
@@ -330,8 +322,8 @@ pub async fn check_login(client: &Client, login_details: LoginDetails) -> Result
     }
 }
 
-pub async fn insert_new_password(client: &Client, login_details: LoginDetails) -> Result<(), String> {
-    let Some(password) = login_details.password else {
+pub async fn insert_new_password(client: &Client, login_details: &LoginDetails) -> Result<(), String> {
+    let Some(password) = login_details.password.clone() else {
         return Err("Missing password field.".to_string());
     };
     let user = client
@@ -349,7 +341,7 @@ pub async fn insert_new_password(client: &Client, login_details: LoginDetails) -
             }
         }
         Err(error) => {
-            return Err(format_args!("Invalid query: {}", error).to_string());
+            return Err(format_args!("User is not on a whitelist: {:?}", error).to_string());
         }
     };
     let mut hasher = Sha256::new();

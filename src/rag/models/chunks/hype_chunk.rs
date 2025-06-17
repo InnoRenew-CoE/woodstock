@@ -1,11 +1,6 @@
-use crate::rag::comm::{
-    embedding::{Embeddable, EmbeddingVector},
-    question::Question,
-    OllamaClient,
-};
+use crate::rag::comm::embedding::{Embeddable, EmbeddingVector};
 use anyhow::{anyhow, Result};
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
-use regex::RegexBuilder;
 use serde_json::Value;
 
 use super::{chunk::Chunk, embedded_chunk::EmbeddedChunk};

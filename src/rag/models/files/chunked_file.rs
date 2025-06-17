@@ -1,7 +1,4 @@
-use crate::{
-    rag::{comm::embedding::Embeddable, loading::loaded_data::LoadedFile, models::RagProcessableFileType},
-    shared::{file::Answer, file_type::FileType},
-};
+use crate::rag::{comm::embedding::Embeddable, loading::loaded_data::LoadedFile, models::RagProcessableFileType};
 
 #[derive(Debug)]
 pub struct ChunkedFile<T>

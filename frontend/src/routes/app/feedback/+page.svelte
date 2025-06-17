@@ -18,7 +18,7 @@
                 pushNotification({ title: "Feedback sent", body: "Thank you very much!" });
                 text = "";
             } else {
-                pushNotification({ body: "An error occured, please notify us at woodstock@innorenew.eu", title: "Request failed" });
+                pushNotification({ body: "An error occured, please notify us at ewco@innorenew.eu", title: "Request failed" });
             }
         } else {
             pushNotification({ title: "Feedback details", body: "Please provide more details with your feedback." });

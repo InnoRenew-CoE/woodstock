@@ -8,35 +8,26 @@ use crate::db::{self};
 use crate::rag::Rag;
 use crate::rag::RagProcessableFile;
 use crate::rag::RagProcessableFileType;
-use actix_cors::Cors;
 use actix_jwt_auth_middleware::use_jwt::UseJWTOnApp;
 use actix_jwt_auth_middleware::AuthResult;
-use actix_jwt_auth_middleware::AuthenticationService;
 use actix_jwt_auth_middleware::Authority;
 use actix_jwt_auth_middleware::FromRequest;
 use actix_jwt_auth_middleware::TokenSigner;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
-use actix_web::cookie::time::Duration;
 use actix_web::cookie::Cookie;
-use actix_web::cookie::CookieBuilder;
 use actix_web::cookie::SameSite;
 use actix_web::dev::ResourcePath;
 use actix_web::error::ErrorUnauthorized;
 use actix_web::get;
-use actix_web::guard::Guard;
-use actix_web::guard::GuardContext;
-use actix_web::http::header;
 use actix_web::http::StatusCode;
-use actix_web::middleware::Logger;
 use actix_web::post;
 use actix_web::web::Bytes;
 use actix_web::web::Data;
 use actix_web::web::Query;
 use actix_web::web::{self};
 use actix_web::App;
-use actix_web::Handler;
 use actix_web::HttpRequest;
 use actix_web::HttpResponse;
 use actix_web::HttpResponseBuilder;
@@ -45,12 +36,17 @@ use actix_web::Responder;
 use actix_web_lab::web::spa;
 use ed25519_compact::KeyPair;
 use jwt_compact::alg::Ed25519;
+use lettre::message::header::ContentType;
+use lettre::message::Mailbox;
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::Message;
+use lettre::SmtpTransport;
+use lettre::Transport;
 use passwords::PasswordGenerator;
 use serde::Deserialize;
 use serde::Serialize;
 use sha2::digest::KeyInit;
 use sha2::Digest;
-use sha2::Sha256;
 use std::collections::VecDeque;
 use std::convert::Infallible;
 use std::env;
@@ -162,7 +158,7 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
         eprintln!("Unable to parse answers json!");
         return HttpResponse::BadRequest().finish();
     };
-    let Ok(client) = &mut state.client.lock() else {
+    let Ok(mut client) = state.client.lock() else {
         return HttpResponse::InternalServerError().finish();
     };
 
@@ -188,7 +184,7 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
     let file_path = format!("{}/{}", base_path, file_uuid);
 
     let user_id = user.id;
-    let Ok(file_id) = db::insert_file(client, &original_name, &file_uuid, &file_extension, &user_id).await else {
+    let Ok(file_id) = db::insert_file(&mut client, &original_name, &file_uuid, &file_extension, &user_id).await else {
         eprintln!("Unable to insert the file into the database!");
         return HttpResponse::BadRequest().finish();
     };
@@ -200,9 +196,11 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
     }
 
     for answer in answers {
-        db::insert_answer(client, answer, &file_id).await.unwrap();
+        db::insert_answer(&mut client, answer, &file_id).await.unwrap();
     }
 
+
+    drop(client);
     println!("Processing document_id: {file_id} | {file_uuid} | {original_name}");
     let rag_file = RagProcessableFile {
         path: PathBuf::from(file_path),
@@ -347,11 +345,12 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
     let password = pg.generate_one().expect("Unable to generate a secure password");
     login_details.password = Some(password.clone());
 
-    if let Err(error) = insert_new_password(client, login_details.0).await {
+    if let Err(error) = insert_new_password(client, &login_details.0).await {
         return Ok(HttpResponse::BadRequest().body(error));
     };
+    println!("Generated: {},{}", login_details.0.email, password);
+    send_mail(&login_details.0.email, &password).await;
     // TODO: Send mail with the password...
-    println!("Sending mail with newly generated password: {:?}", password);
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -406,6 +405,7 @@ async fn check_refresh(data: Data<AppState>, request: HttpRequest) -> Result<(),
 
 /// Attempts to start the server.
 pub async fn start_server(rag: Rag) {
+    send_mail("mihael@regnum.si", "sample").await;
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     let server_port = env::var("SERVER_PORT").ok().and_then(|x| x.parse::<u16>().ok()).unwrap_or(6969);
@@ -464,4 +464,32 @@ pub async fn start_server(rag: Rag) {
     .expect("Unable to start the server")
     .run()
     .await;
+}
+
+async fn send_mail(recipient: &str, password: &str) {
+    // "smtp-mail.outlook.com".into(),
+    // 587,
+
+    let email = Message::builder()
+        .from(Mailbox::new(
+            Some("EWCO No Reply".to_string()),
+            "ewco-no-reply@innorenew.eu".parse().unwrap(),
+        ))
+        .to(Mailbox::new(None, recipient.parse().unwrap()))
+        .subject("Observatory Access")
+        .header(ContentType::TEXT_HTML)
+        .body(format!(
+            "Your password to access the observatory is <b style='color:#D5451B'>{}</b>. Please visit us at https://observatory.innorenew.eu",
+            password
+        ))
+        .unwrap();
+
+    let creds = Credentials::new("ewco-no-reply@innorenew.eu".to_owned(), env::var("MAIL_SECRET").unwrap());
+    let mailer = SmtpTransport::starttls_relay("smtp-mail.outlook.com").unwrap().credentials(creds).build();
+    match mailer.send(&email) {
+        Ok(_) => println!("Email sent successfully!"),
+        Err(e) => panic!("Could not send email: {e:?}"),
+    }
+
+    // mailer.send_mail(message).await?;
 }
