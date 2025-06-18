@@ -156,7 +156,7 @@ async fn fetch_files(data: Data<AppState>, user: User) -> impl Responder {
 async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): MultipartForm<SubmissionForm>, user: User) -> impl Responder {
     let tmp_file = form.file;
     let Ok(answers) = serde_json::from_str::<Vec<Answer>>(&form.answers) else {
-        eprintln!("Unable to parse answers json!");
+        println!("Unable to parse answers json!");
         return HttpResponse::BadRequest().finish();
     };
     let Ok(mut client) = state.client.lock() else {
