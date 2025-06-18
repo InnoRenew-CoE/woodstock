@@ -32,7 +32,7 @@
                     <div class="px-10 flex items-center text-base">{file.name}</div>
                     <div class="glass p-1 rounded-full flex items-center gap-3 max-w-[100%] overflow-x-scroll no-scrollbar">
                         {#each file.tags as tag}
-                            <div class="glass px-3 py-1 bg-secondary/5 text-secondary border-secondary/50">{tag}</div>
+                            <div class="text-nowrap glass px-3 py-1 bg-secondary/5 text-secondary border-secondary/50">{tag}</div>
                         {/each}
                     </div>
                     <div class="flex justify-end items-center font-mono text-xs">

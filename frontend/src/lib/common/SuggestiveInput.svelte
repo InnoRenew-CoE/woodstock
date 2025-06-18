@@ -43,7 +43,7 @@
             <div class="opacity-50 font-mono pb-3">Tag Suggestions</div>
             <ul in:fade class="max-h-[100px] flex items-center gap-3 overflow-auto list-none">
                 {#each options.filter((o) => o.includes(currentText)) as option}
-                    <li in:fade class="w-min rounded-sm border bg-secondary/20 border-secondary text-secondary px-3 py-1 hover:bg-accent/80 hover:border-accent cursor-pointer hover:text-white transition-all" onclick={() => add(option)}>{option}</li>
+                    <li in:fade class="w-min rounded-sm border bg-secondary/20 border-secondary text-secondary px-3 py-1 hover:bg-accent/80 hover:border-accent cursor-pointer hover:text-white transition-all text-nowrap" onclick={() => add(option)}>{option}</li>
                 {/each}
             </ul>
             {#if options.filter((o) => o.includes(currentText)).length === 0}
