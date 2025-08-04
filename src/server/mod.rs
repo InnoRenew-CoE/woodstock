@@ -57,7 +57,6 @@ use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use std::thread;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
