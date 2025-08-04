@@ -14,7 +14,7 @@ use std::env;
 use tokio_postgres::Client;
 use tokio_postgres::NoTls;
 
-const INSERT_LOGIN_STATISTIC: &'static str = r#"insert into logins (user_id) values (2)"#;
+const INSERT_LOGIN_STATISTIC: &'static str = r#"insert into logins (user_id) values ($1)"#;
 const INSERT_FILES_QUERY: &'static str = r#"insert into files (original_name, name, type, submitted_by) values ($1, $2, $3, $4) returning id"#;
 const INSERT_SELECTION_ANSWER_QUERY: &'static str = r#"insert into answers_selection (file_id, question_id, answer_id) values ($1, $2, $3)"#;
 const INSERT_TEXT_ANSWER_QUERY: &'static str = r#"insert into answers_text (file_id, question_id, text) values ($1, $2, $3)"#;
