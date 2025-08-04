@@ -47,6 +47,9 @@
                     </div>
                 </div>
             {/each}
+            {#if files.length == 0}
+                <p class="text-sm text-accent text-center italic">You have not submitted any files yet.</p>
+            {/if}
         </div>
     </div>
 </div>
