@@ -14,6 +14,7 @@ use std::env;
 use tokio_postgres::Client;
 use tokio_postgres::NoTls;
 
+const INSERT_LOGIN_STATISTIC: &'static str = r#"insert into logins (user_id) values (2)"#;
 const INSERT_FILES_QUERY: &'static str = r#"insert into files (original_name, name, type, submitted_by) values ($1, $2, $3, $4) returning id"#;
 const INSERT_SELECTION_ANSWER_QUERY: &'static str = r#"insert into answers_selection (file_id, question_id, answer_id) values ($1, $2, $3)"#;
 const INSERT_TEXT_ANSWER_QUERY: &'static str = r#"insert into answers_text (file_id, question_id, text) values ($1, $2, $3)"#;
@@ -121,6 +122,14 @@ create table if not exists feedback
     submitted_by int references users,
     text         text
 );
+
+create table if not exists logins
+(
+    id   serial primary key,
+    user_id int references users,
+    time timestamp default now()
+);
+
 "#;
 
 /// Attempts to create all tables required by this software.
@@ -316,6 +325,8 @@ pub async fn check_login(client: &Client, login_details: LoginDetails) -> Result
                 id: row.get("id"),
                 role: user_role,
             };
+
+            println!("{:?}", client.execute(INSERT_LOGIN_STATISTIC, &[&user.id]).await);
             Ok(user)
         }
         Err(error) => Err(error.to_string()),
