@@ -529,7 +529,7 @@ pub async fn start_server(rag: Rag) {
                     .service(invalidate),
             )
             .service(
-                Files::new("/", "./")
+                Files::new("*", "./")
                     .prefer_utf8(true)
                     .index_file("public/index.html")
                     .default_handler(fn_service(|req: ServiceRequest| async {
