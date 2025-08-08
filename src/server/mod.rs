@@ -529,9 +529,9 @@ pub async fn start_server(rag: Rag) {
                     .service(invalidate),
             )
             .service(
-                Files::new("/", "public")
+                Files::new("/", "./")
                     .prefer_utf8(true)
-                    .index_file("index.html")
+                    .index_file("public/index.html")
                     .default_handler(fn_service(|req: ServiceRequest| async {
                         let (req, _) = req.into_parts();
                         let index_path: PathBuf = "./dist/index.html".into();
