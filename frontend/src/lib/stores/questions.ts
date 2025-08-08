@@ -2,6 +2,7 @@ import { PUBLIC_API_BASE_URL } from "$env/static/public";
 import { QuestionType, type Answer, type FileAnswer, type Question } from "$lib/types/question";
 import { get, writable, type Writable } from "svelte/store";
 import { pushNotification } from "./notifications";
+import { uploadProgressStore } from "./uploads";
 
 export const answersStore: Writable<Answer[]> = writable([]);
 export const filesStore: Writable<FileList | undefined> = writable();
@@ -16,6 +17,12 @@ export async function fetchQuestions() {
 }
 
 export async function submitAnswers(files: FileList, answers: FileAnswer[]) {
+  uploadProgressStore.set(
+    Array.from(files).map((file) => ({
+      file: file.name,
+      progress: 0,
+    })),
+  );
   for (let file of Array.from(files)) {
     const correctFileAnswer = answers.find((f) => f.file === file.name);
     if (!correctFileAnswer) {
@@ -31,12 +38,18 @@ export async function submitAnswers(files: FileList, answers: FileAnswer[]) {
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         const percent = (event.loaded / event.total) * 100;
-        console.log(`Uploaded: ${percent.toFixed(2)}%`);
+        const percentage = percent.toFixed(2);
+        console.log(`Uploaded: ${percentage}%`);
+        uploadProgressStore.update((array) => {
+          const foundFile = array.find((f) => f.file === file.name);
+          if (foundFile) {
+            foundFile.progress = percent;
+          }
+          return array;
+        });
       }
     };
-    xhr.onload = () => console.log("Done!");
+
     xhr.send(formData);
   }
-
-  pushNotification({ title: "Success", body: "Submission successful." });
 }
