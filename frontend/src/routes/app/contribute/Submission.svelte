@@ -30,7 +30,7 @@
                             <div class="w-full bg-gray-50 border border-primary/10 glass overflow-hidden rounded-sm">
                                 <div class="bg-secondary/80 w-[0%] h-full transition-all glass rounded-sm" style="width: {upload.progress}%"></div>
                             </div>
-                            <div class="w-[20%] text-right font-light">{upload.progress.toFixed(2)}%</div>
+                            <div class="w-[20%] text-right font-light">{upload.progress.toFixed(0)}%</div>
                         </div>
                     </li>
                 {/each}

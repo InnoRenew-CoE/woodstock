@@ -18,6 +18,7 @@ use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
 use actix_multipart::Multipart;
+use actix_web::cookie::time::Time;
 use actix_web::cookie::Cookie;
 use actix_web::cookie::SameSite;
 use actix_web::dev::ResourcePath;
@@ -37,6 +38,8 @@ use actix_web::HttpResponseBuilder;
 use actix_web::HttpServer;
 use actix_web::Responder;
 use actix_web_lab::web::spa;
+use chrono::Duration;
+use core::time;
 use ed25519_compact::KeyPair;
 use futures::TryFutureExt;
 use jwt_compact::alg::Ed25519;
@@ -63,6 +66,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Duration;
+use std::time::SystemTime;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
 use tokio_postgres::Client;
@@ -519,7 +523,12 @@ pub async fn start_server(rag: Rag) {
                     .service(submit_feedback)
                     .service(invalidate),
             )
-            .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
+            .service(
+                spa()
+                    .index_file(format!("public/index.html?{}", SystemTime::now().elapsed().unwrap().as_secs()))
+                    .static_resources_location("public/")
+                    .finish(),
+            )
     })
     .bind(("localhost", server_port))
     .expect("Unable to start the server")
