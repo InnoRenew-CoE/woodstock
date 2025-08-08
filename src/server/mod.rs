@@ -522,12 +522,7 @@ pub async fn start_server(rag: Rag) {
                     .service(submit_feedback)
                     .service(invalidate),
             )
-            .service(
-                spa()
-                    .index_file(format!("public/index.html?v={}", SystemTime::now().elapsed().unwrap().as_secs()))
-                    .static_resources_location("public/")
-                    .finish(),
-            )
+            .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
     })
     .bind(("localhost", server_port))
     .expect("Unable to start the server")
