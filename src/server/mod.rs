@@ -529,12 +529,12 @@ pub async fn start_server(rag: Rag) {
                     .service(invalidate),
             )
             .service(
-                Files::new("*", "./")
+                Files::new("/", "./")
                     .prefer_utf8(true)
-                    .index_file("public/index.html")
+                    .index_file("extremely-unlikely-to-exist-!@$%^&*.txt")
                     .default_handler(fn_service(|req: ServiceRequest| async {
                         let (req, _) = req.into_parts();
-                        let index_path: PathBuf = "./dist/index.html".into();
+                        let index_path: PathBuf = "public/index.html".into();
                         let file = NamedFile::open_async(index_path)
                             .await?
                             .customize()
