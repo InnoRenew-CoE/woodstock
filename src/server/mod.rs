@@ -153,7 +153,9 @@ async fn fetch_files(data: Data<AppState>, user: User) -> impl Responder {
 /// Stores files in the env["FILES_FOLDER"] folder, submits answers for each file into the database.
 #[post("/answers")]
 async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): MultipartForm<SubmissionForm>, user: User) -> impl Responder {
+    println!("Submit answers received...");
     let tmp_file = form.file;
+    println!("File size: {} B", tmp_file.size);
     let Ok(answers) = serde_json::from_str::<Vec<Answer>>(&form.answers) else {
         println!("Unable to parse answers json!");
         return HttpResponse::BadRequest().finish();
@@ -168,6 +170,7 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
         .and_then(OsStr::to_str)
         .unwrap_or("unknown")
         .to_uppercase();
+    println!("Storing to file name: {}", original_name);
 
     let processable_file_type = match file_extension.to_ascii_lowercase().as_str() {
         "txt" => RagProcessableFileType::Text,
@@ -190,6 +193,7 @@ async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): Multipa
     };
 
     // Store the file in the FILES_FOLDER directory using UUID::v4
+    println!("Storing the file into {}", file_path);
     if let Err(error) = tmp_file.file.persist(file_path.clone()) {
         println!("{:?}", error);
         return HttpResponse::BadRequest().body(format!("{:?}", error));
