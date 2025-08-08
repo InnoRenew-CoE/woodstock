@@ -9,6 +9,8 @@ use crate::rag::Rag;
 use crate::rag::RagProcessableFile;
 use crate::rag::RagProcessableFileType;
 use crate::shared::file;
+use actix_files::Files;
+use actix_files::NamedFile;
 use actix_jwt_auth_middleware::use_jwt::UseJWTOnApp;
 use actix_jwt_auth_middleware::AuthResult;
 use actix_jwt_auth_middleware::Authority;
@@ -18,10 +20,14 @@ use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
 use actix_multipart::Multipart;
+use actix_web::body::BoxBody;
 use actix_web::cookie::time::Time;
 use actix_web::cookie::Cookie;
 use actix_web::cookie::SameSite;
+use actix_web::dev::fn_service;
 use actix_web::dev::ResourcePath;
+use actix_web::dev::ServiceRequest;
+use actix_web::dev::ServiceResponse;
 use actix_web::error::ErrorUnauthorized;
 use actix_web::get;
 use actix_web::http::Error;
@@ -523,6 +529,21 @@ pub async fn start_server(rag: Rag) {
                     .service(invalidate),
             )
             .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
+            .service(
+                Files::new("/", "./dist")
+                    .prefer_utf8(true)
+                    .index_file("public/index.html")
+                    .default_handler(fn_service(|req: ServiceRequest| async {
+                        let (req, _) = req.into_parts();
+                        let index_path: PathBuf = "./dist/index.html".into();
+                        let file = NamedFile::open_async(index_path)
+                            .await?
+                            .customize()
+                            .append_header(("Cache-Control", "no-store"));
+                        let res = file.respond_to(&req).map_into_boxed_body();
+                        Ok(ServiceResponse::new(req, res))
+                    })),
+            )
     })
     .bind(("localhost", server_port))
     .expect("Unable to start the server")
