@@ -525,7 +525,7 @@ pub async fn start_server(rag: Rag) {
             )
             .service(
                 spa()
-                    .index_file(format!("public/index.html?{}", SystemTime::now().elapsed().unwrap().as_secs()))
+                    .index_file(format!("public/index.html?v={}", SystemTime::now().elapsed().unwrap().as_secs()))
                     .static_resources_location("public/")
                     .finish(),
             )
