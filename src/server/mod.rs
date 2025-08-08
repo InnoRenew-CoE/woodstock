@@ -65,7 +65,6 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use std::time::Duration;
 use std::time::SystemTime;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
@@ -487,8 +486,8 @@ pub async fn start_server(rag: Rag) {
         token_signer: TokenSigner::new()
             .signing_key(secret_key.clone())
             .algorithm(Ed25519)
-            .access_token_lifetime(Duration::from_secs(86400))
-            .refresh_token_lifetime(Duration::from_secs(86400))
+            .access_token_lifetime(core::time::Duration::from_secs(86400))
+            .refresh_token_lifetime(core::time::Duration::from_secs(86400))
             .cookie_builder(Cookie::build("", "").path("/").same_site(SameSite::None))
             .build()
             .expect(""),
