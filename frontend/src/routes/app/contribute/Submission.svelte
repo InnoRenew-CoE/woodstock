@@ -18,6 +18,7 @@
         <img src="../tree_of_knowledge.svg" alt="Tree of knowledge" class="size-36 my-5 mx-auto rounded-full bg-secondary/5 p-5 shadow-lg shadow-secondary/30 border border-secondary" />
         <div class="text-lg font-bold">Submission</div>
         <div class="font-light">Thank you for answering our questions. Your files and answers are being uploaded and safely stored.</div>
+        <div class="font-light text-red-400">Note: Indexing and processing happen in the background and may take some time before results are available.</div>
 
         <div class="glass p-5 my-5">
             <span class="font-mono text-xs uppercase">Progress</span>
