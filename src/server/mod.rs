@@ -528,21 +528,22 @@ pub async fn start_server(rag: Rag) {
                     .service(submit_feedback)
                     .service(invalidate),
             )
-            .service(
-                Files::new("/", "./")
-                    .prefer_utf8(true)
-                    .index_file("public/index.html")
-                    .default_handler(fn_service(|req: ServiceRequest| async {
-                        let (req, _) = req.into_parts();
-                        let index_path: PathBuf = "public/index.html".into();
-                        let file = NamedFile::open_async(index_path)
-                            .await?
-                            .customize()
-                            .append_header(("Cache-Control", "no-store"));
-                        let res = file.respond_to(&req).map_into_boxed_body();
-                        Ok(ServiceResponse::new(req, res))
-                    })),
-            )
+            .service(spa().index_file("public/index.html").finish())
+        // .service(
+        //     Files::new("/", "./")
+        //         .prefer_utf8(true)
+        //         .index_file("public/index.html")
+        //         .default_handler(fn_service(|req: ServiceRequest| async {
+        //             let (req, _) = req.into_parts();
+        //             let index_path: PathBuf = "public/index.html".into();
+        //             let file = NamedFile::open_async(index_path)
+        //                 .await?
+        //                 .customize()
+        //                 .append_header(("Cache-Control", "no-store"));
+        //             let res = file.respond_to(&req).map_into_boxed_body();
+        //             Ok(ServiceResponse::new(req, res))
+        //         })),
+        // )
     })
     .bind(("localhost", server_port))
     .expect("Unable to start the server")
