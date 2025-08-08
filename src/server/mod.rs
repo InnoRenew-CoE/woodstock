@@ -73,7 +73,7 @@ struct AppState {
 
 #[derive(MultipartForm)]
 struct SubmissionForm {
-    #[multipart(limit = "20MB")]
+    #[multipart(limit = "1024MB")]
     file: TempFile,
     answers: Text<String>,
 }
