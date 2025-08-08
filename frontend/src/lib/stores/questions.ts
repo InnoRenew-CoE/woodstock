@@ -26,10 +26,16 @@ export async function submitAnswers(files: FileList, answers: FileAnswer[]) {
     formData.append("answers", JSON.stringify(correctFileAnswer.answers));
     formData.append("file", file, file.name);
 
-    const response = await fetch(`${PUBLIC_API_BASE_URL}/api/answers`, {
-      method: "POST",
-      body: formData,
-    });
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${PUBLIC_API_BASE_URL}/api/answers`);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = (event.loaded / event.total) * 100;
+        console.log(`Uploaded: ${percent.toFixed(2)}%`);
+      }
+    };
+    xhr.onload = () => console.log("Done!");
+    xhr.send(formData);
   }
 
   pushNotification({ title: "Success", body: "Submission successful." });
