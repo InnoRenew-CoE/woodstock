@@ -528,9 +528,8 @@ pub async fn start_server(rag: Rag) {
                     .service(submit_feedback)
                     .service(invalidate),
             )
-            .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
             .service(
-                Files::new("/", "./dist")
+                Files::new("/", "./public")
                     .prefer_utf8(true)
                     .index_file("public/index.html")
                     .default_handler(fn_service(|req: ServiceRequest| async {
