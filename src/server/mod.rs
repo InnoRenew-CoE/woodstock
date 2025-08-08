@@ -16,11 +16,13 @@ use actix_jwt_auth_middleware::TokenSigner;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
+use actix_multipart::Multipart;
 use actix_web::cookie::Cookie;
 use actix_web::cookie::SameSite;
 use actix_web::dev::ResourcePath;
 use actix_web::error::ErrorUnauthorized;
 use actix_web::get;
+use actix_web::http::Error;
 use actix_web::http::StatusCode;
 use actix_web::post;
 use actix_web::web::Bytes;
@@ -152,77 +154,83 @@ async fn fetch_files(data: Data<AppState>, user: User) -> impl Responder {
 
 /// Stores files in the env["FILES_FOLDER"] folder, submits answers for each file into the database.
 #[post("/answers")]
-async fn submit_answers(state: web::Data<AppState>, MultipartForm(form): MultipartForm<SubmissionForm>, user: User) -> impl Responder {
-    println!("Submit answers received...");
-    let tmp_file = form.file;
-    println!("File size: {} B", tmp_file.size);
-    let Ok(answers) = serde_json::from_str::<Vec<Answer>>(&form.answers) else {
-        println!("Unable to parse answers json!");
-        return HttpResponse::BadRequest().finish();
-    };
-    let Ok(mut client) = state.client.lock() else {
-        return HttpResponse::InternalServerError().finish();
-    };
-
-    let original_name = tmp_file.file_name.unwrap_or("unknown".to_string());
-    let file_extension = Path::new(&original_name)
-        .extension()
-        .and_then(OsStr::to_str)
-        .unwrap_or("unknown")
-        .to_uppercase();
-    println!("Storing to file name: {}", original_name);
-
-    let processable_file_type = match file_extension.to_ascii_lowercase().as_str() {
-        "txt" => RagProcessableFileType::Text,
-        "md" => RagProcessableFileType::Markdown,
-        "pdf" => RagProcessableFileType::Pdf,
-        _ => {
-            eprintln!("File must be txt, md or pdf - but is: {}", file_extension);
-            return HttpResponse::BadRequest().finish();
+async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user: User) -> impl Responder {
+    while let Some(item) = payload.next().await {
+        if let Ok(field) = item {
+            println!("Processing {:?}", field.name());
         }
-    };
-
-    let file_uuid = uuid::Uuid::new_v4().to_string();
-    let base_path = std::env::var("FILES_FOLDER").unwrap_or("/var/woodstock/files/".to_string());
-    let file_path = format!("{}/{}", base_path, file_uuid);
-
-    let user_id = user.id;
-    let Ok(file_id) = db::insert_file(&mut client, &original_name, &file_uuid, &file_extension, &user_id).await else {
-        eprintln!("Unable to insert the file into the database!");
-        return HttpResponse::BadRequest().finish();
-    };
-
-    // Store the file in the FILES_FOLDER directory using UUID::v4
-    println!("Storing the file into {}", file_path);
-    if let Err(error) = tmp_file.file.persist(file_path.clone()) {
-        println!("{:?}", error);
-        return HttpResponse::BadRequest().body(format!("{:?}", error));
     }
-
-    for answer in answers {
-        db::insert_answer(&mut client, answer, &file_id).await.unwrap();
-    }
-
-    drop(client);
-    println!("Processing document_id: {file_id} | {file_uuid} | {original_name}");
-    let rag_file = RagProcessableFile {
-        path: PathBuf::from(file_path),
-        file_type: processable_file_type,
-        internal_id: format!("{file_id}"),
-        original_name,
-        file_description: None,
-        tags: None,
-    };
-
-    std::thread::spawn(async move || {
-        let _ = match Rag::default().insert(rag_file).await {
-            Ok(res) => res,
-            Err(e) => {
-                println!("rag.insert failed: {:#?}", e.to_string());
-            }
-        };
-    });
     HttpResponse::Ok().finish()
+    // println!("Submit answers received...");
+    // let tmp_file = form.file;
+    // println!("File size: {} B", tmp_file.size);
+    // let Ok(answers) = serde_json::from_str::<Vec<Answer>>(&form.answers) else {
+    //     println!("Unable to parse answers json!");
+    //     return HttpResponse::BadRequest().finish();
+    // };
+    // let Ok(mut client) = state.client.lock() else {
+    //     return HttpResponse::InternalServerError().finish();
+    // };
+
+    // let original_name = tmp_file.file_name.unwrap_or("unknown".to_string());
+    // let file_extension = Path::new(&original_name)
+    //     .extension()
+    //     .and_then(OsStr::to_str)
+    //     .unwrap_or("unknown")
+    //     .to_uppercase();
+    // println!("Storing to file name: {}", original_name);
+
+    // let processable_file_type = match file_extension.to_ascii_lowercase().as_str() {
+    //     "txt" => RagProcessableFileType::Text,
+    //     "md" => RagProcessableFileType::Markdown,
+    //     "pdf" => RagProcessableFileType::Pdf,
+    //     _ => {
+    //         eprintln!("File must be txt, md or pdf - but is: {}", file_extension);
+    //         return HttpResponse::BadRequest().finish();
+    //     }
+    // };
+
+    // let file_uuid = uuid::Uuid::new_v4().to_string();
+    // let base_path = std::env::var("FILES_FOLDER").unwrap_or("/var/woodstock/files/".to_string());
+    // let file_path = format!("{}/{}", base_path, file_uuid);
+
+    // let user_id = user.id;
+    // let Ok(file_id) = db::insert_file(&mut client, &original_name, &file_uuid, &file_extension, &user_id).await else {
+    //     eprintln!("Unable to insert the file into the database!");
+    //     return HttpResponse::BadRequest().finish();
+    // };
+
+    // // Store the file in the FILES_FOLDER directory using UUID::v4
+    // println!("Storing the file into {}", file_path);
+    // if let Err(error) = tmp_file.file.persist(file_path.clone()) {
+    //     println!("{:?}", error);
+    //     return HttpResponse::BadRequest().body(format!("{:?}", error));
+    // }
+
+    // for answer in answers {
+    //     db::insert_answer(&mut client, answer, &file_id).await.unwrap();
+    // }
+
+    // drop(client);
+    // println!("Processing document_id: {file_id} | {file_uuid} | {original_name}");
+    // let rag_file = RagProcessableFile {
+    //     path: PathBuf::from(file_path),
+    //     file_type: processable_file_type,
+    //     internal_id: format!("{file_id}"),
+    //     original_name,
+    //     file_description: None,
+    //     tags: None,
+    // };
+
+    // std::thread::spawn(async move || {
+    //     let _ = match Rag::default().insert(rag_file).await {
+    //         Ok(res) => res,
+    //         Err(e) => {
+    //             println!("rag.insert failed: {:#?}", e.to_string());
+    //         }
+    //     };
+    // });
+    // HttpResponse::Ok().finish()
 }
 
 #[post("/feedback")]
