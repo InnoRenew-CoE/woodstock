@@ -380,7 +380,7 @@ pub async fn find_file(document_id: i32, client: &mut Client) -> Result<FileInfo
             internal_id: data.get("internal_id"),
             name: data.get("name"),
             original_name: data.get("original_name"),
-            file_type: data.get("file_type"),
+            file_type: data.get("type"),
         }),
         Err(error) => {
             eprintln!("Error with finding file: {:?}", error);
