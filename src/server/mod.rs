@@ -1,39 +1,21 @@
-use crate::db::build_db_client;
-use crate::db::check_login;
-use crate::db::insert_new_password;
-use crate::db::retrieve_questions;
-use crate::db::retrieve_tags;
-use crate::db::setup_db;
-use crate::db::{self};
-use crate::rag::Rag;
-use crate::rag::RagProcessableFile;
-use crate::rag::RagProcessableFileType;
+use crate::db::{
+    build_db_client, check_login, insert_new_password, retrieve_questions, retrieve_tags, setup_db, {self},
+};
+use crate::rag::{Rag, RagProcessableFile, RagProcessableFileType};
 use actix_jwt_auth_middleware::use_jwt::UseJWTOnApp;
-use actix_jwt_auth_middleware::AuthResult;
-use actix_jwt_auth_middleware::Authority;
-use actix_jwt_auth_middleware::FromRequest;
-use actix_jwt_auth_middleware::TokenSigner;
+use actix_jwt_auth_middleware::{AuthResult, Authority, FromRequest, TokenSigner};
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
 use actix_multipart::Multipart;
-use actix_web::cookie::Cookie;
-use actix_web::cookie::SameSite;
+use actix_web::cookie::{Cookie, SameSite};
 use actix_web::dev::ResourcePath;
 use actix_web::error::ErrorUnauthorized;
-use actix_web::get;
 use actix_web::http::StatusCode;
-use actix_web::post;
-use actix_web::web::Bytes;
-use actix_web::web::Data;
-use actix_web::web::Query;
-use actix_web::web::{self};
-use actix_web::App;
-use actix_web::HttpRequest;
-use actix_web::HttpResponse;
-use actix_web::HttpResponseBuilder;
-use actix_web::HttpServer;
-use actix_web::Responder;
+use actix_web::web::{
+    Bytes, Data, Query, {self},
+};
+use actix_web::{get, post, App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer, Responder};
 use actix_web_lab::web::spa;
 use ed25519_compact::KeyPair;
 use futures::TryFutureExt;
@@ -41,24 +23,18 @@ use jwt_compact::alg::Ed25519;
 use lettre::message::header::ContentType;
 use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
-use lettre::Message;
-use lettre::SmtpTransport;
-use lettre::Transport;
+use lettre::{Message, SmtpTransport, Transport};
 use passwords::PasswordGenerator;
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::digest::KeyInit;
 use sha2::Digest;
 use std::collections::VecDeque;
 use std::convert::Infallible;
 use std::env;
 use std::ffi::OsStr;
-use std::fs::create_dir_all;
-use std::fs::File;
-use std::io::Read;
-use std::io::Write;
-use std::path::Path;
-use std::path::PathBuf;
+use std::fs::{create_dir_all, File};
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
@@ -73,12 +49,6 @@ struct AppState {
     invalidated_tokens: Mutex<VecDeque<String>>,
 }
 
-#[derive(MultipartForm)]
-struct SubmissionForm {
-    #[multipart(limit = "1024MB")]
-    file: TempFile,
-    answers: Text<String>,
-}
 #[derive(Serialize, Deserialize, FromRequest, Clone, Debug)]
 pub struct User {
     pub id: i32,
