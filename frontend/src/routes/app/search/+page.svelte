@@ -51,22 +51,25 @@
         while (true) {
             const { done, value } = await stream?.read();
             const decoded = decoder.decode(value);
+            data += decoded;
             total++;
-            if (total === 1) {
-                chunks = JSON.parse(decoded);
-                continue;
-            }
+            try {
+                chunks = JSON.parse(data);
+                data = "";
+            } catch (e) {}
+            // if (total === 1) {
+            //     chunks = JSON.parse(decoded);
+            //     continue;
+            // }
             if (done) {
                 console.log("Done");
                 break;
             }
-
-            data += decoded;
         }
         const datas = data.split("</think>");
         const think = datas[0];
         const notThink = datas[1];
-        data = notThink;
+        // data = notThink;
         waiting = false;
     }
 </script>
@@ -92,14 +95,17 @@
                             <div class="flex gap-2">
                                 <div class="text-secondary bg-secondary/5 border-secondary/50 p-2 shadow-secondary/30 glass rounded-full font-mono text-xs">#{i + 1}</div>
                             </div>
-                            <div class="flex-1">{chunk.additional_data}</div>
+                            <div class="flex-1 flex gap-2">
+                                <div class="py-1 px-3 text-xs h-min glass bg-secondary/10 border border-secondary/40 rounded-sm text-secondary">pdf</div>
+                                Document {chunk.doc_id}
+                            </div>
                             <button disabled class="disabled:opacity-50 disabled:!cursor-no-drop glass px-3 py-2 flex gap-2 items-center">
                                 <MaskedIcon src="../download.svg" class="size-3 bg-secondary group-hover:bg-accent/50" />
                                 Download
                             </button>
                         </div>
                         <div class="">
-                            <div class="transition-all response preview p-3 prose-sm glass hover:bg-white text-sm hover:!text-lg hover:shadow-secondary/30 hover:shadow-2xl">
+                            <div class="transition-all response preview p-3 prose-sm glass hover:bg-white text-sm hover:shadow-secondary/30 hover:shadow-2xl">
                                 <div class="uppercase text-accent/50 font-mono text-xs pb-2">Preview</div>
                                 <div class="">{@html marked("... " + chunk.content.slice(0, 3000) + " ...")}</div>
                             </div>
