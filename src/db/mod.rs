@@ -11,7 +11,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::env;
-use std::fmt::Error;
 use tokio_postgres::Client;
 use tokio_postgres::NoTls;
 
