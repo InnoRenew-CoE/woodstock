@@ -44,6 +44,7 @@ use actix_web::HttpResponseBuilder;
 use actix_web::HttpServer;
 use actix_web::Responder;
 use actix_web_lab::web::spa;
+use anyhow::bail;
 use chrono::Duration;
 use core::time;
 use ed25519_compact::KeyPair;
@@ -343,29 +344,37 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) ->
 }
 
 #[get("/download/{file_id}")]
-pub async fn download(file_id: web::Path<String>) -> HttpResponse {
-    let path = format!("/var/woodstock/files/{}", file_id.path()).replace(".", "");
-
-    if !path.starts_with("/var/woodstock/files/") {
-        return HttpResponse::InternalServerError().finish();
-    }
-
-    let mut file = match File::open(&path) {
-        Ok(file) => file,
-        Err(e) => return HttpResponse::InternalServerError().finish(),
+pub async fn download(state: Data<AppState>, file_id: web::Path<String>) -> HttpResponse {
+    let Ok(mut client) = state.client.lock() else {
+        return HttpResponse::NotFound().finish();
     };
+    let file = db::find_file(file_id.parse().unwrap(), &mut client).await;
+    println!("File found to be downloaded: {:?}", file);
+    if let Ok(file) = file {
+        let path = format!("/data/woodstock/files/{}", file.name).replace(".", "");
+        if !path.starts_with("/data/woodstock/files/") {
+            return HttpResponse::InternalServerError().finish();
+        }
 
-    let mut buffer = Vec::new();
-    if file.read_to_end(&mut buffer).is_err() {
-        return HttpResponse::InternalServerError().finish();
+        let mut file = match File::open(&path) {
+            Ok(file) => file,
+            Err(e) => return HttpResponse::InternalServerError().finish(),
+        };
+
+        let mut buffer = Vec::new();
+        if file.read_to_end(&mut buffer).is_err() {
+            return HttpResponse::InternalServerError().finish();
+        }
+
+        let filename = path.split("/").last().unwrap_or("download");
+        let filename = format!("{filename}.pdf");
+
+        return HttpResponse::Ok()
+            .append_header(("Content-Disposition", format!("attachment; filename=\"{}\"", filename)))
+            .body(buffer);
     }
 
-    let filename = path.split("/").last().unwrap_or("download");
-    let filename = format!("{filename}.pdf");
-
-    HttpResponse::Ok()
-        .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
-        .body(buffer)
+    HttpResponse::NotFound().finish()
 }
 
 #[derive(Deserialize, Debug)]

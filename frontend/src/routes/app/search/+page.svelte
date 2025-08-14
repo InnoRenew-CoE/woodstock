@@ -99,10 +99,10 @@
                                 <div class="py-1 px-3 text-xs h-min glass bg-secondary/10 border border-secondary/40 rounded-sm text-secondary">pdf</div>
                                 Document {chunk.doc_id}
                             </div>
-                            <button disabled class="disabled:opacity-50 disabled:!cursor-no-drop glass px-3 py-2 flex gap-2 items-center">
+                            <a target="_blank" href="/download/{chunk.doc_id}" class="disabled:opacity-50 disabled:!cursor-no-drop glass px-3 py-2 flex gap-2 items-center">
                                 <MaskedIcon src="../download.svg" class="size-3 bg-secondary group-hover:bg-accent/50" />
                                 Download
-                            </button>
+                            </a>
                         </div>
                         <div class="">
                             <div class="transition-all response preview p-3 prose-sm glass hover:bg-white text-sm hover:shadow-secondary/30 hover:shadow-2xl">

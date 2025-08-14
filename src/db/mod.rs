@@ -11,6 +11,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::env;
+use std::fmt::Error;
 use tokio_postgres::Client;
 use tokio_postgres::NoTls;
 
@@ -23,6 +24,7 @@ const SET_PASSWORD: &'static str = "update users set password = $2, last_passwor
 const SELECT_QUESTIONS: &'static str = "select * from questions";
 const SELECT_QUESTION_OPTIONS: &'static str = "select * from question_options";
 const SELECT_DISTINCT_TAGS: &'static str = "select distinct tag from tags";
+const FIND_FILE: &'static str = "select * from files where id = $1;";
 const SELECT_UPLOADED_FILES: &'static str = r#"select *
 from files
          left join tag_file on tag_file.file_id = files.id
@@ -368,4 +370,30 @@ pub async fn insert_feedback(feedback: String, user: &i32, client: &mut Client) 
     let _ = client
         .execute("insert into feedback (text, submitted_by) values ($1, $2)", &[&feedback, user])
         .await;
+}
+
+pub async fn find_file(document_id: i32, client: &mut Client) -> Result<FileInfo, &str> {
+    let row = client.query_one(FIND_FILE, &[&document_id]).await;
+    match row {
+        Ok(data) => Ok(FileInfo {
+            id: data.get("id"),
+            internal_id: data.get("internal_id"),
+            name: data.get("name"),
+            original_name: data.get("original_name"),
+            file_type: data.get("file_type"),
+        }),
+        Err(error) => {
+            eprintln!("Error with finding file: {:?}", error);
+            Err("Unable to find the file...")
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct FileInfo {
+    pub id: i32,
+    pub internal_id: String,
+    pub original_name: String,
+    pub name: String,
+    pub file_type: String,
 }
