@@ -392,7 +392,7 @@ pub async fn find_file(document_id: i32, client: &mut Client) -> Result<FileInfo
 #[derive(Debug)]
 pub struct FileInfo {
     pub id: i32,
-    pub internal_id: String,
+    pub internal_id: Option<String>,
     pub original_name: String,
     pub name: String,
     pub file_type: String,
