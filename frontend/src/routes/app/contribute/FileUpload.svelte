@@ -1,7 +1,7 @@
 <script>
     import FileSelector from "$lib/common/FileSelector.svelte";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
-    import { filesStore, templateStore } from "$lib/stores/questions";
+    import { filesStore, submitTemplate, templateStore } from "$lib/stores/questions";
     let { proceed = $bindable() } = $props();
 
     $effect(() => {
@@ -24,15 +24,24 @@
             <div class="uppercase opacity-60 rounded border-y bg-secondary/20 border-secondary/60 h-full w-0.5 m-auto"></div>
             <div class="grid gap-3 items-center m-auto">
                 <div class="text-primary/50">Fill out an excel file and upload it for us to process it later.</div>
-                <a target="_blank" href="../template.xlsm" class="w-min text-nowrap glass px-2 py-1 text-green-600/80 glass bg-green-600/10 border-green-600/50 flex gap-3 items-center justify-center hover:brightness-[90%] cursor-pointer">
+                <a target="_blank" href="../template.xlsm" class="text-nowrap glass px-2 py-1 text-green-600/80 glass bg-green-600/10 border-green-600/50 flex gap-3 items-center justify-center hover:brightness-[90%] cursor-pointer">
                     <div class="glass p-2 rounded-full bg-white/80 border-green-600/30">
                         <MaskedIcon src="../download.svg" class="size-4 bg-green-600" />
                     </div>
-                    <div class="text-center px-5">Download excel template</div>
+                    <div class="text-center px-5">Download template</div>
                 </a>
-                <FileSelector text="Select excel file" multiple={false} bind:files={$templateStore} />
+                <FileSelector class="w-full" text={$templateStore?.item(0)?.name ?? "Upload excel file"} multiple={false} bind:files={$templateStore} accept=".xlsm" />
                 {#if ($templateStore?.length ?? 0) > 0}
-                    <button class="bg-primary p-3 rounded-sm text-white">Submit</button>
+                    <button
+                        class="bg-primary p-3 rounded-2xl text-white"
+                        onclick={async () => {
+                            const files = $templateStore;
+                            if (files) {
+                                await submitTemplate(files);
+                                templateStore.set(undefined);
+                            }
+                        }}>Submit</button
+                    >
                 {/if}
             </div>
         </div>

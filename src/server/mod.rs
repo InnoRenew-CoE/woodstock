@@ -554,6 +554,7 @@ pub async fn start_server(rag: Rag) {
                 // .service(
                 web::scope("/api")
                     .service(submit_answers)
+                    .service(submit_csv)
                     .service(search)
                     .service(fetch_questions)
                     .service(download)
