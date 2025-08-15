@@ -1,7 +1,7 @@
 <script>
     import FileSelector from "$lib/common/FileSelector.svelte";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
-    import { filesStore } from "$lib/stores/questions";
+    import { filesStore, templateStore } from "$lib/stores/questions";
     let { proceed = $bindable() } = $props();
 
     $effect(() => {
@@ -21,7 +21,7 @@
                 <div class="text-primary/50">Upload files individually.</div>
                 <div class="flex items-center justify-center"><FileSelector text="Select files" multiple={true} bind:files={$filesStore} /></div>
             </div>
-            <div class="uppercase opacity-60 rounded border bg-secondary/20 border-secondary/60 h-full w-1 m-auto"></div>
+            <div class="uppercase opacity-60 rounded border-y bg-secondary/20 border-secondary/60 h-full w-0.5 m-auto"></div>
             <div class="grid gap-3 items-center m-auto">
                 <div class="text-primary/50">Fill out an excel file and upload it for us to process it later.</div>
                 <a target="_blank" href="../template.xlsm" class="w-min text-nowrap glass px-2 py-1 text-green-600/80 glass bg-green-600/10 border-green-600/50 flex gap-3 items-center justify-center hover:brightness-[90%] cursor-pointer">
@@ -30,7 +30,10 @@
                     </div>
                     <div class="text-center px-5">Download excel template</div>
                 </a>
-                <FileSelector text="Submit file" multiple={false} bind:files={$filesStore} />
+                <FileSelector text="Select excel file" multiple={false} bind:files={$templateStore} />
+                {#if ($templateStore?.length ?? 0) > 0}
+                    <button class="bg-primary p-3 rounded-sm text-white">Submit</button>
+                {/if}
             </div>
         </div>
         <div class="glass p-10">

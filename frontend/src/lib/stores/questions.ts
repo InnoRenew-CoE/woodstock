@@ -6,6 +6,7 @@ import { uploadProgressStore } from "./uploads";
 
 export const answersStore: Writable<Answer[]> = writable([]);
 export const filesStore: Writable<FileList | undefined> = writable();
+export const templateStore: Writable<FileList | undefined> = writable();
 export const questionsStore: Writable<Question[]> = writable([]);
 export const tagsStore: Writable<string[]> = writable([]);
 
@@ -52,4 +53,31 @@ export async function submitAnswers(files: FileList, answers: FileAnswer[]) {
 
     xhr.send(formData);
   }
+}
+
+export async function submitTemplate(files: FileList) {
+  for (let file of Array.from(files)) {
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${PUBLIC_API_BASE_URL}/api/submit`);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = (event.loaded / event.total) * 100;
+        const percentage = percent.toFixed(2);
+        console.log(`Uploaded: ${percentage}%`);
+        uploadProgressStore.update((array) => {
+          const foundFile = array.find((f) => f.file === file.name);
+          if (foundFile) {
+            foundFile.progress = percent;
+          }
+          return array;
+        });
+      }
+    };
+
+    xhr.send(formData);
+  }
+  pushNotification({ title: "Submission successful", body: "Thank you for your submission. Processing has been scheduled." });
 }
