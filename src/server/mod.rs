@@ -131,7 +131,7 @@ struct FileInformation {
 #[post("/answers")]
 async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user: User) -> impl Responder {
     let file_uuid = uuid::Uuid::new_v4().to_string();
-    let base_path = std::env::var("FILES_FOLDER").unwrap_or("/var/woodstock/files/".to_string());
+    let base_path = std::env::var("FILES_FOLDER").unwrap_or("/data/woodstock/files/".to_string());
     let file_path = format!("{}/{}", base_path, file_uuid);
     let user_id = user.id;
     let mut file_information: Option<FileInformation> = None;
@@ -244,6 +244,75 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
             }
         };
     });
+
+    HttpResponse::Ok().finish()
+}
+
+#[post("/submit")]
+async fn submit_csv(state: web::Data<AppState>, user: User, mut payload: Multipart) -> impl Responder {
+    let file_uuid = uuid::Uuid::new_v4().to_string();
+    let base_path = std::env::var("FILES_FOLDER").unwrap_or("/data/woodstock/templates/".to_string());
+    let file_path = format!("{}/{}", base_path, file_uuid);
+    let user_id = user.id;
+    let mut file_information: Option<FileInformation> = None;
+
+    while let Some(item) = payload.next().await {
+        if let Ok(mut field) = item {
+            if let Some(name) = field.name() {
+                println!("Processing {:?}", name);
+                match name {
+                    "file" => {
+                        let Some(content_disposition) = field.content_disposition() else {
+                            return HttpResponse::BadRequest().finish();
+                        };
+
+                        // Extract filename
+                        let original_name = content_disposition
+                            .get_filename()
+                            .map(|f| f.to_string())
+                            .unwrap_or_else(|| "unknown".into());
+
+                        let file_extension = Path::new(&original_name)
+                            .extension()
+                            .and_then(OsStr::to_str)
+                            .unwrap_or("unknown")
+                            .to_uppercase();
+
+                        let Ok(mut file) = File::create(&file_path) else {
+                            return HttpResponse::BadRequest().finish();
+                        };
+                        println!("Storing the file into {}", file_path);
+                        while let Some(chunk) = field.next().await {
+                            if let Ok(data) = chunk {
+                                if let Err(error) = file.write(&data) {
+                                    println!("Error writing to file: {:?}", error);
+                                };
+                            }
+                        }
+
+                        file_information = Some(FileInformation {
+                            original_name,
+                            extension: file_extension,
+                        });
+                    }
+                    _ => (),
+                }
+            }
+        }
+    }
+
+    let Ok(mut client) = state.client.lock() else {
+        return HttpResponse::InternalServerError().finish();
+    };
+
+    let Some(FileInformation { original_name, extension }) = file_information else {
+        return HttpResponse::BadRequest().finish();
+    };
+
+    let Ok(_) = db::insert_template(file_uuid, &user_id, &mut client).await else {
+        eprintln!("Unable to insert the file into the database!");
+        return HttpResponse::BadRequest().finish();
+    };
 
     HttpResponse::Ok().finish()
 }

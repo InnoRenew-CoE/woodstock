@@ -99,7 +99,7 @@
                                 <div class="py-1 px-3 text-xs h-min glass bg-secondary/10 border border-secondary/40 rounded-sm text-secondary">pdf</div>
                                 Document {chunk.doc_id}
                             </div>
-                            <div class="flex-1 flex gap-2">
+                            <div class="flex gap-2">
                                 Trust score
                                 <div class="py-1 px-3 text-xs h-min glass bg-green-700/10 border border-green-700/40 rounded-sm text-green-700">high</div>
                             </div>

@@ -15,8 +15,24 @@
         <div class="py-2 opacity-60">Thank you for choosing to contribute in our research project. Please select files that you'd like to contribute to our system.</div>
         <div class="py-1 opacity-80">Help us improve our search by contributing. Contribution is a few-step process where you answer some questions about your files.</div>
     </div>
-    <div class="glass p-5">
-        <div><FileSelector bind:files={$filesStore} /></div>
+    <div class="grid glass p-5 gap-3">
+        <div class="p-3 glass grid text-center grid-cols-[1fr_50px_1fr] gap-10 items-center justify-center">
+            <div class="grid gap-3">
+                <div class="text-primary/50">Upload files individually.</div>
+                <div class="flex items-center justify-center"><FileSelector text="Select files" multiple={true} bind:files={$filesStore} /></div>
+            </div>
+            <div class="uppercase opacity-60 rounded border bg-secondary/20 border-secondary/60 h-full w-1 m-auto"></div>
+            <div class="grid gap-3 items-center m-auto">
+                <div class="text-primary/50">Fill out an excel file and upload it for us to process it later.</div>
+                <a target="_blank" href="../template.xlsm" class="w-min text-nowrap glass px-2 py-1 text-green-600/80 glass bg-green-600/10 border-green-600/50 flex gap-3 items-center justify-center hover:brightness-[90%] cursor-pointer">
+                    <div class="glass p-2 rounded-full bg-white/80 border-green-600/30">
+                        <MaskedIcon src="../download.svg" class="size-4 bg-green-600" />
+                    </div>
+                    <div class="text-center px-5">Download excel template</div>
+                </a>
+                <FileSelector text="Submit file" multiple={false} bind:files={$filesStore} />
+            </div>
+        </div>
         <div class="glass p-10">
             {#if ($filesStore?.length ?? 0) > 0}
                 <div class="font-light pb-2">Selected files ({$filesStore?.length ?? 0}):</div>

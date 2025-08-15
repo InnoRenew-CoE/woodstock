@@ -1,18 +1,10 @@
-use crate::server::Answer;
-use crate::server::LoginDetails;
-use crate::server::Question;
-use crate::server::SelectionAnswer;
-use crate::server::User;
-use crate::server::UserRole;
+use crate::server::{Answer, LoginDetails, Question, SelectionAnswer, User, UserRole};
 use anyhow::bail;
-use chrono::Local;
-use chrono::NaiveDate;
-use serde::Deserialize;
-use serde::Serialize;
+use chrono::{Local, NaiveDate};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::env;
-use tokio_postgres::Client;
-use tokio_postgres::NoTls;
+use std::{env, string};
+use tokio_postgres::{Client, NoTls};
 
 const INSERT_LOGIN_STATISTIC: &'static str = r#"insert into logins (user_id) values ($1)"#;
 const INSERT_FILES_QUERY: &'static str = r#"insert into files (original_name, name, type, submitted_by) values ($1, $2, $3, $4) returning id"#;
@@ -131,6 +123,12 @@ create table if not exists logins
     time timestamp default now()
 );
 
+create table if not exists templates
+(
+    id          serial primary key,
+    user_id     int references users,
+    file        varchar(200)
+);
 "#;
 
 /// Attempts to create all tables required by this software.
@@ -303,8 +301,7 @@ pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) -> Re
     Ok(())
 }
 
-use sha2::Digest;
-use sha2::Sha256;
+use sha2::{Digest, Sha256};
 
 pub async fn check_login(client: &Client, login_details: LoginDetails) -> Result<User, String> {
     let Some(password) = login_details.password else {
@@ -386,6 +383,17 @@ pub async fn find_file(document_id: i32, client: &mut Client) -> Result<FileInfo
             Err("Unable to find the file...")
         }
     }
+}
+
+pub async fn insert_template(file_name: String, user_id: &i32, client: &mut Client) -> Result<(), String> {
+    let result = client
+        .execute("insert into templates (user_id, file) values ($1, $2)", &[user_id, &file_name])
+        .await;
+    if let Err(error) = result {
+        eprintln!("{:?}", error);
+        return Err(error.to_string());
+    }
+    Ok(())
 }
 
 #[derive(Debug)]
