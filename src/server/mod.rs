@@ -251,7 +251,7 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
 #[post("/submit")]
 async fn submit_csv(state: web::Data<AppState>, user: User, mut payload: Multipart) -> impl Responder {
     let file_uuid = uuid::Uuid::new_v4().to_string();
-    let base_path = std::env::var("FILES_FOLDER").unwrap_or("/data/woodstock/templates/".to_string());
+    let base_path = std::env::var("FILES_FOLDER").unwrap_or("/data/woodstock/files/".to_string());
     let file_path = format!("{}/{}", base_path, file_uuid);
     let user_id = user.id;
     let mut file_information: Option<FileInformation> = None;

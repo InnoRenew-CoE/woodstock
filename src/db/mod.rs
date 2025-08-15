@@ -125,9 +125,10 @@ create table if not exists logins
 
 create table if not exists templates
 (
-    id          serial primary key,
-    user_id     int references users,
-    file        varchar(200)
+    id                  serial primary key,
+    user_id             int references users,
+    file                varchar(200),
+    submission_date     date default now(),
 );
 "#;
 
