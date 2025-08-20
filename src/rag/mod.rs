@@ -1,9 +1,7 @@
 use anyhow::{anyhow, Result};
-use comm::{
-    embedding::EmbeddingVector,
-    qdrant::{insert_chunks_to_qdrant, vector_search},
-    OllamaClient,
-};
+use comm::embedding::EmbeddingVector;
+use comm::qdrant::{insert_chunks_to_qdrant, vector_search};
+use comm::OllamaClient;
 use loading::load_file;
 use models::SearchResult;
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
@@ -23,10 +21,15 @@ pub struct Rag {
 
 impl Rag {
     pub async fn insert(&self, file: RagProcessableFile) -> Result<()> {
+        println!("RAG::Insert");
         let loaded_file = load_file(&file)?;
+        println!("RAG::Loaded file {:?}", loaded_file);
         let chunked_file = chunk(loaded_file, processing::ChunkingStrategy::Word(250, 30));
+        println!("RAG::Chunked file {:?}", chunked_file);
         let enriched_file = hype(chunked_file, &self.ollama).await;
+        println!("RAG::Enriched file {:?}", enriched_file);
         let embedded_chunks = prepare_for_upload(enriched_file, &self.ollama).await?;
+        println!("RAG::Embedded chunks {:?}", embedded_chunks);
         insert_chunks_to_qdrant(embedded_chunks).await
     }
 

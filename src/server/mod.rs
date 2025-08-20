@@ -237,7 +237,8 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
     };
 
     std::thread::spawn(async move || {
-        let _ = match Rag::default().insert(rag_file).await {
+        println!("Started the thread.");
+        match Rag::default().insert(rag_file).await {
             Ok(res) => res,
             Err(e) => {
                 println!("rag.insert failed: {:#?}", e.to_string());

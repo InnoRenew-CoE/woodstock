@@ -2,10 +2,8 @@ use std::env;
 
 use anyhow::Result;
 use once_cell::sync::Lazy;
-use qdrant_client::{
-    qdrant::{PointStruct, SearchResponse, UpsertPointsBuilder},
-    Qdrant,
-};
+use qdrant_client::qdrant::{PointStruct, SearchResponse, UpsertPointsBuilder};
+use qdrant_client::Qdrant;
 use tokio::sync::Mutex;
 
 use crate::rag::models::chunks::EmbeddedChunk;
@@ -51,6 +49,7 @@ pub async fn vector_search(embedding: EmbeddingVector) -> Result<SearchResponse>
 pub async fn insert_chunks_to_qdrant(embedded_chunks: Vec<EmbeddedChunk>) -> Result<()> {
     println!("Upserting to qdrant...");
     let client = QDRANT_CLIENT.lock().await;
+    println!("qdrant lock acquired");
     let qdrant_collection = env::var("QDRANT_COLLECTION").expect("QDRANT_COLLECTION not defined");
 
     let points: Vec<PointStruct> = embedded_chunks.into_iter().map(|c| c.into()).collect();
