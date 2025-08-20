@@ -4,12 +4,8 @@ use crate::db::{
 use crate::rag::{Rag, RagProcessableFile, RagProcessableFileType};
 use actix_jwt_auth_middleware::use_jwt::UseJWTOnApp;
 use actix_jwt_auth_middleware::{AuthResult, Authority, FromRequest, TokenSigner};
-use actix_multipart::form::tempfile::TempFile;
-use actix_multipart::form::text::Text;
-use actix_multipart::form::MultipartForm;
 use actix_multipart::Multipart;
 use actix_web::cookie::{Cookie, SameSite};
-use actix_web::dev::ResourcePath;
 use actix_web::error::ErrorUnauthorized;
 use actix_web::http::StatusCode;
 use actix_web::web::{
@@ -18,7 +14,6 @@ use actix_web::web::{
 use actix_web::{get, post, App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer, Responder};
 use actix_web_lab::web::spa;
 use ed25519_compact::KeyPair;
-use futures::TryFutureExt;
 use jwt_compact::alg::Ed25519;
 use lettre::message::header::ContentType;
 use lettre::message::Mailbox;
@@ -26,8 +21,6 @@ use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 use passwords::PasswordGenerator;
 use serde::{Deserialize, Serialize};
-use sha2::digest::KeyInit;
-use sha2::Digest;
 use std::collections::{HashSet, VecDeque};
 use std::convert::Infallible;
 use std::env;
@@ -311,7 +304,7 @@ async fn submit_csv(state: web::Data<AppState>, user: User, mut payload: Multipa
         return HttpResponse::InternalServerError().finish();
     };
 
-    let Some(FileInformation { original_name, extension }) = file_information else {
+    if let None = file_information {
         return HttpResponse::BadRequest().finish();
     };
 
@@ -390,7 +383,10 @@ pub async fn download(state: Data<AppState>, file_id: web::Path<String>) -> Http
 
         let mut file = match File::open(&path) {
             Ok(file) => file,
-            Err(e) => return HttpResponse::InternalServerError().finish(),
+            Err(e) => {
+                eprintln!("Opening file error: {:?}", e);
+                return HttpResponse::InternalServerError().finish();
+            }
         };
 
         let mut buffer = Vec::new();
@@ -464,7 +460,7 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
 }
 
 #[post("/verify")]
-async fn verify(data: web::Data<AppState>, user: User, request: HttpRequest) -> HttpResponse {
+async fn verify(data: web::Data<AppState>, _: User, request: HttpRequest) -> HttpResponse {
     let guard = data.invalidated_tokens.lock().expect("Should be able to lock the mutex");
     if let Some(mut access) = request.cookie("access_token") {
         if guard.contains(&access.value().to_string()) {
@@ -477,7 +473,7 @@ async fn verify(data: web::Data<AppState>, user: User, request: HttpRequest) -> 
 }
 
 #[post("/invalidate")]
-async fn invalidate(data: web::Data<AppState>, user: User, request: HttpRequest) -> HttpResponse {
+async fn invalidate(data: web::Data<AppState>, _: User, request: HttpRequest) -> HttpResponse {
     let mut builder = HttpResponseBuilder::new(StatusCode::OK);
     let mut tokens = data.invalidated_tokens.lock().expect("Should be able to lock the mutex.");
     if let Some(mut access) = request.cookie("access_token") {
