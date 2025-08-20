@@ -28,7 +28,7 @@ use passwords::PasswordGenerator;
 use serde::{Deserialize, Serialize};
 use sha2::digest::KeyInit;
 use sha2::Digest;
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 use std::convert::Infallible;
 use std::env;
 use std::ffi::OsStr;
@@ -103,15 +103,18 @@ async fn fetch_questions(state: web::Data<AppState>) -> impl Responder {
         return HttpResponse::InternalServerError().finish();
     };
     let questions = retrieve_questions(client).await;
-    let available_tags = retrieve_tags(client).await.unwrap_or(vec![]);
-    let structure = QuestionsStructure { available_tags, questions };
+    let available_tags = retrieve_tags(client).await.unwrap_or(HashSet::new());
+    let structure = QuestionsStructure {
+        available_tags: available_tags.into_iter().collect(),
+        questions,
+    };
     HttpResponse::Ok().json(&structure)
 }
 
 #[get("/tags")]
 async fn fetch_tags(data: Data<AppState>) -> impl Responder {
     let mut client = data.client.lock().unwrap();
-    let tags = db::retrieve_tags(&mut client).await.unwrap_or(vec![]);
+    let tags = db::retrieve_tags(&mut client).await.unwrap_or(HashSet::new());
     HttpResponse::Ok().json(tags)
 }
 

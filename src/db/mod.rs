@@ -2,7 +2,7 @@ use crate::server::{Answer, LoginDetails, Question, SelectionAnswer, User, UserR
 use anyhow::bail;
 use chrono::{Local, NaiveDate};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::{env, string};
 use tokio_postgres::{Client, NoTls};
 
@@ -203,13 +203,14 @@ pub async fn retrieve_questions(client: &mut Client) -> Vec<Question> {
 }
 
 /// Retrieves all possible tags from the database.
-pub async fn retrieve_tags(client: &Client) -> Result<Vec<String>, tokio_postgres::Error> {
+pub async fn retrieve_tags(client: &Client) -> Result<HashSet<String>, tokio_postgres::Error> {
     Ok(client
         .query(SELECT_DISTINCT_TAGS, &[])
         .await
         .expect("Unable to query tags.")
         .into_iter()
         .map(|row| row.get("tag"))
+        .map(|t: String| t.to_lowercase())
         .collect())
 }
 
@@ -282,13 +283,16 @@ pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) -> Re
         }
     }
     for tag in tags {
+        let tag = tag.to_lowercase();
         println!("Looking for a tag: {}", tag);
         let tagRow = match client.query_one("SELECT id from tags where tag = $1 limit 1", &[&tag]).await {
             Ok(row) => Ok(row),
             Err(_) => {
                 // insert new tag
                 println!("Inserting {tag:?}");
-                client.query_one("insert into tags (tag) values ($1) returning id", &[&tag.trim()]).await
+                client
+                    .query_one("insert into tags (tag) values ($1) returning id", &[&tag.trim().to_lowercase()])
+                    .await
             }
         };
         println!("{:?}", tagRow);
