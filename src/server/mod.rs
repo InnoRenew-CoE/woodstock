@@ -236,7 +236,7 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
         tags: None,
     };
 
-    std::thread::spawn(async move || {
+    let tokio_result = tokio::spawn(async move {
         println!("Started the thread.");
         match Rag::default().insert(rag_file).await {
             Ok(res) => res,
@@ -244,7 +244,10 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
                 println!("rag.insert failed: {:#?}", e.to_string());
             }
         };
-    });
+    })
+    .await;
+
+    println!("Tokio thread spawn: {:?}", tokio_result);
 
     HttpResponse::Ok().finish()
 }
