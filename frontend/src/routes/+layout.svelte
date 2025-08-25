@@ -44,7 +44,7 @@
     </div>
     <div class="flex-1 h-full relative">
         {@render children()}
-        <div class="absolute right-0 bottom-0 top-0 flex flex-col justify-end gap-5 p-10 pointer-events-none">
+        <div class="fixed right-0 bottom-0 top-0 flex flex-col justify-end gap-5 p-10 pointer-events-none">
             {#each $notificationsStore as notification, i}
                 <div in:slide out:slide class="{notification.class} p-2 min-w-[250px] glass">
                     <div class="glass rounded-lg px-4 py-2 flex items-center gap-3">

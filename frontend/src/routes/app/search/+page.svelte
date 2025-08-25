@@ -5,6 +5,8 @@
     import { marked } from "marked";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
     import type { ResultChunk } from "$lib/types/question";
+    import Spacer from "$lib/common/Spacer.svelte";
+    import { pushNotification } from "$lib/stores/notifications";
 
     let data: string = $state("");
     let query: string = $state("");
@@ -72,6 +74,10 @@
         // data = notThink;
         waiting = false;
     }
+
+    async function vote() {
+        pushNotification({ title: "Vote received", body: "Thank you for rating the information provided by our system." });
+    }
 </script>
 
 <div class="flex flex-wrap sm:grid grid-cols-2 h-full gap-5 min-h-[80vh] glass p-3">
@@ -97,20 +103,28 @@
                             </div>
                             <div class="flex-1 flex gap-2">
                                 <div class="py-1 px-3 text-xs h-min glass bg-secondary/10 border border-secondary/40 rounded-sm text-secondary">pdf</div>
-                                Document {chunk.doc_id}
                             </div>
                             <div class="flex gap-2">
                                 Trust score
                                 <div class="py-1 px-3 text-xs h-min glass bg-green-700/10 border border-green-700/40 rounded-sm text-green-700">high</div>
                             </div>
-                            <a target="_blank" href="/api/download/{chunk.doc_id}" class="disabled:opacity-50 disabled:!cursor-no-drop glass px-3 py-2 flex gap-2 items-center">
-                                <MaskedIcon src="../download.svg" class="size-3 bg-secondary group-hover:bg-accent/50" />
-                                Download
-                            </a>
+                            {#if (parseInt(chunk.doc_id) ?? 0) > 0}
+                                <a target="_blank" href="/api/download/{chunk.doc_id}" class="disabled:opacity-50 disabled:!cursor-no-drop glass px-3 py-2 flex gap-2 items-center">
+                                    <MaskedIcon src="../download.svg" class="size-3 bg-secondary group-hover:bg-accent/50" />
+                                    Download
+                                </a>
+                            {/if}
                         </div>
                         <div class="">
-                            <div class="transition-all response preview p-3 prose-sm glass hover:bg-white text-sm hover:shadow-secondary/30 hover:shadow-2xl">
-                                <div class="uppercase text-accent/50 font-mono text-xs pb-2">Preview</div>
+                            <div class="transition-all response preview p-3 prose-sm glass text-sm">
+                                <div class="flex gap-3 items-center pb-3">
+                                    <div class="uppercase text-accent/50 font-mono text-xs pb-2">Preview</div>
+                                    <Spacer />
+                                    <div class="glass p-1 flex gap-3 items-center rounded-full">
+                                        <button onclick={vote} class=" hover:brightness-110 active:brightness-90 hover:bg-green-500/5 hover:border-green-500 glass p-2 rounded-full"><MaskedIcon src="../thumbs-up.svg" class="bg-green-500" /></button>
+                                        <button onclick={vote} class=" hover:brightness-110 active:brightness-90 hover:bg-red-500/5 hover:border-red-500 glass p-2 rounded-full"><MaskedIcon src="../thumbs-down.svg" class="bg-red-500" /></button>
+                                    </div>
+                                </div>
                                 <div class="">{@html marked("... " + chunk.content.slice(0, 3000) + " ...")}</div>
                             </div>
                         </div>
