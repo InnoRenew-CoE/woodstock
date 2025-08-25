@@ -50,15 +50,17 @@
                                     }
                                 }}
                             />
-                            <div
-                                class="glass p-2 hover:bg-red-50 cursor-pointer"
-                                onclick={() => {
-                                    multipleTextAnswers = multipleTextAnswers.toSpliced(i, 1);
-                                    multipleTextAnswers = [...multipleTextAnswers];
-                                }}
-                            >
-                                <MaskedIcon src="/x-close.svg" class="size-4 bg-red-600" />
-                            </div>
+                            {#if multipleTextAnswers.length > 1}
+                                <div
+                                    class="glass p-2 hover:bg-red-50 cursor-pointer"
+                                    onclick={() => {
+                                        multipleTextAnswers = multipleTextAnswers.toSpliced(i, 1);
+                                        multipleTextAnswers = [...multipleTextAnswers];
+                                    }}
+                                >
+                                    <MaskedIcon src="/x-close.svg" class="size-4 bg-red-600" />
+                                </div>
+                            {/if}
                         </div>
                     {/each}
                 </div>
