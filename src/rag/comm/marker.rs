@@ -118,6 +118,7 @@ impl MarkerClient {
         self.convert_file_with_options(file_path, &opts).await
     }
 
+
     /// Full control over options
     pub async fn convert_file_with_options<P: AsRef<Path>>(
         &self,
