@@ -24,6 +24,9 @@ sudo apt-get install -y nvidia-container-toolkit
 sudo nvidia-ctk runtime configure
 sudo systemctl restart docker
 
+sudo mkdir -p /data/marker_cache/datalab
+sudo mkdir -p /data/marker_cache/hf
+sudo mkdir -p /data/marker_cache/torch
 
 docker run --runtime=nvidia \
   -e NVIDIA_VISIBLE_DEVICES=all \
