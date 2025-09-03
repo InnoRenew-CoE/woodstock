@@ -4455,6 +4455,8 @@ dependencies = [
  "jwt-compact",
  "lettre 0.11.17",
  "lettre_email",
+ "mime",
+ "mime_guess",
  "ollama-rs",
  "once_cell",
  "passwords",

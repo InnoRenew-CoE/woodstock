@@ -1,6 +1,8 @@
 // src/services/marker.rs
 
 use std::{collections::HashMap, env, path::Path};
+use actix_web::mime;
+use mime_guess::MimeGuess;
 use reqwest::multipart;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -9,6 +11,7 @@ use url::Url;
 pub struct MarkerClient {
     base_url: Url,
     http: reqwest::Client,
+    admin_token: Option<String>,
 }
 
 impl Default for MarkerClient {
@@ -19,19 +22,35 @@ impl Default for MarkerClient {
             .timeout(std::time::Duration::from_secs(120))
             .build()
             .expect("Failed building reqwest client");
-        Self { base_url, http }
+        let admin_token = env::var("ADMIN_TOKEN").ok();
+        Self { base_url, http, admin_token }
     }
 }
 
 /// Options you can pass to Marker
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ConvertOptions {
-    pub formats: Vec<Format>,           // default: ["markdown","json","chunks"]
-    pub use_llm: bool,                  // default: false
-    pub force_ocr: bool,                // default: false
-    pub paginate_output: bool,          // default: false
-    pub strip_existing_ocr: bool,       // default: false
-    pub redo_inline_math: bool,         // default: false
+    pub formats: Vec<Format>,     // default: ["markdown","json","chunks"]
+    pub use_llm: bool,            // default: false
+    pub force_ocr: bool,          // default: false
+    pub paginate_output: bool,    // default: false
+    pub strip_existing_ocr: bool, // default: false
+    pub redo_inline_math: bool,   // default: false
+    pub return_images: bool,      // default: false
+}
+
+impl Default for ConvertOptions {
+    fn default() -> Self {
+        Self {
+            formats: vec![Format::Markdown, Format::Json, Format::Chunks],
+            use_llm: false,
+            force_ocr: false,
+            paginate_output: false,
+            strip_existing_ocr: false,
+            redo_inline_math: false,
+            return_images: false,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -69,16 +88,11 @@ pub struct ConvertResponse {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Outputs {
-    /// Full markdown text if requested
     pub markdown: Option<String>,
-    /// Full HTML string if requested
     pub html: Option<String>,
-    /// Structured JSON from Marker. Schema varies by document type, so keep flexible.
     pub json: Option<serde_json::Value>,
-    /// Chunked text with basic fields commonly used in RAG
     pub chunks: Option<Vec<Chunk>>,
-    /// Images as base64 mapped by filename
-    pub images: Option<HashMap<String, String>>,
+    pub images: Option<HashMap<String, String>>, // base64
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -88,7 +102,6 @@ pub struct Chunk {
     pub page: Option<i32>,
     #[serde(default)]
     pub section_path: Option<Vec<String>>,
-    /// carry any extra fields without failing deserialization
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
 }
@@ -103,21 +116,16 @@ pub struct Metadata {
     pub html_metadata: Option<serde_json::Value>,
     #[serde(default)]
     pub chunks_metadata: Option<serde_json::Value>,
-    /// carry any extra metadata keys
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
 }
 
 impl MarkerClient {
-    /// Convenience helper for the common case: markdown, json, chunks
+    /// Convenience helper for the common case
     pub async fn convert_file_common<P: AsRef<Path>>(&self, file_path: P) -> anyhow::Result<ConvertResponse> {
-        let opts = ConvertOptions {
-            formats: vec![Format::Markdown, Format::Json, Format::Chunks],
-            ..Default::default()
-        };
+        let opts = ConvertOptions::default();
         self.convert_file_with_options(file_path, &opts).await
     }
-
 
     /// Full control over options
     pub async fn convert_file_with_options<P: AsRef<Path>>(
@@ -138,6 +146,13 @@ impl MarkerClient {
                 .join(",")
         };
 
+        // guess a reasonable mime for the upload
+        let guessed_mime = file_path
+            .as_ref()
+            .extension()
+            .and_then(|ext| MimeGuess::from_ext(ext.to_string_lossy().as_ref()).first())
+            .unwrap_or(mime::APPLICATION_OCTET_STREAM);
+
         let file_part = multipart::Part::file(file_path.as_ref())
             .await?
             .file_name(
@@ -148,7 +163,7 @@ impl MarkerClient {
                     .unwrap_or("input.bin")
                     .to_string(),
             )
-            .mime_str("application/octet-stream")?;
+            .mime_str(guessed_mime.essence_str())?;
 
         let form = multipart::Form::new()
             .part("file", file_part)
@@ -157,18 +172,21 @@ impl MarkerClient {
             .text("force_ocr", options.force_ocr.to_string())
             .text("paginate_output", options.paginate_output.to_string())
             .text("strip_existing_ocr", options.strip_existing_ocr.to_string())
-            .text("redo_inline_math", options.redo_inline_math.to_string());
+            .text("redo_inline_math", options.redo_inline_math.to_string())
+            .text("return_images", options.return_images.to_string());
 
-        let resp = self
-            .http
-            .post(url)
-            .multipart(form)
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<ConvertResponse>()
-            .await?;
+        let mut req = self.http.post(url).multipart(form);
+        if let Some(tok) = &self.admin_token {
+            req = req.bearer_auth(tok);
+        }
 
+        let resp = req.send().await?;
+
+        if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
+            anyhow::bail!("marker auth failed 401 unauthorized");
+        }
+
+        let resp = resp.error_for_status()?.json::<ConvertResponse>().await?;
         Ok(resp)
     }
 }
