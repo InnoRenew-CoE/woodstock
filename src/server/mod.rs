@@ -510,7 +510,7 @@ async fn check_refresh(data: Data<AppState>, request: HttpRequest) -> Result<(),
 
 /// Attempts to start the server.
 pub async fn start_server(rag: Rag) {
-    send_mail("mihael@regnum.si", "sample").await;
+    // send_mail("mihael@regnum.si", "sample").await;
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     let server_port = env::var("SERVER_PORT").ok().and_then(|x| x.parse::<u16>().ok()).unwrap_or(6969);
@@ -611,7 +611,7 @@ async fn send_mail(recipient: &str, password: &str) {
     let mailer = SmtpTransport::starttls_relay("smtp-mail.outlook.com").unwrap().credentials(creds).build();
     match mailer.send(&email) {
         Ok(_) => println!("Email sent successfully!"),
-        Err(e) => panic!("Could not send email: {e:?}"),
+        Err(e) => eprintln!("Could not send email: {e:?}"),
     }
 
     // mailer.send_mail(message).await?;
