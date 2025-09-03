@@ -4,7 +4,7 @@ import base64
 from io import BytesIO
 from typing import List, Dict, Any
 
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
@@ -14,6 +14,18 @@ from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from marker.config.parser import ConfigParser
+
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
+print(f"Admin token set: {bool(ADMIN_TOKEN)}")
+
+def require_token(authorization: str = Header(None)):
+    if not ADMIN_TOKEN:
+        return  # no protection if env not set
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    token = authorization.split(" ", 1)[1]
+    if token != ADMIN_TOKEN:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 app = FastAPI(title="Marker Server", version="1.0.0")
@@ -114,7 +126,7 @@ def health():
     return {"status": "ok", "device": device}
 
 
-@app.post("/convert", response_model=ConvertResponse)
+@app.post("/convert", response_model=ConvertResponse, dependencies=[Depends(require_token)])
 async def convert(
     file: UploadFile = File(...),
     formats: str = Form("markdown,json"),

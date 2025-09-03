@@ -36,6 +36,7 @@ docker run --runtime=nvidia \
   -e HF_HOME=/root/.cache/huggingface \
   -e TRANSFORMERS_CACHE=/root/.cache/huggingface \
   -e HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface \
+  -e ADMIN_TOKEN=<admin token> \
   -v /data/marker_out:/data/marker_out \
   -v /data/marker_cache/datalab:/root/.cache/datalab \
   -v /data/marker_cache/hf:/root/.cache/huggingface \
