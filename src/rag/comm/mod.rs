@@ -16,6 +16,7 @@ use rand::{rng, Rng};
 pub mod embedding;
 pub mod qdrant;
 pub mod question;
+pub mod marker;
 
 
 
