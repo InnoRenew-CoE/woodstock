@@ -9,6 +9,9 @@ from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from marker.config.parser import ConfigParser
+import os
+import uvicorn
+
 
 app = FastAPI(title="Marker Server", version="1.0.0")
 
@@ -106,3 +109,9 @@ async def convert(
         outputs=outputs,
         metadata=meta_all,
     ).model_dump())
+
+if __name__ == "__main__":
+    # Env PORT and WORKERS let you scale without CLI flags
+    port = int(os.getenv("PORT", "8080"))
+    workers = int(os.getenv("WORKERS", "1"))
+    uvicorn.run("server:app", host="0.0.0.0", port=port, workers=workers)
