@@ -233,18 +233,14 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
         tags: None,
     };
 
-    if let Err(error) = tokio::spawn(async move {
+    tokio::spawn(async move {
         match Rag::default().insert(rag_file).await {
             Ok(res) => res,
             Err(e) => {
                 println!("rag.insert failed: {:#?}", e.to_string());
             }
         };
-    })
-    .await
-    {
-        eprintln!("TOKIO ERROR: {:?}", error);
-    }
+    });
     HttpResponse::Ok().finish()
 }
 

@@ -77,6 +77,7 @@ fn generate_hype_prompt_questions(file: &ChunkedFile<Chunk>) -> Vec<Question> {
     let question = "/no_think You will be given a passage from a document.\n Your task is to analyze the context text (passage) and \
         generate essential questions that, when answered, capture the main points and core meaning of the text. \
         The questions should be exhaustive and understandable without context. When possible, named entities should be referenced by their full name. \
+        Dont't refer to the text as 'the text' or 'the passage' and don't refer to outside material like 'Figure 2'. \
         However add questions that are diverse in topic. \
         It is extremely important that you only answer with questions and each question should be written in its own line (separated by newline) with no prefix.\
         And finally the answer to each question has to be found in the passage.".to_string();
