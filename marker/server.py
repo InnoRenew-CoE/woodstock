@@ -218,4 +218,4 @@ async def convert(
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8080"))
     workers = int(os.getenv("WORKERS", "1"))
-    uvicorn.run("server:app", host="0.0.0.0", port=port, workers=workers)
+    uvicorn.run("server:app", host="0.0.0.0", port=port, workers=workers, timeout_keep_alive=28800)
