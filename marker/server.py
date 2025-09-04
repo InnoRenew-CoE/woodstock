@@ -14,6 +14,7 @@ from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from marker.config.parser import ConfigParser
+from tempfile import NamedTemporaryFile
 
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 print(f"Admin token set: {bool(ADMIN_TOKEN)}")
@@ -29,6 +30,8 @@ def require_token(authorization: str = Header(None)):
 
 
 app = FastAPI(title="Marker Server", version="1.0.0")
+
+CHUNK_SIZE = 8 * 1024 * 1024  # 8 MB
 
 
 class ConvertResponse(BaseModel):
@@ -125,7 +128,6 @@ def health():
     device = os.getenv("TORCH_DEVICE", "auto")
     return {"status": "ok", "device": device}
 
-
 @app.post("/convert", response_model=ConvertResponse, dependencies=[Depends(require_token)])
 async def convert(
     file: UploadFile = File(...),
@@ -138,15 +140,32 @@ async def convert(
     return_images: bool = Form(False),
 ):
     print("Received convert request")
+
     requested: List[str] = [s.strip().lower() for s in formats.split(",") if s.strip()]
     allowed = {"markdown", "json", "html", "chunks"}
     if not requested or any(fmt not in allowed for fmt in requested):
         raise HTTPException(status_code=400, detail=f"formats must be subset of {sorted(list(allowed))}")
 
-    contents = await file.read()
-    in_path = f"/tmp/{uuid.uuid4()}_{file.filename or 'input.bin'}"
-    with open(in_path, "wb") as f:
-        f.write(contents)
+    max_mb = int(os.getenv("MAX_UPLOAD_MB", "2048"))
+    chunk_size = int(os.getenv("UPLOAD_CHUNK_BYTES", str(8 * 1024 * 1024)))
+    tmpdir = os.getenv("UPLOAD_TMPDIR", "/tmp")
+
+    # stream upload to disk
+    suffix = f"{uuid.uuid4()}_{file.filename or 'input.bin'}"
+    tf = NamedTemporaryFile(delete=False, dir=tmpdir, suffix=suffix)
+    in_path = tf.name
+    total = 0
+    try:
+        while True:
+            chunk = await file.read(chunk_size)
+            if not chunk:
+                break
+            tf.write(chunk)
+            total += len(chunk)
+            if total > max_mb * 1024 * 1024:
+                raise HTTPException(status_code=413, detail="file too large")
+    finally:
+        tf.close()
 
     job_id = str(uuid.uuid4())
     outputs: Dict[str, Any] = {}
@@ -182,7 +201,6 @@ async def convert(
             elif fmt == "chunks":
                 outputs["chunks"] = to_plain(rendered)
                 meta_all["chunks_metadata"] = getattr(rendered, "metadata", {}) or {}
-
     finally:
         try:
             os.remove(in_path)
@@ -196,7 +214,6 @@ async def convert(
             metadata=meta_all,
         ).model_dump()
     )
-
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8080"))
