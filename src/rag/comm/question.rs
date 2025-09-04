@@ -14,7 +14,7 @@ impl From<String> for Question {
             system_prompt: "You are a helpful assistant. Answer users question based on provided context.".to_owned(),
             question: value,
             context: vec![],
-            model: "qwen3:30b".to_owned(),
+            model: "hf.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF:UD-Q4_K_XL".to_owned(),
         }
     }
 }
@@ -25,7 +25,7 @@ impl From<&str> for Question {
             system_prompt: "You are a helpful assistant. Answer users question based on provided context.".to_owned(),
             question: value.to_owned(),
             context: vec![],
-            model: "qwen3:30b".to_owned(),
+            model: "hf.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF:UD-Q4_K_XL".to_owned(),
         }
     }
 }

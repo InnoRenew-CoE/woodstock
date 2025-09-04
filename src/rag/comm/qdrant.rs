@@ -55,6 +55,6 @@ pub async fn insert_chunks_to_qdrant(embedded_chunks: Vec<EmbeddedChunk>) -> Res
     let points: Vec<PointStruct> = embedded_chunks.into_iter().map(|c| c.into()).collect();
 
     client.upsert_points(UpsertPointsBuilder::new(qdrant_collection, points)).await?;
-
+    println!("Upserted to qdrant");
     Ok(())
 }

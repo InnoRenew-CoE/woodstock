@@ -1,3 +1,4 @@
+use once_cell::sync::Lazy;
 use regex::RegexBuilder;
 
 use crate::rag::{
@@ -8,10 +9,18 @@ use crate::rag::{
     },
 };
 
+static LIST_PATTERN: Lazy<regex::Regex> = Lazy::new(|| {
+    RegexBuilder::new(r"^\s*[\-\*]|\s*\d+\.\s*|\s*[a-zA-Z]\)\s*|\s*\(\d+\)\s*|\s*\([ivxlcdm]+\)\s*")
+        .case_insensitive(true)
+        .build()
+        .unwrap()
+});
+
 pub async fn hype(file: ChunkedFile<Chunk>, ollama: &OllamaClient) -> ChunkedFile<HypeChunk> {
     // let summary = summarize_document(&file, ollama).await;
     let hype_question_prompts = generate_hype_prompt_questions(&file);
     let hype_questions = ollama.answer_all(hype_question_prompts).await;
+    print!("Generated hype questions for {} chunks\n", hype_questions.len());
     let hype_chunks = generate_hype_chunks(&file.chunks, hype_questions);
     replace_chunks(file, hype_chunks)
 }
@@ -37,25 +46,30 @@ fn replace_chunks(file: ChunkedFile<Chunk>, hype_chunks: Vec<HypeChunk>) -> Chun
 }
 
 fn generate_hype_chunks(chunks: &[Chunk], hype_questions: Vec<String>) -> Vec<HypeChunk> {
-    let list_pattern = RegexBuilder::new(r"^\s*[\-\*]|\s*\d+\.\s*|\s*[a-zA-Z]\)\s*|\s*\(\d+\)\s*|\s*\([a-zA-Z]\)\s*|\s*\([ivxlcdm]+\)\s*")
-        .case_insensitive(true)
-        .build()
-        .unwrap();
-
     let mut hype_chunks = vec![];
-    for (i, chunk) in chunks.into_iter().enumerate() {
-        let questions: Vec<String> = hype_questions[i]
+    for (i, (chunk, answer)) in chunks
+        .iter()
+        .zip(hype_questions.into_iter())
+        .enumerate() 
+    {
+        let questions: Vec<String> = answer
             .split('\n')
             .map(|line| {
-                let without_pattern = list_pattern.replace(line, "");
+                let without_pattern = LIST_PATTERN.replace(line, "");
                 without_pattern.trim().to_string()
             })
             .filter(|cleaned_line| !cleaned_line.is_empty())
             .collect();
 
-        let hype_chunk = HypeChunk::from(chunk).set_questions(questions);
-        hype_chunks.push(hype_chunk);
+        if questions.is_empty() {
+            println!("No questions generated for chunk {}", i);
+        } else {
+            println!("Questions for chunk {}: {:#?}", i, questions);
+        }
+        
+        hype_chunks.push(HypeChunk::from(chunk).set_questions(questions));
     }
+
     hype_chunks
 }
 
@@ -68,7 +82,7 @@ fn generate_hype_prompt_questions(file: &ChunkedFile<Chunk>) -> Vec<Question> {
         And finally the answer to each question has to be found in the passage.".to_string();
     
     let system_prompt = "You are an agent specialized to only answer in list of questions.";
-
+    println!("Generating hype questions prompts for {} chunks", file.chunks.len());
     file.chunks
         .iter()
         .map(|c| {
