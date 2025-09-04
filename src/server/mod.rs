@@ -132,6 +132,7 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
     let user_id = user.id;
     let mut file_information: Option<FileInformation> = None;
     let mut answers: Vec<Answer> = Vec::new();
+    println!("User ID: {} | submitted: {}", user_id, file_path);
 
     while let Some(item) = payload.next().await {
         if let Ok(mut field) = item {

@@ -137,6 +137,7 @@ async def convert(
     redo_inline_math: bool = Form(False),
     return_images: bool = Form(False),
 ):
+    print("Received convert request")
     requested: List[str] = [s.strip().lower() for s in formats.split(",") if s.strip()]
     allowed = {"markdown", "json", "html", "chunks"}
     if not requested or any(fmt not in allowed for fmt in requested):

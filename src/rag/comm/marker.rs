@@ -1,28 +1,35 @@
 // src/services/marker.rs
 
-use std::{collections::HashMap, env, path::Path};
-use actix_web::mime;
-use mime_guess::MimeGuess;
-use reqwest::multipart;
+use std::{collections::HashMap, env, path::Path, time::Duration};
 use serde::{Deserialize, Serialize};
 use url::Url;
+use std::{fs};
+use reqwest::blocking::{Client, multipart as blocking_multipart};
 
 #[derive(Clone)]
 pub struct MarkerClient {
     base_url: Url,
-    http: reqwest::Client,
-    admin_token: Option<String>,
+    http: Client,
+    admin_token: String,
 }
+
 
 impl Default for MarkerClient {
     fn default() -> Self {
-        let base = env::var("MARKER_BASE_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
-        let base_url = Url::parse(&base).expect("Invalid MARKER_BASE_URL");
-        let http = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(120))
+        let base_url = env::var("MARKER_BASE_URL")
+            .expect("MARKER_BASE_URL not set");
+        let base_url = Url::parse(&base_url)
+            .expect("Invalid MARKER_BASE_URL");
+        let admin_token = env::var("ADMIN_TOKEN")
+            .expect("Marker ADMIN_TOKEN not set");
+
+        let http = Client::builder()
+            .no_proxy()   
+            .http1_only() 
+            .connect_timeout(std::time::Duration::from_secs(3))
             .build()
-            .expect("Failed building reqwest client");
-        let admin_token = env::var("ADMIN_TOKEN").ok();
+            .expect("reqwest client");
+
         Self { base_url, http, admin_token }
     }
 }
@@ -30,19 +37,19 @@ impl Default for MarkerClient {
 /// Options you can pass to Marker
 #[derive(Debug, Clone)]
 pub struct ConvertOptions {
-    pub formats: Vec<Format>,     // default: ["markdown","json","chunks"]
-    pub use_llm: bool,            // default: false
-    pub force_ocr: bool,          // default: false
-    pub paginate_output: bool,    // default: false
-    pub strip_existing_ocr: bool, // default: false
-    pub redo_inline_math: bool,   // default: false
-    pub return_images: bool,      // default: false
+    pub formats: Vec<Format>,     
+    pub use_llm: bool,            
+    pub force_ocr: bool,          
+    pub paginate_output: bool,    
+    pub strip_existing_ocr: bool, 
+    pub redo_inline_math: bool,   
+    pub return_images: bool,      
 }
 
 impl Default for ConvertOptions {
     fn default() -> Self {
         Self {
-            formats: vec![Format::Markdown, Format::Json, Format::Chunks],
+            formats: vec![Format::Markdown],
             use_llm: false,
             force_ocr: false,
             paginate_output: false,
@@ -121,51 +128,37 @@ pub struct Metadata {
 }
 
 impl MarkerClient {
+
     /// Convenience helper for the common case
-    pub async fn convert_file_common<P: AsRef<Path>>(&self, file_path: P) -> anyhow::Result<ConvertResponse> {
+    pub fn convert_file_common<P: AsRef<Path>>(&self, file_path: P) -> anyhow::Result<ConvertResponse> {
         let opts = ConvertOptions::default();
-        self.convert_file_with_options(file_path, &opts).await
+        self.convert_file(file_path, &opts)
     }
 
-    /// Full control over options
-    pub async fn convert_file_with_options<P: AsRef<Path>>(
+    pub fn convert_file<P: AsRef<Path>>(
         &self,
         file_path: P,
         options: &ConvertOptions,
     ) -> anyhow::Result<ConvertResponse> {
-        let url = self.base_url.join("convert")?;
+        let base_url = self.base_url.clone();
+        let path = file_path.as_ref().to_path_buf();
+        
+        let url = base_url.join("convert")?;
 
         let formats_csv = if options.formats.is_empty() {
             "markdown,json,chunks".to_string()
         } else {
-            options
-                .formats
-                .iter()
-                .map(Format::as_str)
-                .collect::<Vec<_>>()
-                .join(",")
+            options.formats.iter().map(Format::as_str).collect::<Vec<_>>().join(",")
         };
 
-        // guess a reasonable mime for the upload
-        let guessed_mime = file_path
-            .as_ref()
-            .extension()
-            .and_then(|ext| MimeGuess::from_ext(ext.to_string_lossy().as_ref()).first())
-            .unwrap_or(mime::APPLICATION_OCTET_STREAM);
+        let data = fs::read(&path)?;
+        let file_name = path
+            .file_name()
+            .and_then(|s| s.to_str()).unwrap_or("input.bin")
+            .to_string();
+        let file_part = blocking_multipart::Part::bytes(data).file_name(file_name);
 
-        let file_part = multipart::Part::file(file_path.as_ref())
-            .await?
-            .file_name(
-                file_path
-                    .as_ref()
-                    .file_name()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("input.bin")
-                    .to_string(),
-            )
-            .mime_str(guessed_mime.essence_str())?;
-
-        let form = multipart::Form::new()
+        let form = blocking_multipart::Form::new()
             .part("file", file_part)
             .text("formats", formats_csv)
             .text("use_llm", options.use_llm.to_string())
@@ -175,18 +168,22 @@ impl MarkerClient {
             .text("redo_inline_math", options.redo_inline_math.to_string())
             .text("return_images", options.return_images.to_string());
 
-        let mut req = self.http.post(url).multipart(form);
-        if let Some(tok) = &self.admin_token {
-            req = req.bearer_auth(tok);
+        let resp = self.http
+            .post(url.clone())
+            .bearer_auth(&self.admin_token)
+            .multipart(form)
+            .timeout(Duration::from_secs(3600)) 
+            .send()?;
+
+        let status = resp.status();
+        if resp.status().is_client_error() || resp.status().is_server_error() {
+            let body = resp.text().unwrap_or_default();
+            anyhow::bail!("marker {}: {}", status, body);
         }
 
-        let resp = req.send().await?;
-
-        if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
-            anyhow::bail!("marker auth failed 401 unauthorized");
-        }
-
-        let resp = resp.error_for_status()?.json::<ConvertResponse>().await?;
-        Ok(resp)
+        let out = resp.json::<ConvertResponse>()?;
+        Ok(out)
     }
+
 }
+
