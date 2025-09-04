@@ -3,3 +3,4 @@ qdrant_storage/
 /target
 .env
 resources
+files
