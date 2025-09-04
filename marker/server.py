@@ -146,12 +146,14 @@ async def convert(
     if not requested or any(fmt not in allowed for fmt in requested):
         raise HTTPException(status_code=400, detail=f"formats must be subset of {sorted(list(allowed))}")
 
+
     max_mb = int(os.getenv("MAX_UPLOAD_MB", "2048"))
     chunk_size = int(os.getenv("UPLOAD_CHUNK_BYTES", str(8 * 1024 * 1024)))
     tmpdir = os.getenv("UPLOAD_TMPDIR", "/tmp")
 
     # stream upload to disk
     suffix = f"{uuid.uuid4()}_{file.filename or 'input.bin'}"
+    print(f"Storing upload to temp file with suffix {suffix}")
     tf = NamedTemporaryFile(delete=False, dir=tmpdir, suffix=suffix)
     in_path = tf.name
     total = 0
@@ -159,6 +161,7 @@ async def convert(
         while True:
             chunk = await file.read(chunk_size)
             if not chunk:
+
                 break
             tf.write(chunk)
             total += len(chunk)
@@ -167,12 +170,14 @@ async def convert(
     finally:
         tf.close()
 
+    print(f"Upload complete, wrote {total} bytes to {in_path}")
     job_id = str(uuid.uuid4())
     outputs: Dict[str, Any] = {}
     meta_all: Dict[str, Any] = {}
 
     try:
         for fmt in requested:
+            print(f"Starting conversion to {fmt} (job {job_id})")
             converter = make_converter(
                 output_format=fmt,
                 use_llm=use_llm,
