@@ -148,7 +148,12 @@ impl MarkerClient {
         let formats_csv = if options.formats.is_empty() {
             "markdown,json,chunks".to_string()
         } else {
-            options.formats.iter().map(Format::as_str).collect::<Vec<_>>().join(",")
+            options
+                .formats
+                .iter()
+                .map(Format::as_str)
+                .collect::<Vec<_>>()
+                .join(",")
         };
 
         let data = fs::read(&path)?;
@@ -172,7 +177,7 @@ impl MarkerClient {
             .post(url.clone())
             .bearer_auth(&self.admin_token)
             .multipart(form)
-            .timeout(Duration::from_secs(3600)) 
+            .timeout(Duration::from_secs(28800)) 
             .send()?;
 
         let status = resp.status();
