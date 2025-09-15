@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use super::{chunk::Chunk, embedded_chunk::EmbeddedChunk};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HypeChunk {
     pub seq_num: i32,
     pub text: String,

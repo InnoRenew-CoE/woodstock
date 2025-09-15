@@ -8,7 +8,7 @@ use super::embedd_file::embedd_file;
 
 pub async fn prepare_for_upload<T>(file: ChunkedFile<T>, ollama: &OllamaClient) -> Result<Vec<EmbeddedChunk>>
 where
-    T: Embeddable,
+    T: Embeddable + Clone,
 {
     let descr = file.syntetic_file_description.clone();
     let embedded_file = embedd_file(file, ollama).await?;

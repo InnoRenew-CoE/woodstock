@@ -1,43 +1,78 @@
+use std::time::Duration;
+
 use crate::rag::{
     comm::{
         embedding::{Embeddable, EmbeddingVector},
         OllamaClient,
     },
-    models::ChunkedFile,
+    models::{chunks::HypeChunk, ChunkedFile},
 };
 use anyhow::{anyhow, Result};
-use ollama_rs::generation::embeddings::request::GenerateEmbeddingsRequest;
+use futures::future::join_all;
+use rand::{thread_rng, Rng};
+use tokio::time::sleep;
 
-pub async fn embedd_file<T>(mut file: ChunkedFile<T>, ollama: &OllamaClient) -> Result<ChunkedFile<T>>
-where
-    T: Embeddable,
+const MAX_ATTEMPTS: usize = 4;
+const BASE_DELAY_MS: u64 = 1000;
+
+
+pub async fn embedd_file<T>(
+    mut file: ChunkedFile<T>, 
+    ollama: &OllamaClient
+) -> Result<ChunkedFile<T>>
+where 
+    T: Embeddable + Clone,
 {
-    let requests: Vec<GenerateEmbeddingsRequest> = file.chunks.iter().map(|c| c.try_into_embed()).collect();
+    let results = join_all(
+        file.chunks
+            .into_iter()
+            .map(|mut c| async move {
+                match embedd_questions(&mut c, ollama).await {
+                    Ok(_) => Some(c),
+                    Err(_) => None,
+                }
+            })
+    ).await;
 
-    let all_embeddings = embedd_all(requests, &ollama).await;
-
-    if file.chunks.len() != all_embeddings.len() {
-        return Err(anyhow!("Not all embeddings were successful."));
-    }
-
-    let chunks_with_embeddings: Vec<(&mut T, Vec<EmbeddingVector>)> = file.chunks.iter_mut().zip(all_embeddings.into_iter()).collect();
-
-    for (chunk, embeddings) in chunks_with_embeddings {
-        chunk.set_embedding_vectors(embeddings);
-    }
+    file.chunks = results.into_iter().flatten().collect();
 
     Ok(file)
 }
 
-async fn embedd_all(requests: Vec<GenerateEmbeddingsRequest>, ollama: &OllamaClient) -> Vec<Vec<EmbeddingVector>> {
-    let futures = requests.into_iter().map(|r| async move { ollama.embed(r).await.ok() });
+async fn embedd_questions<T>(
+    chunk: &mut T,
+    client: &OllamaClient,
+) -> Result<()> 
+where 
+    T: Embeddable + Clone,
+{
+    for _ in 0..MAX_ATTEMPTS {
+        let req = chunk.clone().try_into_embed();
 
-    let results = futures::future::join_all(futures).await;
-    results
-        .into_iter()
-        .filter_map(|resp| match resp {
-            Some(r) => Some(r.embeddings.into_iter().map(|e| EmbeddingVector(e)).collect()),
-            None => None,
-        })
-        .collect()
+        match client.embed(req).await {
+            Ok(resp) => {
+                let vectors = resp
+                    .embeddings
+                    .into_iter()
+                    .map(EmbeddingVector)
+                    .collect::<Vec<_>>();
+                
+                chunk.set_embedding_vectors(vectors);
+                return Ok(());
+            }
+            Err(err) => {
+                let jitter = jitter_ms(BASE_DELAY_MS as u64 / 2);
+                sleep(Duration::from_millis(BASE_DELAY_MS + jitter)).await;
+                println!("Error embedding: {:#?}", err)
+            }
+        }
+    }
+
+    Err(anyhow!("Could not embedd chunk"))
+}
+
+
+
+fn jitter_ms(max: u64) -> u64 {
+    if max == 0 { 0 } else { thread_rng().gen_range(0..=max) }
 }
