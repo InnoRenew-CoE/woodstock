@@ -130,6 +130,13 @@ create table if not exists templates
     file                varchar(200),
     submission_date     date default now()
 );
+
+create table if not exists queries
+(
+    id          serial primary key,
+    user_id     int references users,
+    query       varchar(200)
+);
 "#;
 
 /// Attempts to create all tables required by this software.
@@ -139,6 +146,13 @@ pub async fn setup_db(client: &Client) {
         panic!("Unable to setup the database tables. {:?}", error);
     }
     println!("Executed tables setup.");
+}
+
+/// Attempts to insert the created query into the database
+pub async fn insert_query(user_id: i32, client: &Client, query: &str) -> Result<u64, tokio_postgres::Error> {
+    client
+        .execute("insert into queries (user_id, query) values ($1, $2)", &[&user_id, &query])
+        .await
 }
 
 /// Attempts to connect to the database and return the built Client.

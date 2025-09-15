@@ -327,7 +327,18 @@ struct SearchQuery {
 }
 
 #[get("/search")]
-async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>) -> impl Responder {
+async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>, user: User) -> impl Responder {
+    let Ok(client) = state.client.lock() else {
+        eprintln!("State.client.lock failed");
+        return HttpResponse::InternalServerError().finish();
+    };
+
+    if let Err(error) = db::insert_query(user.id, &client, &search_query.0.query).await {
+        eprintln!("Inserting query log failed: {:?}", error);
+        return HttpResponse::InternalServerError().finish();
+    }
+    drop(client);
+
     let Ok(rag) = state.rag.lock() else {
         println!("State.rag.lock failed");
         return HttpResponse::InternalServerError().finish();
