@@ -10,7 +10,7 @@ use super::{loaded_data::LoadedFile, FileLoader, RagProcessableFileType};
 pub struct TextFileLoader;
 
 impl FileLoader for TextFileLoader {
-    fn load_file(file: &RagProcessableFile) -> Result<LoadedFile> {
+    async fn load_file(file: &RagProcessableFile) -> Result<LoadedFile> {
         let mut f = BufReader::new(File::open(&file.path)?);
         let mut buffer = String::new();
         f.read_to_string(&mut buffer)?;

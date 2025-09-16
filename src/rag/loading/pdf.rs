@@ -6,7 +6,7 @@ use super::{loaded_data::LoadedFile, FileLoader, RagProcessableFileType};
 pub struct PdfFileLoader;
 
 impl FileLoader for PdfFileLoader {
-    fn load_file(file: &RagProcessableFile) -> Result<LoadedFile> {
+    async fn load_file(file: &RagProcessableFile) -> Result<LoadedFile> {
         // let extracted_text = pdf_extract::extract_text(&file.path)
         //     .map_err(|err| anyhow!("Failed to extract text from PDF: {}", err))?;
 
@@ -20,6 +20,7 @@ impl FileLoader for PdfFileLoader {
         let marker = MarkerClient::default();
         println!("Parsing PDF with Marker at {:#?}", file);
         let resp = marker.convert_file_common(&file.path)
+            .await
             .map_err(|err| anyhow!("Marker conversion failed: {}", err))?;
         println!("PDF parsed: {:#?}", resp.job_id);
         let extracted_text = resp

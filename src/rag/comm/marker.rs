@@ -4,7 +4,7 @@ use std::{collections::HashMap, env, path::Path, time::Duration};
 use serde::{Deserialize, Serialize};
 use url::Url;
 use std::{fs};
-use reqwest::blocking::{Client, multipart as blocking_multipart};
+use reqwest::{Client, multipart};
 
 #[derive(Clone)]
 pub struct MarkerClient {
@@ -130,12 +130,12 @@ pub struct Metadata {
 impl MarkerClient {
 
     /// Convenience helper for the common case
-    pub fn convert_file_common<P: AsRef<Path>>(&self, file_path: P) -> anyhow::Result<ConvertResponse> {
+    pub async  fn convert_file_common<P: AsRef<Path>>(&self, file_path: P) -> anyhow::Result<ConvertResponse> {
         let opts = ConvertOptions::default();
-        self.convert_file(file_path, &opts)
+        self.convert_file(file_path, &opts).await
     }
 
-    pub fn convert_file<P: AsRef<Path>>(
+    pub async fn convert_file<P: AsRef<Path>>(
         &self,
         file_path: P,
         options: &ConvertOptions,
@@ -161,9 +161,9 @@ impl MarkerClient {
             .file_name()
             .and_then(|s| s.to_str()).unwrap_or("input.bin")
             .to_string();
-        let file_part = blocking_multipart::Part::bytes(data).file_name(file_name);
+        let file_part = multipart::Part::bytes(data).file_name(file_name);
 
-        let form = blocking_multipart::Form::new()
+        let form = multipart::Form::new()
             .part("file", file_part)
             .text("formats", formats_csv)
             .text("use_llm", options.use_llm.to_string())
@@ -178,15 +178,16 @@ impl MarkerClient {
             .bearer_auth(&self.admin_token)
             .multipart(form)
             .timeout(Duration::from_secs(28800)) 
-            .send()?;
+            .send()
+            .await?;
 
         let status = resp.status();
         if resp.status().is_client_error() || resp.status().is_server_error() {
-            let body = resp.text().unwrap_or_default();
+            let body = resp.text().await.unwrap_or_default();
             anyhow::bail!("marker {}: {}", status, body);
         }
 
-        let out = resp.json::<ConvertResponse>()?;
+        let out = resp.json::<ConvertResponse>().await?;
         Ok(out)
     }
 

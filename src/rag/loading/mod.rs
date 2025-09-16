@@ -12,13 +12,13 @@ mod pdf;
 mod text;
 
 trait FileLoader {
-    fn load_file(file: &RagProcessableFile) -> Result<LoadedFile>;
+    async fn load_file(file: &RagProcessableFile) -> Result<LoadedFile>;
 }
 
-pub fn load_file(file: &RagProcessableFile) -> Result<LoadedFile> {
+pub async fn load_file(file: &RagProcessableFile) -> Result<LoadedFile> {
     match file.file_type {
-        RagProcessableFileType::Text => TextFileLoader::load_file(file),
-        RagProcessableFileType::Markdown => MarkdownFileLoader::load_file(file),
-        RagProcessableFileType::Pdf => PdfFileLoader::load_file(file),
+        RagProcessableFileType::Text => TextFileLoader::load_file(file).await,
+        RagProcessableFileType::Markdown => MarkdownFileLoader::load_file(file).await,
+        RagProcessableFileType::Pdf => PdfFileLoader::load_file(file).await,
     }
 }

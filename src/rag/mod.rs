@@ -21,7 +21,7 @@ pub struct Rag {
 
 impl Rag {
     pub async fn insert(&self, file: RagProcessableFile) -> Result<()> {
-        let loaded_file = load_file(&file)?;
+        let loaded_file = load_file(&file).await?;
         // let chunked_file = chunk(loaded_file, processing::ChunkingStrategy::Word(250, 30));
         let chunked_file = chunk(loaded_file, processing::ChunkingStrategy::Markdown(250));
         let enriched_file = hype(chunked_file, &self.ollama).await;
