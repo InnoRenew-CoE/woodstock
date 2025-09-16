@@ -38,7 +38,7 @@
     });
 </script>
 
-<header bind:this={header_component} class="font-sans bg-light-background">
+<header bind:this={header_component} class="bg-light-background">
     <Header />
 </header>
 <div id="layout" bind:this={layout_component} class="font-sans from-light-background to-background bg-gradient-to-b min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
