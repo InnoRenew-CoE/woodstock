@@ -41,15 +41,19 @@ static QDRANT_CLIENT: Lazy<Mutex<Qdrant>> = Lazy::new(|| {
 /// # Errors
 /// - Returns an error if the tensor conversion fails or if the Qdrant search query encounters issues.
 pub async fn vector_search(embedding: EmbeddingVector) -> Result<SearchResponse> {
-    let client = QDRANT_CLIENT.lock().await;
+    // let client = QDRANT_CLIENT.lock().await;
+    let qdrant_server = env::var("QDRANT_SERVER").expect("QDRANT_SERVER not defined");
+    let client = Qdrant::from_url(&qdrant_server).build()?;
     let search_result = client.search_points(embedding).await?;
     Ok(search_result.into())
 }
 
 pub async fn insert_chunks_to_qdrant(embedded_chunks: Vec<EmbeddedChunk>) -> Result<()> {
     println!("Upserting to qdrant...");
-    let client = QDRANT_CLIENT.lock().await;
-    println!("qdrant lock acquired");
+    // let client = QDRANT_CLIENT.lock().await;
+    // println!("qdrant lock acquired");
+    let qdrant_server = env::var("QDRANT_SERVER").expect("QDRANT_SERVER not defined");
+    let client = Qdrant::from_url(&qdrant_server).build()?;
     let qdrant_collection = env::var("QDRANT_COLLECTION").expect("QDRANT_COLLECTION not defined");
 
     let points: Vec<PointStruct> = embedded_chunks.into_iter().map(|c| c.into()).collect();
