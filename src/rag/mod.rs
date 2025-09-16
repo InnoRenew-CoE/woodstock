@@ -24,8 +24,11 @@ impl Rag {
         let loaded_file = load_file(&file).await?;
         // let chunked_file = chunk(loaded_file, processing::ChunkingStrategy::Word(250, 30));
         let chunked_file = chunk(loaded_file, processing::ChunkingStrategy::Markdown(250));
+        println!("[RAG] chunking...");
         let enriched_file = hype(chunked_file, &self.ollama).await;
+        println!("[RAG] Preparing for upload...");
         let embedded_chunks = prepare_for_upload(enriched_file, &self.ollama).await?;
+        println!("[RAG] Upserting to qdrant...");
         insert_chunks_to_qdrant(embedded_chunks).await
     }
 

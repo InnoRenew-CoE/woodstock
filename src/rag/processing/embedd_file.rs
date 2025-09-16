@@ -15,7 +15,7 @@ use futures::StreamExt;
 
 const MAX_ATTEMPTS: usize = 4;
 const BASE_DELAY_MS: u64 = 1000;
-const MAX_CONCURRENCY: usize = 64; 
+const MAX_CONCURRENCY: usize = 128; 
 
 pub async fn embedd_file<T>(
     mut file: ChunkedFile<T>, 
@@ -27,6 +27,8 @@ where
 
     let sem = Arc::new(Semaphore::new(MAX_CONCURRENCY));
     let mut futs = FuturesUnordered::new();
+
+    println!("Embedding chunks");
 
     for mut c in file.chunks.into_iter() {
         let sem = sem.clone();
@@ -43,12 +45,16 @@ where
         });
     }
 
+
     let mut kept = Vec::new();
     while let Some(opt) = futs.next().await {
         if let Some(c) = opt {
             kept.push(c);
         }
     }
+
+    println!("Embedded {} chunks", kept.len());
+
 
     file.chunks = kept;
     Ok(file)
@@ -62,7 +68,9 @@ where
     T: Embeddable + Clone,
 {
     for _ in 0..MAX_ATTEMPTS {
-        let req = chunk.clone().try_into_embed();
+        let req = chunk
+            .clone()
+            .try_into_embed();
 
         match client.embed(req).await {
             Ok(resp) => {

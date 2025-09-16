@@ -63,10 +63,7 @@ fn generate_hype_chunks(chunks: &[Chunk], hype_questions: Vec<String>) -> Vec<Hy
 
         if questions.is_empty() {
             println!("No questions generated for chunk {}", i);
-        } else {
-            println!("Questions for chunk {}: {:#?}", i, questions);
         }
-        
         hype_chunks.push(HypeChunk::from(chunk).set_questions(questions));
     }
 

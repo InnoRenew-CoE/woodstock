@@ -90,7 +90,7 @@ pub fn split_markdown(file: LoadedFile, chunk_size: &ChunkSize) -> ChunkedFile<C
         })
         .collect();
 
-    println!("CUNKS: {:#?}", chunks);
+    println!("CUNKS: {:#?}", chunks.len());
 
     (file, chunks).into()
 }
