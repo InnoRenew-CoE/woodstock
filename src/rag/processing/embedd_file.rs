@@ -1,21 +1,20 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use crate::rag::{
     comm::{
         embedding::{Embeddable, EmbeddingVector},
         OllamaClient,
     },
-    models::ChunkedFile,
+    models::{chunks::HypeChunk, ChunkedFile},
 };
 use anyhow::{anyhow, Result};
-use futures::stream::FuturesUnordered;
+use futures::future::join_all;
 use rand::{thread_rng, Rng};
-use tokio::{sync::Semaphore, time::sleep};
-use futures::StreamExt;
+use tokio::time::sleep;
 
 const MAX_ATTEMPTS: usize = 4;
 const BASE_DELAY_MS: u64 = 1000;
-const MAX_CONCURRENCY: usize = 64; 
+
 
 pub async fn embedd_file<T>(
     mut file: ChunkedFile<T>, 
@@ -24,33 +23,19 @@ pub async fn embedd_file<T>(
 where 
     T: Embeddable + Clone,
 {
+    let results = join_all(
+        file.chunks
+            .into_iter()
+            .map(|mut c| async move {
+                match embedd_questions(&mut c, ollama).await {
+                    Ok(_) => Some(c),
+                    Err(_) => None,
+                }
+            })
+    ).await;
 
-    let sem = Arc::new(Semaphore::new(MAX_CONCURRENCY));
-    let mut futs = FuturesUnordered::new();
+    file.chunks = results.into_iter().flatten().collect();
 
-    for mut c in file.chunks.into_iter() {
-        let sem = sem.clone();
-        futs.push(async move {
-            let _permit = sem
-                .acquire()
-                .await
-                .expect("semaphore");
-
-            match embedd_questions(&mut c, ollama).await {
-                Ok(_) => Some(c),
-                Err(_) => None,
-            }
-        });
-    }
-
-    let mut kept = Vec::new();
-    while let Some(opt) = futs.next().await {
-        if let Some(c) = opt {
-            kept.push(c);
-        }
-    }
-
-    file.chunks = kept;
     Ok(file)
 }
 
