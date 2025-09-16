@@ -19,7 +19,7 @@ static LIST_PATTERN: Lazy<regex::Regex> = Lazy::new(|| {
 pub async fn hype(file: ChunkedFile<Chunk>, ollama: &OllamaClient) -> ChunkedFile<HypeChunk> {
     // let summary = summarize_document(&file, ollama).await;
     let hype_question_prompts = generate_hype_prompt_questions(&file);
-    let hype_questions = ollama.answer_all(hype_question_prompts).await;
+    let hype_questions = ollama.answer_all_with_retry(hype_question_prompts, 32).await;
     print!("Generated hype questions for {} chunks\n", hype_questions.len());
     let hype_chunks = generate_hype_chunks(&file.chunks, hype_questions);
     replace_chunks(file, hype_chunks)

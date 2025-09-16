@@ -1,4 +1,4 @@
-use futures::{stream, StreamExt};
+use futures::{stream::{self, FuturesUnordered}, StreamExt};
 use ollama_rs::{
     error::OllamaError,
     generation::{
@@ -9,9 +9,10 @@ use ollama_rs::{
 };
 use question::Question;
 use serde::{de::DeserializeOwned, Serialize};
+use tokio::sync::Semaphore;
 use std::{env, future::Future, sync::Arc, time::Duration};
 use ollama_rs::error::OllamaError::*;
-use rand::{rng, Rng};
+use rand::{rng, thread_rng, Rng};
 
 pub mod embedding;
 pub mod qdrant;
@@ -187,33 +188,63 @@ impl OllamaClient {
         }).await
     }
 
+    pub async fn answer_all_with_retry(
+        &self, 
+        questions: Vec<Question>, 
+        concurrency: usize
+    ) -> Vec<String> {
+        let n = questions.len();
+        let sem = Arc::new(Semaphore::new(concurrency.max(1)));
+        let mut futs = FuturesUnordered::new();
+        let base_client = self.ollama.clone();
+        let base_backoff = self.backoff.clone();
 
-    // pub async fn embed_with_retry(
-    //     &self,
-    //     req: GenerateEmbeddingsRequest,
-    // ) -> Result<GenerateEmbeddingsResponse, OllamaError> {
-    //     let req = Arc::new(req);
+        for (idx, q) in questions.into_iter().enumerate() {
+            let sem = sem.clone();
+            let client = base_client.clone();
+            let backoff = base_backoff.clone();
 
-    //     self.retry_with_backoff(|_attempt| {
-    //         let req = Arc::clone(&req);
-    //         async move { self.ollama.generate_embeddings((*req).clone()).await }
-    //     })
-    //     .await
-    // }
+            futs.push(async move {
+                let _permit = sem.acquire().await.expect("semaphore");
+                let text = generate_with_retry(client, backoff, q)
+                    .await
+                    .map(|r| r.response)
+                    .unwrap_or_default();
+                (idx, text)
+            });
+        }
 
 
+        // gather, preserving input order
+        let mut out = vec![String::new(); n];
+        while let Some((idx, text)) = futs.next().await {
+            out[idx] = text;
+        }
+        out
+    }
+}
 
-    pub async fn answer_all_with_retry(&self, questions: Vec<Question>, concurrency: usize) -> Vec<String> {
-        // stream::iter lets us cap concurrency to avoid thundering herd
-        stream::iter(questions.into_iter().map(|q| {
-            async move {
-                self.generate_with_retry(q).await
-                    .map(|resp| resp.response)
-                    .unwrap_or_default()
+async fn generate_with_retry(
+    ollama: Ollama,
+    backoff: BackoffConfig,
+    question: Question,
+) -> Result<GenerationResponse, OllamaError> {
+    let mut attempt = 0u32;
+    let mut delay = backoff.initial_delay;
+
+    loop {
+        match ollama.generate((&question).into()).await {
+            Ok(resp) => return Ok(resp),
+            Err(err) => {
+                
+                if attempt >= backoff.max_retries || !OllamaClient::is_retryable(&err) {
+                    return Err(err);
+                }
+
+                let next_ms = ((delay.as_millis() as f64) * backoff.factor) as u64;
+                delay = Duration::from_millis(next_ms).min(backoff.max_delay);
+                attempt += 1;
             }
-        }))
-        .buffer_unordered(concurrency.max(1))
-        .collect::<Vec<_>>()
-        .await
+        }
     }
 }
