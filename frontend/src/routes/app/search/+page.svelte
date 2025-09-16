@@ -105,13 +105,12 @@
                                 <div class="py-1 px-3 text-xs h-min glass bg-secondary/10 border border-secondary/40 rounded-sm text-secondary">pdf</div>
                             </div>
                             <div class="flex gap-2">
-                                Trust score
+                                Score
                                 <div class="py-1 px-3 text-xs h-min glass bg-green-700/10 border border-green-700/40 rounded-sm text-green-700">high</div>
                             </div>
                             {#if (parseInt(chunk.doc_id) ?? 0) > 0}
                                 <a target="_blank" href="/api/download/{chunk.doc_id}" class="disabled:opacity-50 disabled:!cursor-no-drop glass px-3 py-2 flex gap-2 items-center">
                                     <MaskedIcon src="../download.svg" class="size-3 bg-secondary group-hover:bg-accent/50" />
-                                    Download
                                 </a>
                             {/if}
                         </div>
