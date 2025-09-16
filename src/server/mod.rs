@@ -234,14 +234,14 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
     };
 
     // Disabled for the demonstration
-    // tokio::spawn(async move {
-    //     match Rag::default().insert(rag_file).await {
-    //         Ok(res) => res,
-    //         Err(e) => {
-    //             println!("rag.insert failed: {:#?}", e.to_string());
-    //         }
-    //     };
-    // });
+    tokio::spawn(async move {
+        match Rag::default().insert(rag_file).await {
+            Ok(res) => res,
+            Err(e) => {
+                println!("rag.insert failed: {:#?}", e.to_string());
+            }
+        };
+    });
     HttpResponse::Ok().finish()
 }
 
