@@ -11,7 +11,7 @@
 
     let { children } = $props();
 
-    let header_component: HTMLDivElement | undefined = $state(undefined);
+    let header_component: HTMLElement | undefined = $state(undefined);
     let footer_component: HTMLDivElement | undefined = $state(undefined);
     let layout_component: HTMLDivElement | undefined = $state(undefined);
 
@@ -38,10 +38,10 @@
     });
 </script>
 
+<header bind:this={header_component} class="bg-light-background">
+    <Header />
+</header>
 <div id="layout" bind:this={layout_component} class="font-sans from-light-background to-background bg-gradient-to-b min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
-    <div bind:this={header_component}>
-        <Header />
-    </div>
     <div class="flex-1 h-full relative">
         {@render children()}
         <div class="fixed right-0 bottom-0 top-0 flex flex-col justify-end gap-5 p-10 pointer-events-none">

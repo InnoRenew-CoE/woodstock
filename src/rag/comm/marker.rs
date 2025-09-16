@@ -1,9 +1,11 @@
 // src/services/marker.rs
 
-use std::{collections::HashMap, env, path::Path, time::Duration};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::Path;
+use std::time::Duration;
+use std::{env, fs};
 use url::Url;
-use std::{fs};
 use reqwest::{Client, multipart};
 
 #[derive(Clone)]
@@ -13,19 +15,15 @@ pub struct MarkerClient {
     admin_token: String,
 }
 
-
 impl Default for MarkerClient {
     fn default() -> Self {
-        let base_url = env::var("MARKER_BASE_URL")
-            .expect("MARKER_BASE_URL not set");
-        let base_url = Url::parse(&base_url)
-            .expect("Invalid MARKER_BASE_URL");
-        let admin_token = env::var("ADMIN_TOKEN")
-            .expect("Marker ADMIN_TOKEN not set");
+        let base_url = env::var("MARKER_BASE_URL").expect("MARKER_BASE_URL not set");
+        let base_url = Url::parse(&base_url).expect("Invalid MARKER_BASE_URL");
+        let admin_token = env::var("ADMIN_TOKEN").expect("Marker ADMIN_TOKEN not set");
 
         let http = Client::builder()
-            .no_proxy()   
-            .http1_only() 
+            .no_proxy()
+            .http1_only()
             .connect_timeout(std::time::Duration::from_secs(3))
             .build()
             .expect("reqwest client");
@@ -37,13 +35,13 @@ impl Default for MarkerClient {
 /// Options you can pass to Marker
 #[derive(Debug, Clone)]
 pub struct ConvertOptions {
-    pub formats: Vec<Format>,     
-    pub use_llm: bool,            
-    pub force_ocr: bool,          
-    pub paginate_output: bool,    
-    pub strip_existing_ocr: bool, 
-    pub redo_inline_math: bool,   
-    pub return_images: bool,      
+    pub formats: Vec<Format>,
+    pub use_llm: bool,
+    pub force_ocr: bool,
+    pub paginate_output: bool,
+    pub strip_existing_ocr: bool,
+    pub redo_inline_math: bool,
+    pub return_images: bool,
 }
 
 impl Default for ConvertOptions {
@@ -128,7 +126,6 @@ pub struct Metadata {
 }
 
 impl MarkerClient {
-
     /// Convenience helper for the common case
     pub async  fn convert_file_common<P: AsRef<Path>>(&self, file_path: P) -> anyhow::Result<ConvertResponse> {
         let opts = ConvertOptions::default();
@@ -142,18 +139,13 @@ impl MarkerClient {
     ) -> anyhow::Result<ConvertResponse> {
         let base_url = self.base_url.clone();
         let path = file_path.as_ref().to_path_buf();
-        
+
         let url = base_url.join("convert")?;
 
         let formats_csv = if options.formats.is_empty() {
             "markdown,json,chunks".to_string()
         } else {
-            options
-                .formats
-                .iter()
-                .map(Format::as_str)
-                .collect::<Vec<_>>()
-                .join(",")
+            options.formats.iter().map(Format::as_str).collect::<Vec<_>>().join(",")
         };
 
         let data = fs::read(&path)?;
@@ -173,7 +165,8 @@ impl MarkerClient {
             .text("redo_inline_math", options.redo_inline_math.to_string())
             .text("return_images", options.return_images.to_string());
 
-        let resp = self.http
+        let resp = self
+            .http
             .post(url.clone())
             .bearer_auth(&self.admin_token)
             .multipart(form)
@@ -190,6 +183,4 @@ impl MarkerClient {
         let out = resp.json::<ConvertResponse>().await?;
         Ok(out)
     }
-
 }
-
