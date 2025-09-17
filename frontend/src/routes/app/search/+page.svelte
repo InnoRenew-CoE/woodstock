@@ -98,15 +98,11 @@
                 <li class="glass p-3" in:slide={{ delay: i * 1000 }}>
                     <div>
                         <div class="p-3 flex gap-3 items-center">
-                            <div class="flex gap-2">
-                                <div class="text-secondary bg-secondary/5 border-secondary/50 p-2 shadow-secondary/30 glass rounded-full font-mono text-xs">#{i + 1}</div>
-                            </div>
                             <div class="flex-1 flex gap-2">
-                                <div class="py-1 px-3 text-xs h-min glass bg-secondary/10 border border-secondary/40 rounded-sm text-secondary">pdf</div>
-                            </div>
-                            <div class="flex gap-2">
-                                Score
+                                <div class="text-secondary bg-secondary/5 border-secondary/50 p-2 shadow-secondary/30 glass rounded-full font-mono text-xs">#{i + 1}</div>
+                                <span>Score</span>
                                 <div class="py-1 px-3 text-xs h-min glass bg-green-700/10 border border-green-700/40 rounded-sm text-green-700">high</div>
+                                <div class="py-1 px-3 text-xs h-min glass bg-secondary/10 border border-secondary/40 rounded-sm text-secondary">pdf</div>
                             </div>
                             {#if (parseInt(chunk.doc_id) ?? 0) > 0}
                                 <a target="_blank" href="/api/download/{chunk.doc_id}" class="disabled:opacity-50 disabled:!cursor-no-drop glass px-3 py-2 flex gap-2 items-center">
@@ -137,7 +133,9 @@
             <div in:fade>
                 <div class="opacity-30">Woody's response</div>
                 <div class="overflow-auto p-5 flex flex-col-reverse">
-                    <div class="response preview spacing-y-2 prose-sm">{@html marked(data)}</div>
+                    <div class="response preview spacing-y-2 prose-sm">
+                        <div style="all: initial">{@html marked(data)}</div>
+                    </div>
                 </div>
             </div>
         {:else if waiting}
