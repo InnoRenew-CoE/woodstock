@@ -132,8 +132,8 @@
         {#if data && data.length >= 0}
             <div in:fade>
                 <div class="opacity-30">Woody's response</div>
-                <div class="overflow-auto p-5 flex flex-col-reverse">
-                    <div class="response preview spacing-y-2 prose prose-stone">
+                <div class="overflow-auto p-5 flex flex-col-reverse w-full">
+                    <div class="flex-1 response preview spacing-y-2 prose-lg w-full prose-stone">
                         {@html marked(data)}
                     </div>
                 </div>
