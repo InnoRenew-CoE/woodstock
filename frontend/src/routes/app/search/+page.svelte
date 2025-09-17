@@ -134,7 +134,7 @@
                 <div class="opacity-30">Woody's response</div>
                 <div class="overflow-auto p-5 flex flex-col-reverse">
                     <div class="response preview spacing-y-2 prose-sm">
-                        <div style="all: initial">{@html marked(data)}</div>
+                        <div class="prose initial">{@html marked(data)}</div>
                     </div>
                 </div>
             </div>
@@ -153,5 +153,9 @@
     .response :global(li) {
         padding: 0.25rem 0;
         transition: all 0.2s ease-in-out;
+    }
+
+    .initial * {
+        all: initial;
     }
 </style>
