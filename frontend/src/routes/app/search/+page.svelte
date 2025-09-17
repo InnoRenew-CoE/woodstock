@@ -133,7 +133,7 @@
             <div in:fade>
                 <div class="opacity-30">Woody's response</div>
                 <div class="overflow-auto p-5 flex flex-col-reverse w-full">
-                    <div class="flex-1 response preview spacing-y-2 prose w-full prose-stone">
+                    <div class="flex-1 response preview spacing-y-2 prose-sm w-full prose-stone">
                         {@html marked(data)}
                     </div>
                 </div>
