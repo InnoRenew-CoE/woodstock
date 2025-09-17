@@ -98,7 +98,7 @@
                 <li class="glass p-3" in:slide={{ delay: i * 1000 }}>
                     <div>
                         <div class="p-3 flex gap-3 items-center">
-                            <div class="flex-1 flex gap-2">
+                            <div class="flex-1 flex gap-2 items-center">
                                 <div class="text-secondary bg-secondary/5 border-secondary/50 p-2 shadow-secondary/30 glass rounded-full font-mono text-xs">#{i + 1}</div>
                                 <span>Score</span>
                                 <div class="py-1 px-3 text-xs h-min glass bg-green-700/10 border border-green-700/40 rounded-sm text-green-700">high</div>
