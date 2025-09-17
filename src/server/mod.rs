@@ -340,10 +340,8 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>, us
     }
     drop(client);
 
-    let Ok(rag) = state.rag.lock() else {
-        println!("State.rag.lock failed");
-        return HttpResponse::InternalServerError().finish();
-    };
+    let rag = Rag::default();
+
     let mut result = match rag.search(search_query.query.clone()).await {
         Ok(res) => res,
         Err(e) => {
