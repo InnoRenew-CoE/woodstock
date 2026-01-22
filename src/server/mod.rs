@@ -558,13 +558,13 @@ pub async fn start_server(rag: Rag) {
             .app_data(state.clone())
             .service(login)
             .service(register)
+            .service(web::scope("/chat").service(search))
             .use_jwt(
                 authority,
                 // .service(
                 web::scope("/api")
                     .service(submit_answers)
                     .service(submit_csv)
-                    .service(search)
                     .service(fetch_questions)
                     .service(download)
                     .service(verify)

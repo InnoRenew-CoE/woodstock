@@ -1,11 +1,9 @@
 <script lang="ts">
-    import { fade, fly, slide } from "svelte/transition";
-    import { page } from "$app/stores";
-    import MaskedIcon from "$lib/common/MaskedIcon.svelte";
     import { goto, invalidateAll } from "$app/navigation";
+    import { page } from "$app/stores";
     import { PUBLIC_API_BASE_URL } from "$env/static/public";
-    import { onMount } from "svelte";
-    import { verify } from "$lib";
+    import MaskedIcon from "$lib/common/MaskedIcon.svelte";
+    import { slide } from "svelte/transition";
 
     let { children } = $props();
     let width = $state(0);
@@ -15,7 +13,6 @@
 
     const paths: { link: string; text: string }[] = [
         { link: "/app", text: "Home" },
-        { link: "/app/search", text: "Search" },
         { link: "/app/contribute", text: "Contribute" },
         { link: "/app/contributions", text: "Contributions" },
         { link: "/app/notifications", text: "Notifications" },

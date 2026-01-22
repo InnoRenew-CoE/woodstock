@@ -1,0 +1,23 @@
+services:
+  woodstock-db:
+    container_name: woodstock-db
+    image: postgres
+    restart: always
+    volumes:
+      - ./db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - 5432:${DB_PORT}
+
+  qdrant:
+    container_name: qdrant
+    image: qdrant/qdrant:latest
+    restart: always
+    ports:
+      - "127.0.0.1:6333:6333" # Port for the HTTP REST API and web UI
+      - "127.0.0.1:6334:6334" # Port for gRPC, used by most clients (e.g., Python, Rust)
+    volumes:
+      # Using a named volume for persistent Qdrant storage
+      - ./qdrant_storage:/qdrant/storage

@@ -1,0 +1,103 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@source inline("{hover:,rotate:,z:}");
+
+@theme {
+    --font-sans: "Inter", sans-serif;
+    --font-mono: "jetbrains-mono";
+    --font-roboto: "roboto";
+    --font-nunito: "nunito";
+
+    --color-primary: #000000;
+    --color-secondary: #80b541;
+    --color-secondary: #e6521f;
+    --color-secondary: #0065f8;
+    --color-accent: #4e4e4e;
+    --color-background: #ecece6;
+
+    --color-light-background: #f4e7e1;
+    --color-dark-background: #ac613f;
+    --color-background: #d5d6c9;
+    --animate-vote: vote 0.5s ease-in-out 2;
+
+    @keyframes vote {
+        0%,
+        100% {
+            transform: rotate(0deg);
+        }
+        50% {
+            transform: rotate(30deg);
+        }
+    }
+}
+
+@layer utilities {
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+}
+
+@layer components {
+    .glass {
+        @apply backdrop-blur-xl bg-white/20 border border-white rounded-2xl shadow-sm shadow-accent/10;
+    }
+}
+
+button {
+    cursor: pointer;
+}
+
+/* Variable Fonts */
+@supports (font-variation-settings: normal) {
+    @font-face {
+        font-family: "roboto";
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("/fonts/roboto/Roboto-VariableFont.ttf") format("truetype");
+    }
+
+    @font-face {
+        font-family: "nunito";
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("/fonts/nunito/Nunito-VariableFont_wght.ttf") format("truetype");
+    }
+
+    @font-face {
+        font-family: "jetbrains-mono";
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("/fonts/JetBrains_Mono/JetBrainsMono-VariableFont_wght.ttf") format("truetype");
+    }
+
+    @font-face {
+        font-family: "nunito";
+        font-style: italic;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("/fonts/nunito/Nunito-Italic-VariableFont_wght.ttf") format("truetype");
+    }
+
+    @font-face {
+        font-family: "jetbrains-mono";
+        font-style: italic;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("/fonts/JetBrains_Mono/JetBrainsMono-Italic-VariableFont_wght.ttf") format("truetype");
+    }
+
+    @font-face {
+        font-family: "roboto";
+        font-style: italic;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("/fonts/roboto/Roboto-Italic-VariableFont_wdth,wght.ttf") format("truetype");
+    }
+}

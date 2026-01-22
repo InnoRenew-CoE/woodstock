@@ -1,1 +1,0 @@
-import{g as a,w as n}from"./index.BFtdge-x.js";const e=n([]);function f(i){e.update(t=>[...t,i]);const o=a(e).indexOf(i);setTimeout(()=>{e.update(t=>t.filter((p,s)=>s!==o))},3e3)}export{e as n,f as p};

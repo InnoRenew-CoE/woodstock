@@ -1,13 +1,13 @@
 <script lang="ts">
-    import Footer from "$lib/footer/Footer.svelte";
-    import Header from "$lib/header/Header.svelte";
-    import { notificationsStore, pushNotification } from "$lib/stores/notifications";
-    import { onDestroy, onMount } from "svelte";
-    import "../app.css";
-    import MaskedIcon from "$lib/common/MaskedIcon.svelte";
-    import { fade, slide } from "svelte/transition";
-    import { verify } from "$lib";
     import { goto, invalidateAll } from "$app/navigation";
+    import { page } from "$app/state";
+    import { verify } from "$lib";
+    import MaskedIcon from "$lib/common/MaskedIcon.svelte";
+    import Header from "$lib/header/Header.svelte";
+    import { notificationsStore } from "$lib/stores/notifications";
+    import { onMount } from "svelte";
+    import { slide } from "svelte/transition";
+    import "../app.css";
 
     let { children } = $props();
 
@@ -29,20 +29,23 @@
     });
 
     onMount(async () => {
-        const response = await verify();
-        console.log(response);
-        if (response !== 200) {
-            await invalidateAll();
-            await goto("/");
+        const isApp = page.url.pathname.includes("app");
+        if (isApp) {
+            const response = await verify();
+            console.log(response);
+            if (response !== 200) {
+                await invalidateAll();
+                await goto("/");
+            }
         }
     });
 </script>
 
-<header bind:this={header_component} class="bg-light-background">
+<header bind:this={header_component} class="font-nunito">
     <Header />
 </header>
-<div id="layout" bind:this={layout_component} class="font-sans from-light-background to-background bg-gradient-to-b min-h-[100vh] grid grid-rows-[auto_1fr_auto]">
-    <div class="flex-1 h-full relative">
+<div id="layout" bind:this={layout_component} class="font-roboto grid grid-rows-[auto_1fr_auto]">
+    <div class="flex-1 h-full relative py-5">
         {@render children()}
         <div class="fixed right-0 bottom-0 top-0 flex flex-col justify-end gap-5 p-10 pointer-events-none">
             {#each $notificationsStore as notification, i}
@@ -58,5 +61,4 @@
             {/each}
         </div>
     </div>
-    <!-- <div bind:this={footer_component}><Footer /></div> -->
 </div>
