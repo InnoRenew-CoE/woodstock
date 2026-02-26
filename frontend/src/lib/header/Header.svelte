@@ -5,7 +5,7 @@
 
     let width = $state(0);
     let isSmall = $derived(width < 640);
-    let isVisible = $state(true);
+    let isVisible = $state(false);
 
     const paths = [
         { text: "Home", url: "/", icon: "/home.svg" },

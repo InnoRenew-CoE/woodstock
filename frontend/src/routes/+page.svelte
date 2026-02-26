@@ -46,7 +46,7 @@
     <section>
         <h2 class="text-2xl font-semibold mb-6">Visit our projects</h2>
 
-        <div class="grid gap-10 grid-cols-2">
+        <div class="grid gap-10 grid-cols-1 md:grid-cols-2">
             {#each cards as card}
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                     <img src={card.image} alt="Placeholder image" class="w-full h-[500px] object-cover border-2 rounded-lg shadow-xs border-white" />
