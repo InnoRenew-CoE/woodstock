@@ -3,23 +3,26 @@
 
     const cards = [
         {
+            title: "Woodstock",
+            description:
+                "Our platform helps researchers collaborate more effectively by turning uploaded research files into a shared, searchable knowledge system. Instead of manually reviewing documents, users can ask questions and receive clear answers about ongoing projects, progress updates, and related work.                 By understanding the meaning behind the content—not just keywords—the system makes it easy to track developments, discover collaboration opportunities, and stay informed about fellow researchers’ work. The goal is to make research more connected, accessible, and efficient.",
+            image: "./platform.png",
+            link: "/login",
+        },
+        {
             title: "TIMBERHAUS Focus: Sustainable Wood Construction & Circular Economy",
             description:
                 "TIMBERHAUS is a European innovation project dedicated to reducing the construction sector’s carbon footprint by developing climate-smart, circular solutions for wood construction. Addressing the fact that the building industry accounts for 40% of global CO₂ emissions and 35% of waste, TIMBERHAUS focuses on increasing the use of wood as a primary, sustainable material. The project is currently validating its technologies and strategies in three diverse pilot cities—Berlin (Germany), Baia Mare (Romania), and Siena (Italy)—to demonstrate how timber can be integrated into different urban contexts and heritage settings.",
             image: "./timberhaus.svg",
             link: "https://timberhaus.eu",
         },
+
         {
             title: "IoT Platform",
-            description: "Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta.",
+            description:
+                "Our IoT platform collects and aggregates data from connected devices in real time, transforming it into clear, actionable insights. Sensor data is visualized directly on interactive floorplans, dashboards, and charts, making it easy to monitor environments, track performance, and identify issues at a glance. The platform centralizes complex device data into a simple, intuitive interface for smarter decision-making.",
             image: "./iot.jpg",
             link: "https://iaq.innorenew.eu/grafana/public-dashboards/535d826acc744109b4d64a68654ee262?orgId=1&refresh=10s",
-        },
-        {
-            title: "Woodstock",
-            description: "This platform.",
-            image: "./platform.jpg",
-            link: "/login",
         },
     ];
 </script>
@@ -28,14 +31,22 @@
     <!-- About the Project -->
     <section class="mb-12">
         <h1 class="text-3xl font-bold mb-4">About</h1>
-        <p class="text-lg leading-relaxed">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        <div class="grid gap-3 text-lg leading-relaxed">
+            <b>Our platform is designed to accelerate research through intelligent, secure collaboration.</b>
+
+            <div>We provide a shared digital environment where researchers can upload papers, datasets, reports, and working documents—transforming static files into a dynamic, searchable knowledge network.</div>
+            <div>
+                By converting uploaded research materials into rich semantic representations, our system understands the meaning and context behind the content, not just keywords. This enables researchers to ask natural-language questions about ongoing work and receive clear, contextual answers
+                drawn directly from the collective research repository.
+            </div>
+        </div>
     </section>
 
     <!-- Cards Section -->
     <section>
         <h2 class="text-2xl font-semibold mb-6">Visit our projects</h2>
 
-        <div class="grid gap-10">
+        <div class="grid gap-10 grid-cols-2">
             {#each cards as card}
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                     <img src={card.image} alt="Placeholder image" class="w-full h-[500px] object-cover border-2 rounded-lg shadow-xs border-white" />
