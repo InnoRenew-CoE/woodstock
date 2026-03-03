@@ -27,9 +27,8 @@
     ];
 </script>
 
-<div class="max-w-6xl mx-auto px-6 py-12 bg-white/60 rounded-lg text-gray-800 w-[80%] m-auto shadow-sm">
-    <!-- About the Project -->
-    <section class="mb-12">
+<div class="w-[80%] px-6 py-12 bg-white/60 rounded-2xl text-gray-800 m-auto shadow-sm grid gap-10">
+    <section>
         <h1 class="text-3xl font-bold mb-4">About</h1>
         <div class="grid gap-3 text-lg leading-relaxed">
             <b>Our platform is designed to accelerate research through intelligent, secure collaboration.</b>
@@ -41,8 +40,26 @@
             </div>
         </div>
     </section>
-
-    <!-- Cards Section -->
+    <div class="h-[1px] bg-black/10 w-full"></div>
+    <section>
+        <h1 class="text-3xl font-bold mb-4">Latest posts</h1>
+        <div class="grid gap-5 grid-cols-4">
+            {#each { length: 5 } as _}
+                <a href="#">
+                    <div class=" bg-white rounded-lg border border-teal-800/10 overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                        <div class="p-6">
+                            <h2 class="text-xl font-semibold text-gray-800 mb-3">Card Title</h2>
+                            <div class="text-gray-600 text-sm leading-relaxed line-clamp-2 w-full">Card body content goes here. Add your description or any information inside this section.</div>
+                            <div class="pt-5 flex justify-between items-center">
+                                <span class="text-blue-500">author</span><span class="text-green-500">date</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            {/each}
+        </div>
+    </section>
+    <div class="h-[1px] bg-black/10 w-full"></div>
     <section>
         <h2 class="text-2xl font-semibold mb-6">Visit our projects</h2>
 

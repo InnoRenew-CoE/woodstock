@@ -15,7 +15,8 @@
         { link: "/app", text: "Home" },
         { link: "/app/contribute", text: "Contribute" },
         { link: "/app/contributions", text: "Contributions" },
-        { link: "/app/notifications", text: "Notifications" },
+        { link: "/app/collaborate", text: "Submit a post" },
+        // { link: "/app/notifications", text: "Notifications" },
     ];
     let notificationCount = $state(0);
 
