@@ -417,6 +417,29 @@ pub async fn upsert_post(id: Option<u32>, title: String, body: String, user: &i3
     Ok(())
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Post {
+    id: Option<i32>,
+    title: String,
+    body: String,
+}
+pub async fn get_posts(client: &mut Client) -> Result<Vec<Post>, &'static str> {
+    let mut vec = Vec::new();
+    let rows = client.query("SELECT id, title, body FROM posts", &[]).await;
+    if let Ok(rows) = rows {
+        for row in rows {
+            let post = Post {
+                id: Some(row.get(0)),
+                title: row.get(1),
+                body: row.get(2),
+            };
+            vec.push(post);
+        }
+    }
+
+    Ok(vec)
+}
+
 pub async fn insert_feedback(feedback: String, user: &i32, client: &mut Client) {
     let _ = client
         .execute("insert into feedback (text, submitted_by) values ($1, $2)", &[&feedback, user])

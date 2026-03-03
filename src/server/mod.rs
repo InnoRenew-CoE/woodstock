@@ -522,6 +522,21 @@ async fn new_post(state: web::Data<AppState>, user: User, body: web::Json<PostBo
     builder.json(body.0)
 }
 
+#[get("/posts")]
+async fn retrieve_posts(state: web::Data<AppState>) -> HttpResponse {
+    let Ok(mut client) = state.client.lock() else {
+        eprintln!("State.client.lock failed");
+        return HttpResponse::InternalServerError().finish();
+    };
+    let posts = db::get_posts(&mut client).await;
+    let mut builder = HttpResponseBuilder::new(StatusCode::OK);
+
+    if let Ok(posts) = posts {
+        return builder.json(posts);
+    }
+    builder.finish()
+}
+
 async fn check_refresh(data: Data<AppState>, request: HttpRequest) -> Result<(), actix_web::Error> {
     println!("Refresh!");
     let guard = data.invalidated_tokens.lock().expect("Should be able to lock the mutex");
@@ -577,6 +592,7 @@ pub async fn start_server(rag: Rag) {
             .app_data(state.clone())
             .service(login)
             .service(register)
+            .service(retrieve_posts)
             .service(web::scope("/chat").service(search).service(download))
             .use_jwt(
                 authority,
