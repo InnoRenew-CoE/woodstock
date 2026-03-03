@@ -504,6 +504,39 @@ async fn invalidate(data: web::Data<AppState>, _: User, request: HttpRequest) ->
     builder.finish()
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct PostBody {
+    id: Option<i32>,
+    title: String,
+    body: String,
+}
+
+#[post("/collaborate")]
+async fn new_post(state: web::Data<AppState>, user: User, body: web::Json<PostBody>) -> HttpResponse {
+    let Ok(client) = state.client.lock() else {
+        eprintln!("State.client.lock failed");
+        return HttpResponse::InternalServerError().finish();
+    };
+    println!("{:?}", body.0);
+    let mut builder = HttpResponseBuilder::new(StatusCode::OK);
+    builder.json(body.0)
+}
+
+#[get("/posts")]
+async fn retrieve_posts(state: web::Data<AppState>) -> HttpResponse {
+    let Ok(mut client) = state.client.lock() else {
+        eprintln!("State.client.lock failed");
+        return HttpResponse::InternalServerError().finish();
+    };
+    let posts = db::get_posts(&mut client).await;
+    let mut builder = HttpResponseBuilder::new(StatusCode::OK);
+
+    if let Ok(posts) = posts {
+        return builder.json(posts);
+    }
+    builder.finish()
+}
+
 async fn check_refresh(data: Data<AppState>, request: HttpRequest) -> Result<(), actix_web::Error> {
     println!("Refresh!");
     let guard = data.invalidated_tokens.lock().expect("Should be able to lock the mutex");
@@ -559,6 +592,7 @@ pub async fn start_server(rag: Rag) {
             .app_data(state.clone())
             .service(login)
             .service(register)
+            .service(retrieve_posts)
             .service(web::scope("/chat").service(search).service(download))
             .use_jwt(
                 authority,
@@ -571,7 +605,8 @@ pub async fn start_server(rag: Rag) {
                     .service(fetch_tags)
                     .service(fetch_files)
                     .service(submit_feedback)
-                    .service(invalidate),
+                    .service(invalidate)
+                    .service(new_post),
             )
             .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
         // .service(
