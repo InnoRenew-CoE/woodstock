@@ -4,6 +4,7 @@ use chrono::{Local, NaiveDate};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::{env, string};
+use tokio_postgres::types::Date;
 use tokio_postgres::{Client, NoTls};
 
 const INSERT_LOGIN_STATISTIC: &'static str = r#"insert into logins (user_id) values ($1)"#;
@@ -438,7 +439,7 @@ pub struct Post {
     title: String,
     body: String,
     email: String,
-    created: String,
+    created: NaiveDate,
 }
 pub async fn get_posts(client: &mut Client) -> Result<Vec<Post>, &'static str> {
     let mut vec = Vec::new();
