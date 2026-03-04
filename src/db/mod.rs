@@ -437,12 +437,13 @@ pub struct Post {
     id: Option<i32>,
     title: String,
     body: String,
+    email: String,
 }
 pub async fn get_posts(client: &mut Client) -> Result<Vec<Post>, &'static str> {
     let mut vec = Vec::new();
     let rows = client
         .query(
-            "SELECT posts.id, posts.title, email, body, created FROM posts left join users on users.id = posts.author",
+            "SELECT posts.id, posts.title, body, email created FROM posts left join users on users.id = posts.author",
             &[],
         )
         .await;
@@ -452,6 +453,7 @@ pub async fn get_posts(client: &mut Client) -> Result<Vec<Post>, &'static str> {
                 id: Some(row.get(0)),
                 title: row.get(1),
                 body: row.get(2),
+                email: row.get(3),
             };
             vec.push(post);
         }
