@@ -421,7 +421,7 @@ pub async fn upsert_post(id: Option<i32>, title: String, body: String, user: &i3
                     DO UPDATE SET title = excluded.title,
                                   body  = excluded.body;
                                   "#,
-                &[&id, user, &title, &body],
+                &[user, &title, &body],
             )
             .await
     };

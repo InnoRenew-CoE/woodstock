@@ -27,6 +27,9 @@
     );
 
     async function submit() {
+        if (title.length < 5 || htmlContent.length < 10) {
+            return;
+        }
         const body = {
             id: id,
             title: title,
@@ -62,7 +65,7 @@
             <input bind:value={title} required placeholder="Title" class="bg-white/50 p-3 w-full rounded-lg border-gray-200 border" />
             <Tipex bind:tipex={editor} floating focal class="border border-neutral-200/80" />
             <div class="flex items-center justify-end py-5">
-                <button onclick={submit} disabled={textContent.length < 10} type="submit" class="bg-primary disabled:bg-gray-300 text-white px-3 py-1 rounded">Submit</button>
+                <button onclick={submit} disabled={textContent.length < 10 || title.length < 5} type="submit" class="bg-primary disabled:bg-gray-300 text-white px-3 py-1 rounded">Submit</button>
             </div>
         </div>
         <div class="prose">
