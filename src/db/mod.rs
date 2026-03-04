@@ -438,6 +438,7 @@ pub struct Post {
     title: String,
     body: String,
     email: String,
+    created: String,
 }
 pub async fn get_posts(client: &mut Client) -> Result<Vec<Post>, &'static str> {
     let mut vec = Vec::new();
