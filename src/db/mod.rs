@@ -443,7 +443,7 @@ pub async fn get_posts(client: &mut Client) -> Result<Vec<Post>, &'static str> {
     let mut vec = Vec::new();
     let rows = client
         .query(
-            "SELECT posts.id, posts.title, body, email created FROM posts left join users on users.id = posts.author",
+            "SELECT posts.id, posts.title, body, email, created FROM posts left join users on users.id = posts.author",
             &[],
         )
         .await;
