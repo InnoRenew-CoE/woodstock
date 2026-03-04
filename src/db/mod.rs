@@ -397,7 +397,7 @@ pub async fn insert_new_password(client: &Client, login_details: &LoginDetails) 
     }
 }
 
-pub async fn upsert_post(id: Option<u32>, title: String, body: String, user: &i32, client: &mut Client) -> Result<(), &'static str> {
+pub async fn upsert_post(id: Option<i32>, title: String, body: String, user: &i32, client: &mut Client) -> Result<(), &'static str> {
     let upsert_result = client
         .execute(
             r#"

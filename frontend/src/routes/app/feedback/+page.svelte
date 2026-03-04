@@ -2,7 +2,6 @@
     import { PUBLIC_API_BASE_URL } from "$env/static/public";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
     import { pushNotification } from "$lib/stores/notifications";
-    import { preventDefault } from "svelte/legacy";
 
     let text = $state("");
     async function submit() {
@@ -29,7 +28,7 @@
 <div class="flex flex-wrap h-full gap-5 items-center justify-center">
     <form class="glass flex flex-col gap-5 p-10 w-[90%] max-w-[1024px]" onsubmit={submit}>
         <div class="glass p-5 bg-white/80">
-            <div class="pb-3 text-indigo-500 font-mono text-lg">Let us know:</div>
+            <div class="pb-3 text-secondary-2 font-mono text-lg">Let us know:</div>
             <ul class="list-disc pl-8 space-y-1">
                 <li>What other questions you'd think would be valuable to have on file upload</li>
                 <li>What do you think about the application and the user experience</li>

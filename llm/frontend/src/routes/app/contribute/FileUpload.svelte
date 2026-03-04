@@ -24,8 +24,8 @@
             <div class="uppercase opacity-60 rounded border-y bg-secondary/20 border-secondary/60 h-full w-0.5 m-auto"></div>
             <div class="grid gap-3 items-center m-auto">
                 <div class="text-primary/50">Fill out an excel file and upload it for us to process it later.</div>
-                <a target="_blank" href="../template.xlsm" class="text-nowrap glass px-2 py-1 text-green-600/80 glass bg-green-600/10 border-green-600/50 flex gap-3 items-center justify-center hover:brightness-[90%] cursor-pointer">
-                    <div class="glass p-2 rounded-full bg-white/80 border-green-600/30">
+                <a target="_blank" href="../template.xlsm" class="text-nowrap glass px-2 py-1 text-green-600/80 glass border-green-600/50 flex gap-3 items-center justify-center hover:brightness-[90%] cursor-pointer">
+                    <div class="glass p-2 rounded-full bg-white/80">
                         <MaskedIcon src="../download.svg" class="size-4 bg-green-600" />
                     </div>
                     <div class="text-center px-5">Download template</div>
