@@ -1,0 +1,1 @@
+import{f,E as i,h as o,i as p,j as c,k as h,l as d}from"./runtime.CBaO-1X6.js";function E(e,n,...t){var s=e,r=p,a;f(()=>{r!==(r=n())&&(a&&(c(a),a=null),a=o(()=>r(s,...t)))},i),h&&(s=d)}export{E as s};

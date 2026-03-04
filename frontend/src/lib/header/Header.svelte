@@ -1,6 +1,10 @@
 <script>
+    import { goto, invalidateAll } from "$app/navigation";
     import { page } from "$app/stores";
+    import { PUBLIC_API_BASE_URL } from "$env/static/public";
+    import { verify } from "$lib";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
+    import { onMount } from "svelte";
     import { slide } from "svelte/transition";
 
     let width = $state(0);
@@ -11,8 +15,20 @@
         { text: "Home", url: "/", icon: "/home.svg" },
         // { text: "About", url: "/about", icon: "/heart.svg" },
         { text: "Chat", url: "/search", icon: "/search.svg" },
-        { text: "Login", url: "/login", icon: "/home.svg" },
+        // { text: "Login", url: "/login", icon: "/home.svg" },
     ];
+
+    let isLoggedIn = $state(false);
+    onMount(async () => {
+        isLoggedIn = (await verify()) === 200;
+    });
+
+    async function logout() {
+        const response = await fetch(`${PUBLIC_API_BASE_URL}/api/invalidate`, { method: "post" });
+        console.log(response);
+        await invalidateAll();
+        await goto("/");
+    }
 </script>
 
 <svelte:window bind:innerWidth={width} />
@@ -41,6 +57,20 @@
                                 <MaskedIcon src={path.icon} class={isSmall ? "bg-white" : "hidden"} />{path.text}
                             </a>
                         {/each}
+                        {#if isLoggedIn}
+                            <div class="group transition-all glass bg-white/60 py-2 px-3 rounded-full hover:bg-white/90 cursor-pointer" onclick={logout}>
+                                <div class="flex items-center relative">
+                                    <MaskedIcon src="/logout.svg" class="bg-radial from-accent to-secondary size-5" />
+                                </div>
+                            </div>
+                        {:else}
+                            <a
+                                class="cursor-pointer flex items-center gap-5 sm:opacity-50 p-1.5 glass rounded-full overflow-hidden px-8 border-white/20 'bg-black sm:bg-white hover:!opacity-100 hover:text-white hover:bg-secondary/60 hover:shadow-secondary/50 hover:shadow-lg hover:border-secondary sm:text-black"
+                                href="/login"
+                            >
+                                <MaskedIcon src="./home.svg" class={isSmall ? "bg-white" : "hidden"} />{"Login"}
+                            </a>
+                        {/if}
                     </div>
                 </div>
             {/if}

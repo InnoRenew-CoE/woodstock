@@ -440,7 +440,12 @@ pub struct Post {
 }
 pub async fn get_posts(client: &mut Client) -> Result<Vec<Post>, &'static str> {
     let mut vec = Vec::new();
-    let rows = client.query("SELECT id, title, body FROM posts", &[]).await;
+    let rows = client
+        .query(
+            "SELECT posts.id, posts.title, email, body, created FROM posts left join users on users.id = posts.author",
+            &[],
+        )
+        .await;
     if let Ok(rows) = rows {
         for row in rows {
             let post = Post {

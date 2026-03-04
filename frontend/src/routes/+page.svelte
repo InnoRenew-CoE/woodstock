@@ -1,5 +1,8 @@
 <script lang="ts">
+    import { PUBLIC_API_BASE_URL } from "$env/static/public";
+    import { verify } from "$lib";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
+    import { onMount } from "svelte";
 
     const cards = [
         {
@@ -25,6 +28,15 @@
             link: "https://iaq.innorenew.eu/grafana/public-dashboards/535d826acc744109b4d64a68654ee262?orgId=1&refresh=10s",
         },
     ];
+
+    let posts: { id: number | null; title: string; body: string; author: string; created: string }[] = $state([]);
+    let isLoggedIn = $state(false);
+
+    onMount(async () => {
+        isLoggedIn = (await verify()) === 200;
+        const response = await fetch(`${PUBLIC_API_BASE_URL}/posts`);
+        posts = await response.json();
+    });
 </script>
 
 <div class="w-[80%] px-6 py-12 bg-white/60 rounded-2xl text-gray-800 m-auto shadow-sm grid gap-10">
@@ -44,14 +56,21 @@
     <section>
         <h1 class="text-3xl font-bold mb-4">Latest posts</h1>
         <div class="grid gap-5 grid-cols-4">
-            {#each { length: 5 } as _}
-                <a href="#">
+            {#each posts as post}
+                <a target="_blank" href="/post/{post.id}">
                     <div class=" bg-white rounded-lg border border-teal-800/10 overflow-hidden hover:shadow-lg transition-shadow duration-300">
                         <div class="p-6">
-                            <h2 class="text-xl font-semibold text-gray-800 mb-3">Card Title</h2>
-                            <div class="text-gray-600 text-sm leading-relaxed line-clamp-2 w-full">Card body content goes here. Add your description or any information inside this section.</div>
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-xl font-semibold text-gray-800 mb-3">{post.title}</h2>
+                                {#if isLoggedIn}
+                                    <a href="/app/collaborate?id={post.id}" target="_blank">
+                                        <MaskedIcon class="hover:bg-secondary bg-primary size-5" src="./edit.svg" />
+                                    </a>
+                                {/if}
+                            </div>
+                            <div class="text-gray-600 text-sm leading-relaxed line-clamp-2 w-full">{@html post.body}</div>
                             <div class="pt-5 flex justify-between items-center">
-                                <span class="text-blue-500">author</span><span class="text-green-500">date</span>
+                                <span class="text-secondary">{post.author}</span><span class="text-secondary-1">{post.created}</span>
                             </div>
                         </div>
                     </div>

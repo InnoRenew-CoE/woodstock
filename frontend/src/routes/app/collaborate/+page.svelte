@@ -9,7 +9,7 @@
 
     let editor: Editor | undefined = $state();
 
-    const id = $derived(page.url.searchParams.get("id"));
+    const id = $derived(parseInt(page.url.searchParams.get("id")));
 
     // Reactive HTML content
     const htmlContent = $derived(editor?.getHTML() ?? "");
@@ -49,7 +49,13 @@
 
     onMount(async () => {
         if (id) {
-            console.log("Time to fetch from database");
+            const response = await fetch(`${PUBLIC_API_BASE_URL}/posts`);
+            const posts: { id: number; title: string; body: string }[] = await response.json();
+            const post = posts.find((p) => p.id === parseInt(id));
+            if (post) {
+                editor?.commands.setContent(post.body);
+                title = post.title;
+            }
         }
     });
 </script>

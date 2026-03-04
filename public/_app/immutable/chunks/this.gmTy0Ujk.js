@@ -1,0 +1,1 @@
+import{x as S,y as h,w as k,z as x,S as T}from"./runtime.CBaO-1X6.js";function t(r,i){return r===i||(r==null?void 0:r[T])===i}function w(r={},i,a,c){return S(()=>{var f,s;return h(()=>{f=s,s=[],k(()=>{r!==a(...s)&&(i(r,...s),f&&t(a(...f),r)&&i(null,...f))})}),()=>{x(()=>{s&&t(a(...s),r)&&i(null,...s)})}}),r}export{w as b};
