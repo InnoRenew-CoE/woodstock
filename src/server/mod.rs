@@ -513,13 +513,18 @@ struct PostBody {
 
 #[post("/collaborate")]
 async fn new_post(state: web::Data<AppState>, user: User, body: web::Json<PostBody>) -> HttpResponse {
-    let Ok(client) = state.client.lock() else {
+    let Ok(mut client) = state.client.lock() else {
         eprintln!("State.client.lock failed");
         return HttpResponse::InternalServerError().finish();
     };
-    println!("{:?}", body.0);
-    let mut builder = HttpResponseBuilder::new(StatusCode::OK);
-    builder.json(body.0)
+    let post = body.0;
+    let result = db::upsert_post(post.id, post.title, post.body, &user.id, &mut client).await;
+    let mut builder = HttpResponseBuilder::new(if result.is_ok() {
+        StatusCode::OK
+    } else {
+        StatusCode::INTERNAL_SERVER_ERROR
+    });
+    builder.finish()
 }
 
 #[get("/posts")]

@@ -49,7 +49,7 @@
 <div class="flex sm:items-center justify-center h-full p-10">
     <div class="grid gap-2 max-w-[500px] w-full sm:w-[80%] h-min">
         <div class="grid p-8 px-10 glass gap-5 bg-white/60">
-            <div class="flex gap-3 items-center font-roboto font-semibold text-2xl text-black">
+            <div class="flex gap-3 items-center font-roboto font-semibold text-2xl text-primary">
                 Login <span><img src="./info.svg" alt="Information" class="w-3" /></span>
             </div>
             <div>
@@ -66,8 +66,8 @@
                     <p class="bg-white/70 p-3 rounded-lg shadow-sm border border-white text-secondary/80">You'll receive an email with password for you to access the app.</p>
                 </div>
             {/if}
-            <button type="submit" class="transition-all hover:bg-secondary/80 hover:border-secondary cursor-pointer bg-primary border border-accent/80 rounded-lg p-2 text-white grid grid-cols-[1rem_auto_1rem] items-center gap-4 group" onclick={login}>
-                <div class="row-start-1 col-start-2">{requestPassword ? "Request" : "Login"}</div>
+            <button type="submit" class="bg-accent border transition-all hover:bg-secondary/80 hover:border-secondary cursor-pointer rounded-lg p-2 text-white grid grid-cols-[1rem_auto_1rem] items-center gap-4 group" onclick={login}>
+                <div class="row-start-1 col-start-2 border-none">{requestPassword ? "Request" : "Login"}</div>
             </button>
         </div>
     </div>
