@@ -455,6 +455,7 @@ pub async fn get_posts(client: &mut Client) -> Result<Vec<Post>, &'static str> {
                 title: row.get(1),
                 body: row.get(2),
                 email: row.get(3),
+                created: row.get(4),
             };
             vec.push(post);
         }
