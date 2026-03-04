@@ -33,9 +33,11 @@
 <div class="p-5 h-full">
     <div class="flex flex-col items-center h-full gap-5">
         <div class="p-3 flex gap-3 items-center justify-center w-full relative">
-            <div class="glass bg-white/60 p-2 rounded-full hover:bg-white/70 cursor-pointer">
-                <img src="/woodstock.svg" class="size-7 rounded-full" />
-            </div>
+            <a href="/">
+                <div class="glass bg-white/60 p-2 rounded-full hover:bg-white/70 cursor-pointer">
+                    <img src="/woodstock.svg" class="size-7 rounded-full" />
+                </div>
+            </a>
             <div class="flex items-center justify-center rounded-full p-0 lg:p-0">
                 {#if isSmall}
                     <div class="glass rounded-full p-3 bg-white/40" onclick={() => (isVisible = !isVisible)}>

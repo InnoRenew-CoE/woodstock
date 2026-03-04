@@ -14,18 +14,18 @@
 </script>
 
 <div class="bg-white w-[90%] m-auto rounded-lg p-10">
-    <div class="prose">
-        {#if post}
-            <div class="flex gap-3 items-center justify-between">
-                <div class="text-xl font-bold">{post.title}</div>
-                <div class="text-xs flex gap-3">
-                    Author:
-                    <div class=" text-accent">{post.email.split("@")[0]}</div>
-                    Date:
-                    <div class=" text-secondary">{post.created}</div>
-                </div>
+    {#if post}
+        <div class="flex gap-3 items-center justify-between">
+            <div class="text-xl font-bold">{post.title}</div>
+            <div class="text-xs flex gap-3">
+                Author:
+                <div class=" text-accent">{post.email.split("@")[0]}</div>
+                Date:
+                <div class=" text-secondary">{post.created}</div>
             </div>
+        </div>
+        <div class="prose">
             {@html post.body}
-        {/if}
-    </div>
+        </div>
+    {/if}
 </div>

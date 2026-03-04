@@ -20,6 +20,7 @@
 
     let isLoggedIn = $state(false);
     onMount(async () => {
+      console.log("Header mount");
         isLoggedIn = (await verify()) === 200;
     });
 
@@ -27,7 +28,8 @@
         const response = await fetch(`${PUBLIC_API_BASE_URL}/api/invalidate`, { method: "post" });
         console.log(response);
         await invalidateAll();
-        await goto("/");
+        await goto("/", { invalidateAll: true });
+        isLoggedIn = (await verify()) === 200;
     }
 </script>
 
@@ -58,6 +60,12 @@
                             </a>
                         {/each}
                         {#if isLoggedIn}
+                            <div
+                                onclick={async () => await goto("/app")}
+                                class="group transition-all glass bg-white/60 py-2 px-3 rounded-full hover:bg-white/90 cursor-pointer bg-black sm:bg-white hover:!opacity-100 hover:text-white hover:bg-secondary/60 hover:shadow-secondary/50 hover:shadow-lg hover:border-secondary sm:text-black"
+                            >
+                                <div class="flex items-center relative text-primary">App</div>
+                            </div>
                             <div class="group transition-all glass bg-white/60 py-2 px-3 rounded-full hover:bg-white/90 cursor-pointer" onclick={logout}>
                                 <div class="flex items-center relative">
                                     <MaskedIcon src="/logout.svg" class="bg-radial from-accent to-secondary size-5" />

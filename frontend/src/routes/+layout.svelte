@@ -42,7 +42,9 @@
 </script>
 
 <header bind:this={header_component} class="font-nunito">
-    <Header />
+    {#key page.url.pathname}
+        <Header />
+    {/key}
 </header>
 <div id="layout" bind:this={layout_component} class="font-roboto grid grid-rows-[auto_1fr_auto]">
     <div class="flex-1 h-full relative py-5">

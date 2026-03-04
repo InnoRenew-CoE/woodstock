@@ -1,0 +1,1 @@
+import{m as c,o as i,q as _,f as h,k as r,u as k,v as u,h as d,l,U as v}from"./runtime.CPbaKtTI.js";function I(f,n,o){r&&k();var e=f,s=v,a,t=c()?i:_;h(()=>{t(s,s=n())&&(a&&u(a),a=d(()=>o(e)))}),r&&(e=l)}export{I as k};
