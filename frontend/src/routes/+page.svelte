@@ -46,6 +46,7 @@
         isLoggedIn = (await verify()) === 200;
         const response = await fetch(`${PUBLIC_API_BASE_URL}/posts`);
         posts = await response.json();
+        posts.reverse();
         console.log(isLoggedIn);
     });
 
