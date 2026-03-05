@@ -13,6 +13,7 @@
 
     const paths = [
         { text: "Home", url: "/", icon: "/home.svg" },
+        { text: "Best practices", url: "/practices", icon: "/best.svg" },
         // { text: "About", url: "/about", icon: "/heart.svg" },
         { text: "Chat", url: "/search", icon: "/search.svg" },
         // { text: "Login", url: "/login", icon: "/home.svg" },
@@ -20,7 +21,7 @@
 
     let isLoggedIn = $state(false);
     onMount(async () => {
-      console.log("Header mount");
+        console.log("Header mount");
         isLoggedIn = (await verify()) === 200;
     });
 

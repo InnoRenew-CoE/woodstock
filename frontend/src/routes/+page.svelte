@@ -12,19 +12,23 @@
             image: "./platform.png",
             link: "/login",
         },
-        {
-            title: "InnoRenew - IoT Platform",
-            description:
-                "Our IoT platform collects and aggregates data from connected devices in real time, transforming it into clear, actionable insights. Sensor data is visualized directly on interactive floorplans, dashboards, and charts, making it easy to monitor environments, track performance, and identify issues at a glance. The platform centralizes complex device data into a simple, intuitive interface for smarter decision-making.",
-            image: "./iot.jpg",
-            link: "https://iaq.innorenew.eu/grafana/public-dashboards/535d826acc744109b4d64a68654ee262?orgId=1&refresh=10s",
-        },
+
         {
             title: "TIMBERHAUS Focus: Sustainable Wood Construction & Circular Economy",
             description:
                 "TIMBERHAUS is a European innovation project dedicated to reducing the construction sector’s carbon footprint by developing climate-smart, circular solutions for wood construction. Addressing the fact that the building industry accounts for 40% of global CO₂ emissions and 35% of waste, TIMBERHAUS focuses on increasing the use of wood as a primary, sustainable material. The project is currently validating its technologies and strategies in three diverse pilot cities—Berlin (Germany), Baia Mare (Romania), and Siena (Italy)—to demonstrate how timber can be integrated into different urban contexts and heritage settings.",
             image: "./timberhaus.svg",
             link: "https://timberhaus.eu",
+        },
+    ];
+
+    const demos = [
+        {
+            title: "InnoRenew - IoT Platform",
+            description:
+                "Our IoT platform collects and aggregates data from connected devices in real time, transforming it into clear, actionable insights. Sensor data is visualized directly on interactive floorplans, dashboards, and charts, making it easy to monitor environments, track performance, and identify issues at a glance. The platform centralizes complex device data into a simple, intuitive interface for smarter decision-making.",
+            image: "./iot.jpg",
+            link: "https://iaq.innorenew.eu/grafana/public-dashboards/535d826acc744109b4d64a68654ee262?orgId=1&refresh=10s",
         },
         {
             title: "Ctfc - IoT Platform",
@@ -455,7 +459,7 @@
         <div class="grid gap-10 grid-cols-1 md:grid-cols-4">
             {#each cards as card}
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <img src={card.image} alt="Placeholder image" class="w-full h-[200px] object-cover border-2 rounded-lg shadow-xs border-white" />
+                    <img src={card.image} alt="Placeholder image" class="w-full h-[150px] object-cover border-2 rounded-lg shadow-xs border-white" />
 
                     <div class="p-4">
                         <h3 class="text-xl mb-1">
@@ -477,9 +481,17 @@
             {/each}
         </div>
     </section>
+
     <div class="h-[1px] bg-black/10 w-full"></div>
     <section>
-        <h2 class="text-2xl font-semibold mb-6">Visit our courses</h2>
+        <h2 class="text-2xl font-semibold mb-6">NEB Academy Aliance</h2>
+
+        <div class="text-xs text-center text-accent">We're still working on this</div>
+    </section>
+
+    <div class="h-[1px] bg-black/10 w-full"></div>
+    <section>
+        <h2 class="text-2xl font-semibold mb-6">Visit our courses (NEB Academy)</h2>
         <div class="grid md:grid-cols-3 gap-3">
             {#each courses as course}
                 <a target="_blank" href={course.url} class="hover:shadow hover:brightness-95 bg-white rounded-xl p-5">
@@ -490,6 +502,36 @@
                     <div class="text-xs text-secondary-1">{course.tags.join(" ")}</div>
                     <div class="text-sm py-3 text-primary">{course.description}</div>
                 </a>
+            {/each}
+        </div>
+    </section>
+
+    <div class="h-[1px] bg-black/10 w-full"></div>
+    <section>
+        <h2 class="text-2xl font-semibold mb-6">Demo buildings using an IoT platform and deep learning</h2>
+
+        <div class="grid gap-10 grid-cols-1 md:grid-cols-4">
+            {#each demos as card}
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <!-- <img src={card.image} alt="Placeholder image" class="w-full h-[200px] object-cover border-2 rounded-lg shadow-xs border-white" /> -->
+
+                    <div class="p-4">
+                        <h3 class="text-xl mb-1">
+                            {card.title}
+                        </h3>
+
+                        <p class="text-sm mb-3 line-clamp-5">
+                            {card.description}
+                        </p>
+
+                        <a href={card.link} target="_blank" rel="noopener noreferrer" class="text-sm text-blue-400 hover:underline font-medium">
+                            <div class="flex gap-3">
+                                <MaskedIcon src="./external-link.svg" class="bg-blue-400" />
+                                Visit external page
+                            </div>
+                        </a>
+                    </div>
+                </div>
             {/each}
         </div>
     </section>
