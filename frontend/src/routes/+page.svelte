@@ -30,13 +30,13 @@
             image: "./iot.jpg",
             link: "https://iaq.innorenew.eu/grafana/public-dashboards/535d826acc744109b4d64a68654ee262?orgId=1&refresh=10s",
         },
-        {
-            title: "Ctfc - IoT Platform",
-            description:
-                "Our IoT platform collects and aggregates data from connected devices in real time, transforming it into clear, actionable insights. Sensor data is visualized directly on interactive floorplans, dashboards, and charts, making it easy to monitor environments, track performance, and identify issues at a glance. The platform centralizes complex device data into a simple, intuitive interface for smarter decision-making.",
-            image: "./iot.jpg",
-            link: "https://ctfc.innorenew.eu/grafana/public-dashboards/535d826acc744109b4d64a68654ee262?orgId=1&refresh=10s",
-        },
+        // {
+        //     title: "Ctfc - IoT Platform",
+        //     description:
+        //         "Our IoT platform collects and aggregates data from connected devices in real time, transforming it into clear, actionable insights. Sensor data is visualized directly on interactive floorplans, dashboards, and charts, making it easy to monitor environments, track performance, and identify issues at a glance. The platform centralizes complex device data into a simple, intuitive interface for smarter decision-making.",
+        //     image: "./iot.jpg",
+        //     link: "https://ctfc.innorenew.eu/grafana/public-dashboards/535d826acc744109b4d64a68654ee262?orgId=1&refresh=10s",
+        // },
     ];
 
     let posts: { id: number | null; title: string; body: string; email: string; created: string }[] = $state([]);
@@ -534,6 +534,15 @@
                     </div>
                 </div>
             {/each}
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <!-- <img src={card.image} alt="Placeholder image" class="w-full h-[200px] object-cover border-2 rounded-lg shadow-xs border-white" /> -->
+
+                <div class="p-4">
+                    <h3 class="text-xl mb-1">More coming soon</h3>
+
+                    <p class="text-sm mb-3 line-clamp-5">Soon more demos will be added.</p>
+                </div>
+            </div>
         </div>
     </section>
 </div>
