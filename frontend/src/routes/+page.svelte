@@ -28,7 +28,13 @@
             description:
                 "Our IoT platform collects and aggregates data from connected devices in real time, transforming it into clear, actionable insights. Sensor data is visualized directly on interactive floorplans, dashboards, and charts, making it easy to monitor environments, track performance, and identify issues at a glance. The platform centralizes complex device data into a simple, intuitive interface for smarter decision-making.",
             image: "./iot.jpg",
-            link: "https://iaq.innorenew.eu/grafana/public-dashboards/535d826acc744109b4d64a68654ee262?orgId=1&refresh=10s",
+            links: [
+                { text: "First floor", url: "https://iaq.innorenew.eu/grafana/public-dashboards/cbfa51fc8a644889844bd0ed7d313f08" },
+                { text: "Ground floor", url: "https://iaq.innorenew.eu/grafana/public-dashboards/38c19ae07e8745ef83d54366c14d7b31" },
+                { text: "Second floor", url: "https://iaq.innorenew.eu/grafana/public-dashboards/820b595ec2394acfb2180c4ab8be1669" },
+                { text: "Third floor", url: "https://iaq.innorenew.eu/grafana/public-dashboards/556c3912bd9e42a28992983a5b4a9d3d" },
+                { text: "Wall Mounted Sensors", url: "https://iaq.innorenew.eu/grafana/public-dashboards/bce5fe464a724190a3d9e3abc5dde8b5" },
+            ],
         },
         // {
         //     title: "Ctfc - IoT Platform",
@@ -525,12 +531,14 @@
                             {card.description}
                         </p>
 
-                        <a href={card.link} target="_blank" rel="noopener noreferrer" class="text-sm text-blue-400 hover:underline font-medium">
-                            <div class="flex gap-3">
-                                <MaskedIcon src="./external-link.svg" class="bg-blue-400" />
-                                Visit external page
-                            </div>
-                        </a>
+                        {#each card.links as link}
+                            <a href={link.url} target="_blank" rel="noopener noreferrer" class="text-sm text-blue-400 hover:underline font-medium">
+                                <div class="flex gap-3">
+                                    <MaskedIcon src="./external-link.svg" class="bg-blue-400" />
+                                    {link.text}
+                                </div>
+                            </a>
+                        {/each}
                     </div>
                 </div>
             {/each}
