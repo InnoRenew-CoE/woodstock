@@ -384,8 +384,8 @@ pub async fn download(state: Data<AppState>, file_id: web::Path<String>) -> Http
     };
     let file = db::find_file(file_id.parse().unwrap(), &mut client).await;
     println!("File found to be downloaded: {:?}", file);
-    if let Ok(file) = file {
-        let path = format!("/data/woodstock/files/{}", file.name).replace(".", "");
+    if let Ok(file_info) = file {
+        let path = format!("/data/woodstock/files/{}", file_info.name).replace(".", "");
         if !path.starts_with("/data/woodstock/files/") {
             return HttpResponse::InternalServerError().finish();
         }
@@ -403,8 +403,10 @@ pub async fn download(state: Data<AppState>, file_id: web::Path<String>) -> Http
             return HttpResponse::InternalServerError().finish();
         }
 
-        let filename = path.split("/").last().unwrap_or("download");
-        let filename = format!("{filename}.pdf");
+        let filename = Path::new(&file_info.original_name)
+            .file_name()
+            .and_then(OsStr::to_str)
+            .unwrap_or("download");
 
         return HttpResponse::Ok()
             .append_header(("Content-Disposition", format!("attachment; filename=\"{}\"", filename)))
