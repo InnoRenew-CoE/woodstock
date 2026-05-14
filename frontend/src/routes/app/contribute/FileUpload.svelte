@@ -19,7 +19,7 @@
         <div class="p-3 glass grid text-center grid-cols-[1fr_50px_1fr] gap-10 items-center justify-center">
             <div class="grid gap-3">
                 <div class="text-primary/50">Upload files individually.</div>
-                <div class="flex items-center justify-center"><FileSelector text="Select files" multiple={true} bind:files={$filesStore} /></div>
+                <div class="flex items-center justify-center"><FileSelector text="Select files" multiple={true} bind:files={$filesStore} accept=".txt,.pdf,.md" /></div>
             </div>
             <div class="uppercase opacity-60 rounded border-y bg-secondary/20 border-secondary/60 h-full w-0.5 m-auto"></div>
             <div class="grid gap-3 items-center m-auto">
