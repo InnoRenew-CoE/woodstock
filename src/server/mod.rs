@@ -335,10 +335,10 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* 
     };
 
     // Removed due to opening the chat service to everyone.
-    // if let Err(error) = db::insert_query(user.id, &client, &search_query.0.query).await {
-    //     eprintln!("Inserting query log failed: {:?}", error);
-    //     return HttpResponse::InternalServerError().finish();
-    // }
+    if let Err(error) = db::insert_query(1, &client, &search_query.0.query).await {
+        eprintln!("Inserting query log failed: {:?}", error);
+        return HttpResponse::InternalServerError().finish();
+    }
     drop(client);
 
     let rag = Rag::default();
