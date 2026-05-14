@@ -1,1 +1,0 @@
-import{f as t,h as S,u as k,q,S as T}from"./runtime.c5mLyVwc.js";function h(r,f){return r===f||(r==null?void 0:r[T])===f}function A(r={},f,a,c){return t(()=>{var i,s;return S(()=>{i=s,s=[],k(()=>{r!==a(...s)&&(f(r,...s),i&&h(a(...i),r)&&f(null,...i))})}),()=>{q(()=>{s&&h(a(...s),r)&&f(null,...s)})}}),r}export{A as b};

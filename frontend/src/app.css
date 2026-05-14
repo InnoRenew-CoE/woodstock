@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 @source inline("{hover:,rotate:,z:}");
 
 @theme {
@@ -7,15 +8,15 @@
     --font-roboto: "roboto";
     --font-nunito: "nunito";
 
-    --color-primary: #000000;
-    --color-secondary: #80b541;
-    --color-secondary: #e6521f;
-    --color-secondary: #0065f8;
-    --color-accent: #4e4e4e;
+    --color-primary: #403f3f;
+    --color-secondary: #13b7d4;
+    --color-secondary-1: #0ea568;
+    --color-secondary-2: #e6521f;
+    --color-accent: #cab0a0;
     --color-background: #ecece6;
 
-    --color-light-background: #f4e7e1;
-    --color-dark-background: #ac613f;
+    --color-light-background: #ecece6;
+    --color-dark-background: #595959;
     --color-background: #d5d6c9;
     --animate-vote: vote 0.5s ease-in-out 2;
 

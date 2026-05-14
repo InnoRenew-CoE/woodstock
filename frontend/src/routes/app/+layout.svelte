@@ -1,11 +1,9 @@
 <script lang="ts">
-    import { fade, fly, slide } from "svelte/transition";
-    import { page } from "$app/stores";
-    import MaskedIcon from "$lib/common/MaskedIcon.svelte";
     import { goto, invalidateAll } from "$app/navigation";
+    import { page } from "$app/stores";
     import { PUBLIC_API_BASE_URL } from "$env/static/public";
-    import { onMount } from "svelte";
-    import { verify } from "$lib";
+    import MaskedIcon from "$lib/common/MaskedIcon.svelte";
+    import { slide } from "svelte/transition";
 
     let { children } = $props();
     let width = $state(0);
@@ -15,10 +13,10 @@
 
     const paths: { link: string; text: string }[] = [
         { link: "/app", text: "Home" },
-        { link: "/app/search", text: "Search" },
         { link: "/app/contribute", text: "Contribute" },
         { link: "/app/contributions", text: "Contributions" },
-        { link: "/app/notifications", text: "Notifications" },
+        { link: "/app/collaborate", text: "Submit a post" },
+        // { link: "/app/notifications", text: "Notifications" },
     ];
     let notificationCount = $state(0);
 
@@ -35,9 +33,11 @@
 <div class="p-5 h-full">
     <div class="flex flex-col items-center h-full gap-5">
         <div class="p-3 flex gap-3 items-center justify-center w-full relative">
-            <div class="glass bg-white/60 p-2 rounded-full hover:bg-white/70 cursor-pointer">
-                <img src="/woodstock.svg" class="size-7 rounded-full" />
-            </div>
+            <a href="/">
+                <div class="glass bg-white/60 p-2 rounded-full hover:bg-white/70 cursor-pointer">
+                    <img src="/woodstock.svg" class="size-7 rounded-full" />
+                </div>
+            </a>
             <div class="flex items-center justify-center rounded-full p-0 lg:p-0">
                 {#if isSmall}
                     <div class="glass rounded-full p-3 bg-white/40" onclick={() => (isVisible = !isVisible)}>

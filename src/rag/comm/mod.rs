@@ -1,24 +1,24 @@
 use futures::{stream, StreamExt};
-use ollama_rs::{
-    error::OllamaError,
-    generation::{
-        completion::{GenerationResponse, GenerationResponseStream},
-        embeddings::{request::GenerateEmbeddingsRequest, GenerateEmbeddingsResponse},
-    },
-    Ollama,
-};
-use question::Question;
-use serde::{de::DeserializeOwned, Serialize};
-use std::{env, future::Future, sync::Arc, time::Duration};
+use ollama_rs::error::OllamaError;
 use ollama_rs::error::OllamaError::*;
+use ollama_rs::generation::completion::{GenerationResponse, GenerationResponseStream};
+use ollama_rs::generation::embeddings::request::GenerateEmbeddingsRequest;
+use ollama_rs::generation::embeddings::GenerateEmbeddingsResponse;
+use ollama_rs::Ollama;
+use question::Question;
 use rand::{rng, Rng};
+use reqwest::header::{HeaderMap, HeaderValue};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use std::env;
+use std::future::Future;
+use std::sync::Arc;
+use std::time::Duration;
 
 pub mod embedding;
+pub mod marker;
 pub mod qdrant;
 pub mod question;
-pub mod marker;
-
-
 
 #[derive(Debug, Clone)]
 pub struct BackoffConfig {
@@ -41,7 +41,6 @@ impl Default for BackoffConfig {
     }
 }
 
-
 #[derive(Debug)]
 pub struct OllamaClient {
     ollama: Ollama,
@@ -53,9 +52,15 @@ impl Default for OllamaClient {
         let ollama_host = env::var("OLLAMA_HOST").expect("OLLAMA HOST not set");
         let ollama_port = env::var("OLLAMA_PORT").expect("OLLAMA PORT not set");
         let ollama_port: u16 = ollama_port.parse().expect("OLLAMA_PORT not u16");
+        let api_key = env::var("API_KEY").expect("API_KEY is not set");
+        let mut ollama = Ollama::new(ollama_host, ollama_port);
+        let mut headers = HeaderMap::new();
+
+        headers.insert("Authorization", HeaderValue::from_str(&format!("Bearer {}", api_key)).unwrap());
+        ollama.set_headers(Some(headers));
 
         Self {
-            ollama: Ollama::new(ollama_host, ollama_port),
+            ollama,
             backoff: BackoffConfig::default(),
         }
     }
@@ -89,9 +94,7 @@ impl OllamaClient {
             .collect()
     }
 
-
     fn is_retryable(err: &OllamaError) -> bool {
-
         match err {
             // Network and HTTP conditions that are usually transient
             ReqwestError(e) => {
@@ -104,10 +107,7 @@ impl OllamaClient {
                 // Other transport-layer issues without status can still be transient
                 // For example: connection reset by peer before status is known
                 let s = e.to_string().to_ascii_lowercase();
-                return s.contains("connection reset")
-                    || s.contains("broken pipe")
-                    || s.contains("connection refused")
-                    || s.contains("timed out");
+                return s.contains("connection reset") || s.contains("broken pipe") || s.contains("connection refused") || s.contains("timed out");
             }
 
             // Ollama surfaced an internal condition. Retry if message smells transient.
@@ -139,7 +139,6 @@ impl OllamaClient {
         }
     }
 
-
     async fn retry_with_backoff<F, Fut, T>(&self, mut op: F) -> Result<T, OllamaError>
     where
         F: FnMut(u32) -> Fut,
@@ -158,9 +157,7 @@ impl OllamaClient {
                     }
                     let mut rng = rng();
                     let jitter_ns = (delay.as_nanos() as f64 * cfg.jitter_ratio * rng.gen::<f64>()) as u128;
-                    let next_delay = delay
-                        .saturating_add(Duration::from_nanos(jitter_ns as u64))
-                        .min(cfg.max_delay);
+                    let next_delay = delay.saturating_add(Duration::from_nanos(jitter_ns as u64)).min(cfg.max_delay);
 
                     tokio::time::sleep(next_delay).await;
 
@@ -175,18 +172,15 @@ impl OllamaClient {
 
     // Public retrying variants
     pub async fn generate_with_retry(&self, question: Question) -> Result<GenerationResponse, OllamaError> {
-        self.retry_with_backoff(|_attempt| async {
-            self.ollama.generate((&question).into()).await
-        }).await
+        self.retry_with_backoff(|_attempt| async { self.ollama.generate((&question).into()).await })
+            .await
     }
 
     pub async fn generate_stream_with_retry(&self, question: Question) -> Result<GenerationResponseStream, OllamaError> {
         // Note: if the stream fails partway through, the caller must decide how to handle it
-        self.retry_with_backoff(|_attempt| async {
-            self.ollama.generate_stream((&question).into()).await
-        }).await
+        self.retry_with_backoff(|_attempt| async { self.ollama.generate_stream((&question).into()).await })
+            .await
     }
-
 
     // pub async fn embed_with_retry(
     //     &self,
@@ -201,17 +195,13 @@ impl OllamaClient {
     //     .await
     // }
 
-
-
     pub async fn answer_all_with_retry(&self, questions: Vec<Question>, concurrency: usize) -> Vec<String> {
         // stream::iter lets us cap concurrency to avoid thundering herd
-        stream::iter(questions.into_iter().map(|q| {
-            async move {
-                self.generate_with_retry(q).await
-                    .map(|resp| resp.response)
-                    .unwrap_or_default()
-            }
-        }))
+        stream::iter(
+            questions
+                .into_iter()
+                .map(|q| async move { self.generate_with_retry(q).await.map(|resp| resp.response).unwrap_or_default() }),
+        )
         .buffer_unordered(concurrency.max(1))
         .collect::<Vec<_>>()
         .await

@@ -1,0 +1,11 @@
+// vite.config.ts
+import { sveltekit } from "file:///development/rust/woodstock/frontend/node_modules/.pnpm/@sveltejs+kit@2.15.2_@sveltejs+vite-plugin-svelte@4.0.4_svelte@5.17.4_vite@5.4.11_light_ff633aba6ac7aff11a52ae021c5de6cd/node_modules/@sveltejs/kit/src/exports/vite/index.js";
+import { defineConfig } from "file:///development/rust/woodstock/frontend/node_modules/.pnpm/vite@5.4.11_lightningcss@1.30.1/node_modules/vite/dist/node/index.js";
+import tailwindcss from "file:///development/rust/woodstock/frontend/node_modules/.pnpm/@tailwindcss+vite@4.1.8_vite@5.4.11_lightningcss@1.30.1_/node_modules/@tailwindcss/vite/dist/index.mjs";
+var vite_config_default = defineConfig({
+  plugins: [sveltekit(), tailwindcss()]
+});
+export {
+  vite_config_default as default
+};
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsidml0ZS5jb25maWcudHMiXSwKICAic291cmNlc0NvbnRlbnQiOiBbImNvbnN0IF9fdml0ZV9pbmplY3RlZF9vcmlnaW5hbF9kaXJuYW1lID0gXCIvZGV2ZWxvcG1lbnQvcnVzdC93b29kc3RvY2svZnJvbnRlbmRcIjtjb25zdCBfX3ZpdGVfaW5qZWN0ZWRfb3JpZ2luYWxfZmlsZW5hbWUgPSBcIi9kZXZlbG9wbWVudC9ydXN0L3dvb2RzdG9jay9mcm9udGVuZC92aXRlLmNvbmZpZy50c1wiO2NvbnN0IF9fdml0ZV9pbmplY3RlZF9vcmlnaW5hbF9pbXBvcnRfbWV0YV91cmwgPSBcImZpbGU6Ly8vZGV2ZWxvcG1lbnQvcnVzdC93b29kc3RvY2svZnJvbnRlbmQvdml0ZS5jb25maWcudHNcIjtpbXBvcnQgeyBzdmVsdGVraXQgfSBmcm9tIFwiQHN2ZWx0ZWpzL2tpdC92aXRlXCI7XG5pbXBvcnQgeyBkZWZpbmVDb25maWcgfSBmcm9tIFwidml0ZVwiO1xuaW1wb3J0IHRhaWx3aW5kY3NzIGZyb20gXCJAdGFpbHdpbmRjc3Mvdml0ZVwiO1xuXG5leHBvcnQgZGVmYXVsdCBkZWZpbmVDb25maWcoe1xuICBwbHVnaW5zOiBbc3ZlbHRla2l0KCksIHRhaWx3aW5kY3NzKCldLFxufSk7XG4iXSwKICAibWFwcGluZ3MiOiAiO0FBQThSLFNBQVMsaUJBQWlCO0FBQ3hULFNBQVMsb0JBQW9CO0FBQzdCLE9BQU8saUJBQWlCO0FBRXhCLElBQU8sc0JBQVEsYUFBYTtBQUFBLEVBQzFCLFNBQVMsQ0FBQyxVQUFVLEdBQUcsWUFBWSxDQUFDO0FBQ3RDLENBQUM7IiwKICAibmFtZXMiOiBbXQp9Cg==

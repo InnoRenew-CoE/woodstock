@@ -4,6 +4,7 @@ use chrono::{Local, NaiveDate};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::{env, string};
+use tokio_postgres::types::Date;
 use tokio_postgres::{Client, NoTls};
 
 const INSERT_LOGIN_STATISTIC: &'static str = r#"insert into logins (user_id) values ($1)"#;
@@ -135,8 +136,25 @@ create table if not exists queries
 (
     id          serial primary key,
     user_id     int references users,
-    query       varchar(200)
+    query       text,
+    timestamp   timestamp default now()
 );
+
+create table if not exists posts
+(
+    id      serial primary key,
+    author  int references users,
+    created date default now()
+);
+
+create table if not exists post_edits
+(
+    id      serial primary key,
+    editor  int references users,
+    time    date default now(),
+    post_id int references posts
+);
+
 "#;
 
 /// Attempts to create all tables required by this software.
@@ -379,6 +397,73 @@ pub async fn insert_new_password(client: &Client, login_details: &LoginDetails) 
         Ok(_) => Ok(()),
         Err(error) => Err(error.to_string()),
     }
+}
+
+pub async fn upsert_post(id: Option<i32>, title: String, body: String, user: &i32, client: &mut Client) -> Result<(), &'static str> {
+    let upsert_result = if let Some(id) = id {
+        client
+            .execute(
+                r#"
+                insert into posts (id, author, title, body)
+                values ($1, $2, $3, $4)
+                ON CONFLICT (id)
+                    DO UPDATE SET title = excluded.title,
+                                  body  = excluded.body;
+                                  "#,
+                &[&id, user, &title, &body],
+            )
+            .await
+    } else {
+        client
+            .execute(
+                r#"
+                insert into posts (author, title, body)
+                values ($1, $2, $3)
+                ON CONFLICT (id)
+                    DO UPDATE SET title = excluded.title,
+                                  body  = excluded.body;
+                                  "#,
+                &[user, &title, &body],
+            )
+            .await
+    };
+    if let Err(error) = upsert_result {
+        eprintln!("{:?}", error);
+        return Err("Failed to insert.");
+    }
+    Ok(())
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Post {
+    id: Option<i32>,
+    title: String,
+    body: String,
+    email: String,
+    created: NaiveDate,
+}
+pub async fn get_posts(client: &mut Client) -> Result<Vec<Post>, &'static str> {
+    let mut vec = Vec::new();
+    let rows = client
+        .query(
+            "SELECT posts.id, posts.title, body, email, created FROM posts left join users on users.id = posts.author",
+            &[],
+        )
+        .await;
+    if let Ok(rows) = rows {
+        for row in rows {
+            let post = Post {
+                id: Some(row.get(0)),
+                title: row.get(1),
+                body: row.get(2),
+                email: row.get(3),
+                created: row.get(4),
+            };
+            vec.push(post);
+        }
+    }
+
+    Ok(vec)
 }
 
 pub async fn insert_feedback(feedback: String, user: &i32, client: &mut Client) {

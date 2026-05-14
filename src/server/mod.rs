@@ -328,22 +328,21 @@ struct SearchQuery {
 }
 
 #[get("/search")]
-async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery>, user: User) -> impl Responder {
+async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* , user: User */) -> impl Responder {
     let Ok(client) = state.client.lock() else {
         eprintln!("State.client.lock failed");
         return HttpResponse::InternalServerError().finish();
     };
 
-    if let Err(error) = db::insert_query(user.id, &client, &search_query.0.query).await {
+    // Removed due to opening the chat service to everyone.
+    if let Err(error) = db::insert_query(1, &client, &search_query.0.query).await {
         eprintln!("Inserting query log failed: {:?}", error);
         return HttpResponse::InternalServerError().finish();
     }
     drop(client);
 
-    let Ok(rag) = state.rag.lock() else {
-        println!("State.rag.lock failed");
-        return HttpResponse::InternalServerError().finish();
-    };
+    let rag = Rag::default();
+
     let mut result = match rag.search(search_query.query.clone()).await {
         Ok(res) => res,
         Err(e) => {
@@ -507,6 +506,44 @@ async fn invalidate(data: web::Data<AppState>, _: User, request: HttpRequest) ->
     builder.finish()
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct PostBody {
+    id: Option<i32>,
+    title: String,
+    body: String,
+}
+
+#[post("/collaborate")]
+async fn new_post(state: web::Data<AppState>, user: User, body: web::Json<PostBody>) -> HttpResponse {
+    let Ok(mut client) = state.client.lock() else {
+        eprintln!("State.client.lock failed");
+        return HttpResponse::InternalServerError().finish();
+    };
+    let post = body.0;
+    let result = db::upsert_post(post.id, post.title, post.body, &user.id, &mut client).await;
+    let mut builder = HttpResponseBuilder::new(if result.is_ok() {
+        StatusCode::OK
+    } else {
+        StatusCode::INTERNAL_SERVER_ERROR
+    });
+    builder.finish()
+}
+
+#[get("/posts")]
+async fn retrieve_posts(state: web::Data<AppState>) -> HttpResponse {
+    let Ok(mut client) = state.client.lock() else {
+        eprintln!("State.client.lock failed");
+        return HttpResponse::InternalServerError().finish();
+    };
+    let posts = db::get_posts(&mut client).await;
+    let mut builder = HttpResponseBuilder::new(StatusCode::OK);
+
+    if let Ok(posts) = posts {
+        return builder.json(posts);
+    }
+    builder.finish()
+}
+
 async fn check_refresh(data: Data<AppState>, request: HttpRequest) -> Result<(), actix_web::Error> {
     println!("Refresh!");
     let guard = data.invalidated_tokens.lock().expect("Should be able to lock the mutex");
@@ -562,20 +599,21 @@ pub async fn start_server(rag: Rag) {
             .app_data(state.clone())
             .service(login)
             .service(register)
+            .service(retrieve_posts)
+            .service(web::scope("/chat").service(search).service(download))
             .use_jwt(
                 authority,
                 // .service(
                 web::scope("/api")
                     .service(submit_answers)
                     .service(submit_csv)
-                    .service(search)
                     .service(fetch_questions)
-                    .service(download)
                     .service(verify)
                     .service(fetch_tags)
                     .service(fetch_files)
                     .service(submit_feedback)
-                    .service(invalidate),
+                    .service(invalidate)
+                    .service(new_post),
             )
             .service(spa().index_file("public/index.html").static_resources_location("public/").finish())
         // .service(
