@@ -136,7 +136,8 @@ create table if not exists queries
 (
     id          serial primary key,
     user_id     int references users,
-    query       varchar(200)
+    query       text,
+    timestamp   timestamp default now()
 );
 
 create table if not exists posts
