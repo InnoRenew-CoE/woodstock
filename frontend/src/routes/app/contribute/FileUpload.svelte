@@ -30,7 +30,7 @@
                     </div>
                     <div class="text-center px-5">Download template</div>
                 </a>
-                <FileSelector class="w-full" text={$templateStore?.item(0)?.name ?? "Upload excel file"} multiple={false} bind:files={$templateStore} accept=".xlsm" />
+                <FileSelector class="w-full" text={$templateStore?.item(0)?.name ?? "Upload excel file"} multiple={false} bind:files={$templateStore} accept=".xlsx" />
                 {#if ($templateStore?.length ?? 0) > 0}
                     <button
                         class="bg-primary p-3 rounded-2xl text-white"
