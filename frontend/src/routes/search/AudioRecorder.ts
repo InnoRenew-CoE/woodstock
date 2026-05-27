@@ -1,3 +1,5 @@
+import { PUBLIC_API_BASE_URL } from "$env/static/public";
+
 export class AudioRecorder {
     private mediaRecorder: MediaRecorder | null = null;
     private socket: WebSocket | null = null;
@@ -6,7 +8,7 @@ export class AudioRecorder {
     async start(onTranscript: (text: string) => void): Promise<void> {
         this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        this.socket = new WebSocket('ws://localhost:8080/audio');
+        this.socket = new WebSocket(`ws://${PUBLIC_API_BASE_URL}/audio`);
         this.socket.binaryType = 'arraybuffer';
 
         this.socket.onmessage = (e: MessageEvent) => {

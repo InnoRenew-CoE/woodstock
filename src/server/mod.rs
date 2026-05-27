@@ -20,6 +20,7 @@ use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 use passwords::PasswordGenerator;
+use reqwest::Error;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashSet, VecDeque};
 use std::convert::Infallible;
@@ -600,7 +601,7 @@ pub async fn start_server(rag: Rag) {
             .service(login)
             .service(register)
             .service(retrieve_posts)
-            .route("/ws/audio", web::get().to(ws_audio::audio_ws))
+            .route("/audio", web::get().to(audio_ws))
             .service(web::scope("/chat").service(search).service(download))
             .use_jwt(
                 authority,
@@ -667,57 +668,54 @@ async fn send_mail(recipient: &str, password: &str) {
     // mailer.send_mail(message).await?;
 }
 
-use actix_web::{web, HttpRequest, HttpResponse, Error};
-use actix_ws::Message;
-use tokio_tungstenite::connect_async;
-use futures::{SinkExt, StreamExt};
+use awc::ws;
+use futures::SinkExt;
 
-pub async fn audio_ws(
-    req: HttpRequest,
-    stream: web::Payload,
-) -> Result<HttpResponse, Error> {
+pub async fn audio_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, actix_web::Error> {
     let (res, mut client_session, mut client_stream) = actix_ws::handle(&req, stream)?;
 
     actix_web::rt::spawn(async move {
-        // Connect to WhisperLive
-        let (mut whisper_ws, _) = connect_async("ws://localhost:9090")
+        let (_, mut whisper) = awc::Client::new()
+            .ws("ws://localhost:9090")
+            .connect()
             .await
             .expect("Failed to connect to WhisperLive");
 
         loop {
             tokio::select! {
-                // Client -> WhisperLive
                 Some(Ok(msg)) = client_stream.recv() => {
+
                     match msg {
-                        Message::Binary(bytes) => {
-                            whisper_ws.send(tokio_tungstenite::tungstenite::Message::Binary(bytes.to_vec())).await.ok();
+                        actix_ws::Message::Binary(bytes) => {
+                            whisper.send(ws::Message::Binary(bytes)).await.ok();
                         }
-                        Message::Text(text) => {
-                            whisper_ws.send(tokio_tungstenite::tungstenite::Message::Text(text.to_string())).await.ok();
+                        actix_ws::Message::Text(text) => {
+                            whisper.send(ws::Message::Text(text)).await.ok();
                         }
-                        Message::Close(_) => {
-                            whisper_ws.close(None).await.ok();
+                        actix_ws::Message::Close(_) => {
+                            whisper.send(ws::Message::Close(None)).await.ok();
                             client_session.close(None).await.ok();
                             break;
                         }
-                        Message::Ping(b) => { client_session.pong(&b).await.ok(); }
+                        actix_ws::Message::Ping(b) => { client_session.pong(&b).await.ok(); }
                         _ => {}
                     }
                 }
 
-                // WhisperLive -> Client
-                Some(Ok(msg)) = whisper_ws.next() => {
+                Some(Ok(msg)) = whisper.next() => {
                     match msg {
-                        tokio_tungstenite::tungstenite::Message::Text(text) => {
-                            client_session.text(text).await.ok();
+                        ws::Frame::Text(text) => {
+                            let s = String::from_utf8_lossy(&text).to_string();
+                            client_session.text(s).await.ok();
                         }
-                        tokio_tungstenite::tungstenite::Message::Binary(bytes) => {
+                        ws::Frame::Binary(bytes) => {
                             client_session.binary(bytes).await.ok();
                         }
-                        tokio_tungstenite::tungstenite::Message::Close(_) => {
+                        ws::Frame::Close(_) => {
                             client_session.close(None).await.ok();
                             break;
                         }
+                        ws::Frame::Ping(b) => { whisper.send(ws::Message::Pong(b)).await.ok(); }
                         _ => {}
                     }
                 }
