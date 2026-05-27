@@ -9,7 +9,7 @@ export class AudioRecorder {
     async start(onTranscript: (text: string) => void): Promise<void> {
         this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        this.socket = new WebSocket(`ws://${PUBLIC_API_BASE_URL.replace("https://", "")}/audio`);
+        this.socket = new WebSocket(`wss://${PUBLIC_API_BASE_URL.replace("https://", "")}/audio`);
         this.socket.binaryType = 'arraybuffer';
 
         this.socket.onopen = () => {
@@ -23,6 +23,7 @@ export class AudioRecorder {
         };
 
         this.socket.onmessage = (e: MessageEvent) => {
+            console.log("Message received");
             const data = JSON.parse(e.data);
             if (data.segments) {
                 const text = data.segments.map((s: { text: string }) => s.text).join(' ');
@@ -79,6 +80,7 @@ export class AudioRecorder {
     }
 
     stop(): void {
+        console.log("Stopping");
         this.mediaRecorder?.stop();
         this.audioContext?.close();
         this.stream?.getTracks().forEach((t) => t.stop());

@@ -676,6 +676,8 @@ pub async fn audio_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResp
 
     let (res, mut client_session, mut client_stream) = actix_ws::handle(&req, stream)?;
 
+    println!("WebSocket connection");
+
     actix_web::rt::spawn(async move {
         let (_, mut whisper) = awc::Client::new()
             .ws("ws://localhost:9090")
