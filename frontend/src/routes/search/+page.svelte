@@ -6,6 +6,7 @@
     import type { ResultChunk } from "$lib/types/question";
     import { marked } from "marked";
     import { fade, slide } from "svelte/transition";
+    import { AudioRecorder } from "./AudioRecorder";
 
     let data: string = $state("");
     let query: string = $state("");
@@ -77,16 +78,36 @@
     async function vote() {
         pushNotification({ title: "Vote received", body: "Thank you for rating the information provided by our system." });
     }
+
+    const recorder = new AudioRecorder();
+    let recordingState = $state(false);
+
+    async function record() {
+        recordingState = true;
+        await recorder.start((transcript) => {
+            console.log("Transcript:", transcript);
+        });
+    }
+
+    async function stopRecording() {
+        const x = await recorder.stop();
+        recordingState = false;
+    }
 </script>
 
 <div class="m-auto w-[90%]">
     <div class="flex flex-wrap sm:grid grid-cols-2 h-full gap-5 min-h-[80vh] glass p-3">
         <div class="p-5 glass w-full">
-            <form class="flex gap-5 items-stretch">
+            <div class="{recordingState ? 'animate-pulse' : 'opacity-0'} text-secondary font-light">Recording ...</div>
+
+            <form class="flex gap-2 items-stretch">
                 <input bind:value={query} type="text" class="w-full py-2 px-4 glass border-1 rounded-xl placholder:text-accent" placeholder="Ask a question ..." />
                 <button type="submit" onclick={sendQuery} class="glass rounded-xl px-5 flex-1 flex gap-3 items-center hover:bg-secondary/10">
                     <MaskedIcon src="../contact.svg" class="size-3 bg-secondary" />
                     Ask
+                </button>
+                <button class="glass p-2 hover:bg-secondary/10 {recordingState ? 'animate-pulse bg-secondary/50' : ''}" onmousedown={record} onmouseup={stopRecording}>
+                    <MaskedIcon src="/microphone.svg" class="bg-secondary" />
                 </button>
             </form>
             {#if chunks.length > 0}

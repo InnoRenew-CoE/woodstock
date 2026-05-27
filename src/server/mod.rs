@@ -598,6 +598,7 @@ pub async fn start_server(rag: Rag) {
             .service(login)
             .service(register)
             .service(retrieve_posts)
+            .route("/ws/audio", web::get().to(ws_audio::audio_ws))
             .service(web::scope("/chat").service(search).service(download))
             .use_jwt(
                 authority,
@@ -662,4 +663,67 @@ async fn send_mail(recipient: &str, password: &str) {
     }
 
     // mailer.send_mail(message).await?;
+}
+
+use actix_web::{web, HttpRequest, HttpResponse, Error};
+use actix_ws::Message;
+use tokio_tungstenite::connect_async;
+use futures::{SinkExt, StreamExt};
+
+pub async fn audio_ws(
+    req: HttpRequest,
+    stream: web::Payload,
+) -> Result<HttpResponse, Error> {
+    let (res, mut client_session, mut client_stream) = actix_ws::handle(&req, stream)?;
+
+    actix_web::rt::spawn(async move {
+        // Connect to WhisperLive
+        let (mut whisper_ws, _) = connect_async("ws://localhost:9090")
+            .await
+            .expect("Failed to connect to WhisperLive");
+
+        loop {
+            tokio::select! {
+                // Client -> WhisperLive
+                Some(Ok(msg)) = client_stream.recv() => {
+                    match msg {
+                        Message::Binary(bytes) => {
+                            whisper_ws.send(tokio_tungstenite::tungstenite::Message::Binary(bytes.to_vec())).await.ok();
+                        }
+                        Message::Text(text) => {
+                            whisper_ws.send(tokio_tungstenite::tungstenite::Message::Text(text.to_string())).await.ok();
+                        }
+                        Message::Close(_) => {
+                            whisper_ws.close(None).await.ok();
+                            client_session.close(None).await.ok();
+                            break;
+                        }
+                        Message::Ping(b) => { client_session.pong(&b).await.ok(); }
+                        _ => {}
+                    }
+                }
+
+                // WhisperLive -> Client
+                Some(Ok(msg)) = whisper_ws.next() => {
+                    match msg {
+                        tokio_tungstenite::tungstenite::Message::Text(text) => {
+                            client_session.text(text).await.ok();
+                        }
+                        tokio_tungstenite::tungstenite::Message::Binary(bytes) => {
+                            client_session.binary(bytes).await.ok();
+                        }
+                        tokio_tungstenite::tungstenite::Message::Close(_) => {
+                            client_session.close(None).await.ok();
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+
+                else => break,
+            }
+        }
+    });
+
+    Ok(res)
 }
