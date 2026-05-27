@@ -16,6 +16,7 @@
         { link: "/app/contribute", text: "Contribute" },
         { link: "/app/contributions", text: "Contributions" },
         { link: "/app/collaborate", text: "Submit a post" },
+        { link: "/search", text: "Chat" },
         // { link: "/app/notifications", text: "Notifications" },
     ];
     let notificationCount = $state(0);

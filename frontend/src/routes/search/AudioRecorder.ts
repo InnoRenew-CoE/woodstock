@@ -1,3 +1,5 @@
+import { PUBLIC_API_BASE_URL } from "$env/static/public";
+
 export class AudioRecorder {
     private stream: MediaStream | null = null;
     private audioContext: AudioContext | null = null;
@@ -34,7 +36,7 @@ export class AudioRecorder {
         // formData.append('model', 'whisper-1');
         // formData.append('language', 'en');
 
-        const res = await fetch('/transcribe', {
+        const res = await fetch(`${PUBLIC_API_BASE_URL}/transcribe`, {
             method: 'POST',
             body: formData,
         });
