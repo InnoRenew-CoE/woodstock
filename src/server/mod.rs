@@ -679,21 +679,28 @@ pub async fn audio_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResp
     println!("WebSocket connection");
 
     actix_web::rt::spawn(async move {
-        let (_, mut whisper) = awc::Client::new()
-            .ws("ws://localhost:9090")
-            .connect()
-            .await
-            .expect("Failed to connect to WhisperLive");
+        let whisper_conn = awc::Client::new().ws("ws://localhost:9090").connect().await;
+
+        let (_, mut whisper) = match whisper_conn {
+            Ok(c) => c,
+            Err(e) => {
+                println!("Failed to connect to WhisperLive: {e}");
+                return;
+            }
+        };
+
+        println!("Connected to WhisperLive");
 
         loop {
             tokio::select! {
                 Some(Ok(msg)) = client_stream.recv() => {
-
+                    println!("Client -> Whisper: {:?}", msg);
                     match msg {
                         actix_ws::Message::Binary(bytes) => {
                             whisper.send(ws::Message::Binary(bytes)).await.ok();
                         }
                         actix_ws::Message::Text(text) => {
+                            println!("Forwarding text: {text}");
                             whisper.send(ws::Message::Text(text)).await.ok();
                         }
                         actix_ws::Message::Close(_) => {
@@ -705,8 +712,8 @@ pub async fn audio_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResp
                         _ => {}
                     }
                 }
-
                 Some(Ok(msg)) = whisper.next() => {
+                    println!("Whisper -> Client: {:?}", msg);
                     match msg {
                         ws::Frame::Text(text) => {
                             let s = String::from_utf8_lossy(&text).to_string();
@@ -715,7 +722,8 @@ pub async fn audio_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResp
                         ws::Frame::Binary(bytes) => {
                             client_session.binary(bytes).await.ok();
                         }
-                        ws::Frame::Close(_) => {
+                        ws::Frame::Close(c) => {
+                            println!("Whisper closed: {:?}", c);
                             client_session.close(None).await.ok();
                             break;
                         }
@@ -723,10 +731,13 @@ pub async fn audio_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResp
                         _ => {}
                     }
                 }
-
-                else => break,
+                else => {
+                    println!("Both streams ended, breaking");
+                    break;
+                }
             }
         }
+        println!("Loop ended");
     });
 
     Ok(res)
