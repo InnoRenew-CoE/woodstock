@@ -602,6 +602,7 @@ pub async fn start_server(rag: Rag) {
             .service(register)
             .service(retrieve_posts)
             .route("/audio", web::get().to(audio_ws))
+            .route("/transcribe", web::post().to(transcribe_audio))
             .service(web::scope("/chat").service(search).service(download))
             .use_jwt(
                 authority,
@@ -741,4 +742,42 @@ pub async fn audio_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResp
     });
 
     Ok(res)
+}
+
+use reqwest::multipart;
+
+pub async fn transcribe_audio(mut payload: Multipart) -> HttpResponse {
+    let mut audio_bytes: Vec<u8> = vec![];
+    let mut filename = "recording.wav".to_string();
+
+    while let Some(Ok(mut field)) = payload.next().await {
+        if field.name() == Some("file") {
+            filename = "recording.wav".to_string();
+            while let Some(Ok(chunk)) = field.next().await {
+                audio_bytes.extend_from_slice(&chunk);
+            }
+        }
+    }
+
+    let form = multipart::Form::new()
+        .part(
+            "file",
+            multipart::Part::bytes(audio_bytes).file_name(filename).mime_str("audio/wav").unwrap(),
+        )
+        .text("model", "whisper-1")
+        .text("language", "en");
+
+    let res = reqwest::Client::new()
+        .post("http://localhost:8000/v1/audio/transcriptions")
+        .multipart(form)
+        .send()
+        .await;
+
+    match res {
+        Ok(r) => {
+            let body = r.json::<serde_json::Value>().await.unwrap_or_default();
+            HttpResponse::Ok().json(body)
+        }
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({ "error": e.to_string() })),
+    }
 }

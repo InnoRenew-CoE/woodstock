@@ -1,57 +1,57 @@
-import { PUBLIC_API_BASE_URL } from "$env/static/public";
-
 export class AudioRecorder {
-    private mediaRecorder: MediaRecorder | null = null;
-    private socket: WebSocket | null = null;
     private stream: MediaStream | null = null;
     private audioContext: AudioContext | null = null;
+    private chunks: Float32Array[] = [];
 
-    async start(onTranscript: (text: string) => void): Promise<void> {
+    async start(): Promise<void> {
+        this.chunks = [];
         this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        this.socket = new WebSocket(`wss://${PUBLIC_API_BASE_URL.replace("https://", "")}/audio`);
-        this.socket.binaryType = 'arraybuffer';
-
-        this.socket.onopen = () => {
-            // Send WhisperLive config first
-            this.socket?.send(JSON.stringify({
-                uid: crypto.randomUUID(),
-                language: 'en',
-                model: 'base',
-                use_vad: true,
-            }));
-        };
-
-        this.socket.onmessage = (e: MessageEvent) => {
-            console.log("Message received");
-            const data = JSON.parse(e.data);
-            if (data.segments) {
-                const text = data.segments.map((s: { text: string }) => s.text).join(' ');
-                onTranscript(text);
-            }
-        };
-
-        this.socket.onerror = (e) => console.error('WebSocket error:', e);
-
-        await this.waitForSocket();
-        await this.startPCMStream();
-    }
-
-    // WhisperLive expects 16-bit PCM at 16kHz, not webm
-    private async startPCMStream(): Promise<void> {
         this.audioContext = new AudioContext({ sampleRate: 16000 });
-        const source = this.audioContext.createMediaStreamSource(this.stream!);
+        const source = this.audioContext.createMediaStreamSource(this.stream);
         await this.audioContext.audioWorklet.addModule(this.createWorkletURL());
 
         const worklet = new AudioWorkletNode(this.audioContext, 'pcm-processor');
         source.connect(worklet);
 
         worklet.port.onmessage = (e: MessageEvent<Float32Array>) => {
-            if (this.socket?.readyState === WebSocket.OPEN) {
-                const pcm16 = this.float32ToPCM16(e.data);
-                this.socket.send(pcm16);
-            }
+            this.chunks.push(new Float32Array(e.data));
         };
+    }
+
+    async stop(onTranscript: (text: string) => void): Promise<void> {
+        this.audioContext?.close();
+        this.stream?.getTracks().forEach((t) => t.stop());
+
+        const pcm = this.mergeChunks();
+        const wav = this.addWavHeader(this.float32ToPCM16(pcm), 16000);
+
+        this.chunks = [];
+        this.audioContext = null;
+        this.stream = null;
+
+        const formData = new FormData();
+        formData.append('file', wav, 'recording.wav');
+        // formData.append('model', 'whisper-1');
+        // formData.append('language', 'en');
+
+        const res = await fetch('/transcribe', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const data = await res.json();
+        onTranscript(data.text);
+    }
+
+    private mergeChunks(): Float32Array {
+        const totalLength = this.chunks.reduce((acc, c) => acc + c.length, 0);
+        const merged = new Float32Array(totalLength);
+        let offset = 0;
+        for (const chunk of this.chunks) {
+            merged.set(chunk, offset);
+            offset += chunk.length;
+        }
+        return merged;
     }
 
     private float32ToPCM16(float32: Float32Array): ArrayBuffer {
@@ -64,7 +64,40 @@ export class AudioRecorder {
         return buffer;
     }
 
-    // Inline worklet as a blob URL to avoid needing a separate file
+    private addWavHeader(pcm: ArrayBuffer, sampleRate: number): Blob {
+        const numChannels = 1;
+        const bitsPerSample = 16;
+        const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
+        const blockAlign = (numChannels * bitsPerSample) / 8;
+        const dataSize = pcm.byteLength;
+        const buffer = new ArrayBuffer(44 + dataSize);
+        const view = new DataView(buffer);
+
+        const write = (offset: number, str: string) =>
+            [...str].forEach((c, i) => view.setUint8(offset + i, c.charCodeAt(0)));
+
+        write(0, 'RIFF');
+        view.setUint32(4, 36 + dataSize, true);
+        write(8, 'WAVE');
+        write(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, numChannels, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, byteRate, true);
+        view.setUint16(32, blockAlign, true);
+        view.setUint16(34, bitsPerSample, true);
+        write(36, 'data');
+        view.setUint32(40, dataSize, true);
+        new Uint8Array(buffer, 44).set(new Uint8Array(pcm));
+
+        return new Blob([buffer], { type: 'audio/wav' });
+    }
+
+    get recording(): boolean {
+        return !!this.audioContext && this.audioContext.state === 'running';
+    }
+
     private createWorkletURL(): string {
         const code = `
       class PCMProcessor extends AudioWorkletProcessor {
@@ -77,31 +110,5 @@ export class AudioRecorder {
       registerProcessor('pcm-processor', PCMProcessor);
     `;
         return URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
-    }
-
-    stop(): void {
-        console.log("Stopping");
-        this.mediaRecorder?.stop();
-        this.audioContext?.close();
-        this.stream?.getTracks().forEach((t) => t.stop());
-        this.socket?.close();
-
-        this.mediaRecorder = null;
-        this.audioContext = null;
-        this.stream = null;
-        this.socket = null;
-    }
-
-    get recording(): boolean {
-        return !!this.audioContext && this.audioContext.state === 'running';
-    }
-
-    private waitForSocket(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (!this.socket) return reject('No socket');
-            if (this.socket.readyState === WebSocket.OPEN) return resolve();
-            this.socket.onopen = () => resolve();
-            this.socket.onerror = () => reject('Socket failed to connect');
-        });
     }
 }
