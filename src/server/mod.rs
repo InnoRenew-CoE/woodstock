@@ -672,6 +672,8 @@ use awc::ws;
 use futures::SinkExt;
 
 pub async fn audio_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, actix_web::Error> {
+    eprintln!("WebSocket connection attempt from {:?}", req.peer_addr());
+
     let (res, mut client_session, mut client_stream) = actix_ws::handle(&req, stream)?;
 
     actix_web::rt::spawn(async move {

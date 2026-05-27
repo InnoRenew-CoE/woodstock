@@ -9,7 +9,7 @@ export class AudioRecorder {
     async start(onTranscript: (text: string) => void): Promise<void> {
         this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        this.socket = new WebSocket(`ws://${PUBLIC_API_BASE_URL}/audio`);
+        this.socket = new WebSocket(`ws://${PUBLIC_API_BASE_URL.replace("https://", "")}/audio`);
         this.socket.binaryType = 'arraybuffer';
 
         this.socket.onopen = () => {
