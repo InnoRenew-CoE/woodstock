@@ -103,22 +103,41 @@
 <div class="m-auto w-[90%]">
     <div class="flex flex-wrap sm:grid grid-cols-2 h-full gap-5 min-h-[80vh] glass p-3">
         <div class="p-5 glass w-full overflow-hidden">
+            <div class="font-light text-sm text-accent flex justify-between items-center py-3">
+                <div>
+                    {#if recording}
+                        When you want to stop recording, press the button again.
+                    {:else}
+                        Please click the microphone button and speak.
+                    {/if}
+                </div>
+                <div>
+                    {#if recording}
+                        <div class="{recording ? 'animate-pulse' : 'opacity-0'} text-secondary font-light">Recording ...</div>
+                    {:else if loading}
+                        <span class="{loading ? 'animate-pulse' : 'opacity-0'} text-secondary-1 font-light">Transcribing ...</span>
+                        <span class="text-xs text-red-600 font-light opacity-30">We've detected noise, we'll do our best!</span>
+                    {/if}
+                </div>
+            </div>
             <form class="flex gap-2 items-stretch">
-                <input bind:value={query} type="text" class="w-full py-2 px-4 glass border-1 rounded-xl placholder:text-accent" placeholder="Ask a question ..." />
-                <button type="submit" onclick={sendQuery} class="glass rounded-xl px-5 flex-1 flex gap-3 items-center hover:bg-secondary/10">
+                <input bind:value={query} type="text" class="w-full py-2 px-4 glass border-1 rounded-xl placholder:text-accent" placeholder="Ask (or record) a question ..." />
+                <button type="submit" onclick={sendQuery} class="font-light text-sm glass rounded-xl px-5 flex-1 flex gap-3 items-center hover:bg-secondary/10">
                     <MaskedIcon src="../contact.svg" class="size-3 bg-secondary" />
-                    Ask
+                    Submit
                 </button>
-                <button class="glass p-2 {recording ? 'animate-pulse bg-secondary' : 'hover:bg-secondary/10'}" onmousedown={toggle} onmouseup={toggle}>
+                <button class="glass p-2 {recording ? 'animate-pulse bg-secondary' : 'hover:bg-secondary/10'}" onclick={toggle}>
                     <MaskedIcon src="/microphone.svg" class="bg-secondary {recording ? 'bg-white' : ''}" />
                 </button>
             </form>
-            {#if recording}
-                <div class="{recording ? 'animate-pulse' : 'opacity-0'} text-secondary font-light">Recording ...</div>
-            {:else if loading}
-                <div class="{loading ? 'animate-pulse' : 'opacity-0'} text-secondary-1 font-light">Transcribing ...</div>
-                <div class="text-xs text-red-600 font-light">We've detected noise, we'll do our best!</div>
+
+            {#if waiting}
+                <div class="flex items-center justify-center gap-5 p-5 animate-pulse">
+                    <MaskedIcon src="../loading.svg" class="size-3 bg-secondary animate-spin" />
+                    Waiting for data!
+                </div>
             {/if}
+
             {#if chunks.length > 0}
                 <div class="pt-5 pl-5 opacity-50 font-mono text-xs">Data retrieved from files:</div>
             {/if}
