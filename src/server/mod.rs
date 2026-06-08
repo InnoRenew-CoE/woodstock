@@ -20,6 +20,7 @@ use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 use passwords::PasswordGenerator;
+use reqwest::Error;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashSet, VecDeque};
 use std::convert::Infallible;
@@ -598,6 +599,8 @@ pub async fn start_server(rag: Rag) {
             .service(login)
             .service(register)
             .service(retrieve_posts)
+            .route("/audio", web::get().to(audio_ws))
+            .route("/transcribe", web::post().to(transcribe_audio))
             .service(web::scope("/chat").service(search).service(download))
             .use_jwt(
                 authority,
@@ -662,4 +665,117 @@ async fn send_mail(recipient: &str, password: &str) {
     }
 
     // mailer.send_mail(message).await?;
+}
+
+use awc::ws;
+use futures::SinkExt;
+
+pub async fn audio_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, actix_web::Error> {
+    println!("WebSocket connection attempt from {:?}", req.peer_addr());
+
+    let (res, mut client_session, mut client_stream) = actix_ws::handle(&req, stream)?;
+
+    println!("WebSocket connection");
+
+    actix_web::rt::spawn(async move {
+        let whisper_conn = awc::Client::new().ws("ws://localhost:9090").connect().await;
+
+        let (_, mut whisper) = match whisper_conn {
+            Ok(c) => c,
+            Err(e) => {
+                println!("Failed to connect to WhisperLive: {e}");
+                return;
+            }
+        };
+
+        println!("Connected to WhisperLive");
+
+        loop {
+            tokio::select! {
+                Some(Ok(msg)) = client_stream.recv() => {
+                    println!("Client -> Whisper: {:?}", msg);
+                    match msg {
+                        actix_ws::Message::Binary(bytes) => {
+                            whisper.send(ws::Message::Binary(bytes)).await.ok();
+                        }
+                        actix_ws::Message::Text(text) => {
+                            println!("Forwarding text: {text}");
+                            whisper.send(ws::Message::Text(text)).await.ok();
+                        }
+                        actix_ws::Message::Close(_) => {
+                            whisper.send(ws::Message::Close(None)).await.ok();
+                            client_session.close(None).await.ok();
+                            break;
+                        }
+                        actix_ws::Message::Ping(b) => { client_session.pong(&b).await.ok(); }
+                        _ => {}
+                    }
+                }
+                Some(Ok(msg)) = whisper.next() => {
+                    println!("Whisper -> Client: {:?}", msg);
+                    match msg {
+                        ws::Frame::Text(text) => {
+                            let s = String::from_utf8_lossy(&text).to_string();
+                            client_session.text(s).await.ok();
+                        }
+                        ws::Frame::Binary(bytes) => {
+                            client_session.binary(bytes).await.ok();
+                        }
+                        ws::Frame::Close(c) => {
+                            println!("Whisper closed: {:?}", c);
+                            client_session.close(None).await.ok();
+                            break;
+                        }
+                        ws::Frame::Ping(b) => { whisper.send(ws::Message::Pong(b)).await.ok(); }
+                        _ => {}
+                    }
+                }
+                else => {
+                    println!("Both streams ended, breaking");
+                    break;
+                }
+            }
+        }
+        println!("Loop ended");
+    });
+
+    Ok(res)
+}
+
+use reqwest::multipart;
+
+pub async fn transcribe_audio(mut payload: Multipart) -> HttpResponse {
+    let mut audio_bytes: Vec<u8> = vec![];
+    let mut filename = "recording.wav".to_string();
+
+    while let Some(Ok(mut field)) = payload.next().await {
+        if field.name() == Some("file") {
+            filename = "recording.wav".to_string();
+            while let Some(Ok(chunk)) = field.next().await {
+                audio_bytes.extend_from_slice(&chunk);
+            }
+        }
+    }
+
+    let form = multipart::Form::new()
+        .part(
+            "file",
+            multipart::Part::bytes(audio_bytes).file_name(filename).mime_str("audio/wav").unwrap(),
+        )
+        .text("model", "whisper-1")
+        .text("language", "en");
+
+    let res = reqwest::Client::new()
+        .post("http://localhost:8000/v1/audio/transcriptions")
+        .multipart(form)
+        .send()
+        .await;
+
+    match res {
+        Ok(r) => {
+            let body = r.json::<serde_json::Value>().await.unwrap_or_default();
+            HttpResponse::Ok().json(body)
+        }
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({ "error": e.to_string() })),
+    }
 }

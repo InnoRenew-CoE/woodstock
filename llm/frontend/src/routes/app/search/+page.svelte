@@ -1,12 +1,11 @@
 <script lang="ts">
     import { PUBLIC_API_BASE_URL } from "$env/static/public";
-    import { onMount } from "svelte";
-    import { fade, slide } from "svelte/transition";
-    import { marked } from "marked";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
-    import type { ResultChunk } from "$lib/types/question";
     import Spacer from "$lib/common/Spacer.svelte";
     import { pushNotification } from "$lib/stores/notifications";
+    import type { ResultChunk } from "$lib/types/question";
+    import { marked } from "marked";
+    import { fade, slide } from "svelte/transition";
 
     let data: string = $state("");
     let query: string = $state("");
@@ -131,7 +130,7 @@
     <div id="llm" class=" p-10 glass w-full" bind:this={component}>
         {#if data && data.length >= 0}
             <div in:fade>
-                <div class="opacity-30">Woody's response</div>
+                <div class="opacity-30">Digital Expert's response</div>
                 <div class="overflow-auto p-5 flex flex-col-reverse w-full">
                     <div class="flex-1 response preview spacing-y-2 prose-sm w-full prose-stone">
                         {@html marked(data)}

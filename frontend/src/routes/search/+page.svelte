@@ -6,6 +6,7 @@
     import type { ResultChunk } from "$lib/types/question";
     import { marked } from "marked";
     import { fade, slide } from "svelte/transition";
+    import { AudioRecorder } from "./AudioRecorder";
 
     let data: string = $state("");
     let query: string = $state("");
@@ -77,18 +78,66 @@
     async function vote() {
         pushNotification({ title: "Vote received", body: "Thank you for rating the information provided by our system." });
     }
+
+    const recorder = new AudioRecorder();
+    let recording = $state(false);
+    let loading = $state(false);
+    let warning = $state(false);
+
+    async function toggle() {
+        if (recording) {
+            recording = false;
+            loading = true;
+            await recorder.stop((text) => (query = text));
+            loading = false;
+            warning = true;
+            await sendQuery();
+        } else {
+            await recorder.start();
+            loading = false;
+            recording = true;
+        }
+    }
 </script>
 
 <div class="m-auto w-[90%]">
     <div class="flex flex-wrap sm:grid grid-cols-2 h-full gap-5 min-h-[80vh] glass p-3">
-        <div class="p-5 glass w-full">
-            <form class="flex gap-5 items-stretch">
-                <input bind:value={query} type="text" class="w-full py-2 px-4 glass border-1 rounded-xl placholder:text-accent" placeholder="Ask a question ..." />
-                <button type="submit" onclick={sendQuery} class="glass rounded-xl px-5 flex-1 flex gap-3 items-center hover:bg-secondary/10">
+        <div class="p-5 glass w-full overflow-hidden">
+            <div class="font-light text-sm text-accent flex justify-between items-center py-3">
+                <div>
+                    {#if recording}
+                        When you want to stop recording, press the button again.
+                    {:else}
+                        Please click the microphone button and speak.
+                    {/if}
+                </div>
+                <div>
+                    {#if recording}
+                        <div class="{recording ? 'animate-pulse' : 'opacity-0'} text-secondary font-light">Recording ...</div>
+                    {:else if loading}
+                        <span class="{loading ? 'animate-pulse' : 'opacity-0'} text-secondary-1 font-light">Transcribing ...</span>
+                        <span class="text-xs text-red-600 font-light opacity-30">We've detected noise, we'll do our best!</span>
+                    {/if}
+                </div>
+            </div>
+            <form class="flex gap-2 items-stretch">
+                <input bind:value={query} type="text" class="w-full py-2 px-4 glass border-1 rounded-xl placholder:text-accent" placeholder="Ask (or record) a question ..." />
+                <button type="submit" onclick={sendQuery} class="font-light text-sm glass rounded-xl px-5 flex-1 flex gap-3 items-center hover:bg-secondary/10">
                     <MaskedIcon src="../contact.svg" class="size-3 bg-secondary" />
-                    Ask
+                    Submit
+                </button>
+                <button class="glass p-2 {recording ? 'animate-pulse bg-secondary' : 'hover:bg-secondary/10'}" onclick={toggle}>
+                    <MaskedIcon src="/microphone.svg" class="bg-secondary {recording ? 'bg-white' : ''}" />
                 </button>
             </form>
+
+            {#if waiting}
+                <div class="flex items-center justify-center gap-5 p-5 animate-pulse">
+                    <MaskedIcon src="../loading.svg" class="size-3 bg-secondary animate-spin" />
+                    Waiting for data!
+                </div>
+            {/if}
+
             {#if chunks.length > 0}
                 <div class="pt-5 pl-5 opacity-50 font-mono text-xs">Data retrieved from files:</div>
             {/if}
@@ -100,18 +149,17 @@
                             <div class="p-3 flex gap-3 items-center">
                                 <div class="flex-1 flex gap-2 items-center">
                                     <div class="text-secondary bg-secondary/5 border-secondary/50 p-2 shadow-secondary/30 glass rounded-full font-mono text-xs">#{i + 1}</div>
-                                    <span>Score</span>
+                                    <span class="text-xs">Score</span>
                                     <div class="py-1 px-3 text-xs h-min glass bg-green-700/10 border border-green-700/40 rounded-sm text-green-700">high</div>
-                                    <div class="py-1 px-3 text-xs h-min glass bg-secondary/10 border border-secondary/40 rounded-sm text-secondary">pdf</div>
                                 </div>
                                 {#if (parseInt(chunk.doc_id) ?? 0) > 0}
-                                    <a target="_blank" href="/chat/download/{chunk.doc_id}" class="disabled:opacity-50 disabled:!cursor-no-drop glass px-3 py-2 flex gap-2 items-center">
+                                    <a target="_blank" href="{PUBLIC_API_BASE_URL}/chat/download/{chunk.doc_id}" class="disabled:opacity-50 disabled:!cursor-no-drop glass px-3 py-2 flex gap-2 items-center">
                                         <MaskedIcon src="../download.svg" class="size-3 bg-secondary group-hover:bg-accent/50" />
                                     </a>
                                 {/if}
                             </div>
                             <div class="">
-                                <div class="transition-all response preview p-3 prose-sm glass text-sm">
+                                <div class="grid grid-rows-[min-content_1fr] overflow-hidden transition-all response preview p-3 prose-sm glass text-sm max-w-none w-full">
                                     <div class="flex gap-3 items-center pb-3">
                                         <div class="uppercase text-accent/50 font-mono text-xs pb-2">Preview</div>
                                         <Spacer />
@@ -120,7 +168,7 @@
                                             <button onclick={vote} class=" hover:brightness-110 active:brightness-90 hover:bg-red-500/5 hover:border-red-500 glass p-2 rounded-full"><MaskedIcon src="../thumbs-down.svg" class="bg-red-500" /></button>
                                         </div>
                                     </div>
-                                    <div class="">{@html marked("... " + chunk.content.slice(0, 3000) + " ...")}</div>
+                                    <div class="text-wrap whitespace-break-spaces max-w-full overflow-hidden">{@html marked("... " + chunk.content.slice(0, 3000) + " ...")}</div>
                                 </div>
                             </div>
                         </div>
@@ -131,7 +179,7 @@
         <div id="llm" class=" p-10 glass w-full" bind:this={component}>
             {#if data && data.length >= 0}
                 <div in:fade>
-                    <div class="opacity-30">Woody's response</div>
+                    <div class="opacity-30">Digital Expert's response</div>
                     <div class="overflow-auto p-5 flex flex-col-reverse w-full">
                         <div class="flex-1 response preview spacing-y-2 prose-sm w-full prose-stone">
                             {@html marked(data)}
