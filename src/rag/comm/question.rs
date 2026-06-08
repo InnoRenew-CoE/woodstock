@@ -1,5 +1,3 @@
-use ollama_rs::generation::completion::request::GenerationRequest;
-
 #[derive(Debug, Clone)]
 pub struct Question {
     system_prompt: String,
@@ -30,20 +28,25 @@ impl From<&str> for Question {
     }
 }
 
-impl<'a> Into<GenerationRequest<'a>> for &'a Question {
-    fn into(self) -> GenerationRequest<'a> {
+impl Question {
+    pub fn model(&self) -> &str {
+        &self.model
+    }
+
+    pub fn system_prompt(&self) -> &str {
+        &self.system_prompt
+    }
+
+    pub fn user_content(&self) -> String {
         let context = if self.context.is_empty() {
             "".to_string()
         } else {
             self.context.join("\n")
         };
 
-        let final_prompt = format!("{}\n{}\n{}", self.system_prompt, self.question, context);
-        GenerationRequest::new(self.model.clone(), final_prompt)
+        format!("{}\n{}", self.question, context)
     }
-}
 
-impl Question {
     pub fn set_system_prompt(mut self, prompt: &str) -> Self {
         self.system_prompt = prompt.to_string();
         self

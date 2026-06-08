@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use comm::embedding::EmbeddingVector;
 use comm::qdrant::{insert_chunks_to_qdrant, vector_search};
-use comm::OllamaClient;
+use comm::{ChatClient, OllamaEmbeddingClient};
 use loading::load_file;
 use models::SearchResult;
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
@@ -16,7 +16,8 @@ pub use models::{RagProcessableFile, RagProcessableFileType};
 
 #[derive(Debug, Default)]
 pub struct Rag {
-    ollama: OllamaClient,
+    llm: ChatClient,
+    embeddings: OllamaEmbeddingClient,
 }
 
 impl Rag {
@@ -25,23 +26,23 @@ impl Rag {
         // let chunked_file = chunk(loaded_file, processing::ChunkingStrategy::Word(250, 30));
         let chunked_file = chunk(loaded_file, processing::ChunkingStrategy::Markdown(250));
         println!("[RAG] chunking...");
-        let enriched_file = hype(chunked_file, &self.ollama).await;
+        let enriched_file = hype(chunked_file, &self.llm).await;
         println!("[RAG] Preparing for upload...");
-        let embedded_chunks = prepare_for_upload(enriched_file, &self.ollama).await?;
+        let embedded_chunks = prepare_for_upload(enriched_file, &self.embeddings).await?;
         println!("[RAG] Upserting to qdrant...");
         insert_chunks_to_qdrant(embedded_chunks).await
     }
 
     pub async fn search(&self, query: String) -> Result<SearchResult> {
         let emb_query = GenerateEmbeddingsRequest::new("bge-m3".to_owned(), EmbeddingsInput::Single(query.clone()));
-        let embedding = match self.ollama.embed(emb_query).await {
+        let embedding = match self.embeddings.embed(emb_query).await {
             Ok(resp) => EmbeddingVector(resp.embeddings[0].clone()),
             Err(e) => return Err(anyhow!(format!("Failed embedding the query: {}", e))),
         };
         let resp = vector_search(embedding).await?;
         let resp = dedup(resp);
         println!("{:#?}", resp);
-        match prompt(query, resp, &self.ollama).await {
+        match prompt(query, resp, &self.llm).await {
             Ok(r) => Ok(r),
             Err(e) => Err(anyhow!(e.to_string())),
         }

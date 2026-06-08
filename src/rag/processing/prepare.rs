@@ -1,17 +1,17 @@
 use crate::rag::{
-    comm::{embedding::Embeddable, OllamaClient},
+    comm::{embedding::Embeddable, OllamaEmbeddingClient},
     models::{chunks::EmbeddedChunk, ChunkedFile},
 };
 use anyhow::Result;
 
 use super::embedd_file::embedd_file;
 
-pub async fn prepare_for_upload<T>(file: ChunkedFile<T>, ollama: &OllamaClient) -> Result<Vec<EmbeddedChunk>>
+pub async fn prepare_for_upload<T>(file: ChunkedFile<T>, embeddings: &OllamaEmbeddingClient) -> Result<Vec<EmbeddedChunk>>
 where
     T: Embeddable + Clone,
 {
     let descr = file.syntetic_file_description.clone();
-    let embedded_file = embedd_file(file, ollama).await?;
+    let embedded_file = embedd_file(file, embeddings).await?;
     Ok(embedded_file
         .chunks
         .into_iter()

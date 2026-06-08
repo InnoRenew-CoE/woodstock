@@ -2,7 +2,7 @@ use once_cell::sync::Lazy;
 use regex::RegexBuilder;
 
 use crate::rag::comm::question::Question;
-use crate::rag::comm::OllamaClient;
+use crate::rag::comm::ChatClient;
 use crate::rag::models::chunks::{Chunk, HypeChunk};
 use crate::rag::models::ChunkedFile;
 
@@ -13,10 +13,10 @@ static LIST_PATTERN: Lazy<regex::Regex> = Lazy::new(|| {
         .unwrap()
 });
 
-pub async fn hype(file: ChunkedFile<Chunk>, ollama: &OllamaClient) -> ChunkedFile<HypeChunk> {
+pub async fn hype(file: ChunkedFile<Chunk>, llm: &ChatClient) -> ChunkedFile<HypeChunk> {
     // let summary = summarize_document(&file, ollama).await;
     let hype_question_prompts = generate_hype_prompt_questions(&file);
-    let hype_questions = ollama.answer_all(hype_question_prompts).await;
+    let hype_questions = llm.answer_all(hype_question_prompts).await;
     print!("Generated hype questions for {} chunks\n", hype_questions.len());
     let hype_chunks = generate_hype_chunks(&file.chunks, hype_questions);
     replace_chunks(file, hype_chunks)

@@ -1,24 +1,24 @@
 use crate::rag::{
-    comm::{question::Question, OllamaClient},
+    comm::{question::Question, ChatClient},
     models::{chunks::Chunk, ChunkedFile},
 };
 
-pub async fn summarize_document(file: &ChunkedFile<Chunk>, ollama: &OllamaClient) -> String {
+pub async fn summarize_document(file: &ChunkedFile<Chunk>, llm: &ChatClient) -> String {
     let summary_prompts = generate_prompts(&file);
-    let chunk_summaries = ollama.answer_all(summary_prompts).await;
-    create_document_summary(chunk_summaries, file.original_file_description.clone(), ollama).await
+    let chunk_summaries = llm.answer_all(summary_prompts).await;
+    create_document_summary(chunk_summaries, file.original_file_description.clone(), llm).await
 }
 
-async fn create_document_summary(chunk_summaries: Vec<String>, original_doc_summary: Option<String>, ollama: &OllamaClient) -> String {
+async fn create_document_summary(chunk_summaries: Vec<String>, original_doc_summary: Option<String>, llm: &ChatClient) -> String {
     let mut context = chunk_summaries;
     if let Some(summary) = original_doc_summary {
         context.push(summary);
     }
-    match ollama
+    match llm
         .generate(Question::from("Summarize this document in context into 3 sentances.").set_context(context))
         .await
     {
-        Ok(r) => r.response,
+        Ok(r) => r.content,
         Err(_) => "".into(),
     }
 }

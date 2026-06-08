@@ -1,13 +1,13 @@
 use crate::rag::{
-    comm::{question::Question, OllamaClient},
+    comm::{question::Question, ChatClient},
     models::{chunks::ResultChunk, SearchResult},
 };
-use ollama_rs::{error::OllamaError, generation::completion::GenerationResponseStream};
+use anyhow::Result;
 
-pub async fn prompt(prompt: String, chunks: Vec<ResultChunk>, ollama: &OllamaClient) -> Result<SearchResult, OllamaError> {
+pub async fn prompt(prompt: String, chunks: Vec<ResultChunk>, llm: &ChatClient) -> Result<SearchResult> {
     let llm_prompt = construct_prompt(prompt, &chunks);
     println!("Prompt: {:#?}", llm_prompt);
-    let stream: GenerationResponseStream = ollama.generate_stream(llm_prompt).await?;
+    let stream = llm.generate_stream(llm_prompt).await?;
     Ok(SearchResult { chunks, stream })
 }
 
@@ -20,7 +20,8 @@ fn construct_prompt(prompt: String, chunks: &Vec<ResultChunk>) -> Question {
 
     let context: Vec<String> = chunks.iter().map(|c| c.into()).collect();
 
-    let question = format!(r#"
+    let question = format!(
+        r#"
     
     {}
     
@@ -30,7 +31,10 @@ fn construct_prompt(prompt: String, chunks: &Vec<ResultChunk>) -> Question {
     Notes: 
     - Respond in markdown
 
-    "#, context.join("\n"), prompt);
+    "#,
+        context.join("\n"),
+        prompt
+    );
 
     Question::from(question).set_system_prompt(&system_message)
 }

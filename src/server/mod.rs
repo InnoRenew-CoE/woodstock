@@ -364,11 +364,9 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* 
     actix_web::rt::spawn(async move {
         sleep(std::time::Duration::from_secs(2)).await;
         while let Some(res) = result.stream.next().await {
-            if let Ok(responses) = res {
-                for resp in responses {
-                    let data = Bytes::copy_from_slice(resp.response.as_bytes());
-                    let _ = tx.send(Ok(data)).await;
-                }
+            if let Ok(text) = res {
+                let data = Bytes::copy_from_slice(text.as_bytes());
+                let _ = tx.send(Ok(data)).await;
             }
         }
     });
