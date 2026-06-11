@@ -12,28 +12,39 @@ pub async fn prompt(prompt: String, chunks: Vec<ResultChunk>, llm: &ChatClient) 
 }
 
 fn construct_prompt(prompt: String, chunks: &Vec<ResultChunk>) -> Question {
-    let system_message = "/no_think You are an assistant who is helping with finding information \
-        in the repository of information. You are a guide through the documents. Given a \
-        question, help navigate through the files and the information. You are allowed to read \
-        some of the documents: "
+    let system_message = "/no_think You answer questions using only the provided document excerpts. \
+        Be precise, grounded, and concise. If the excerpts do not contain enough information, say so \
+        instead of guessing. When useful, mention which document or metadata supports the answer."
         .to_string();
 
-    let context: Vec<String> = chunks.iter().map(|c| c.into()).collect();
+    let context = chunks
+        .iter()
+        .enumerate()
+        .map(|(idx, chunk)| {
+            let chunk_context: String = chunk.into();
+            format!("Excerpt {}:\n{}", idx + 1, chunk_context.trim())
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n");
 
     let question = format!(
         r#"
-    
-    {}
-    
-    User question to answe based on above data:
-    {}
-    
-    Notes: 
-    - Respond in markdown
+Retrieved document excerpts:
+
+{}
+
+User question:
+{}
+
+Answer requirements:
+- Respond in markdown.
+- Use only facts supported by the retrieved excerpts.
+- Prefer a direct answer first, then brief supporting details.
+- If excerpts conflict, describe the conflict.
+- If the answer is not present in the excerpts, say that the available documents do not answer it.
 
     "#,
-        context.join("\n"),
-        prompt
+        context, prompt
     );
 
     Question::from(question).set_system_prompt(&system_message)
