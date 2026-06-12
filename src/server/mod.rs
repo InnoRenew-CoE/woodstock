@@ -29,8 +29,7 @@ use std::ffi::OsStr;
 use std::fs::{create_dir_all, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex};
 use tokio::time::sleep;
 use tokio_postgres::Client;
 use tokio_stream::wrappers::ReceiverStream;
@@ -93,9 +92,7 @@ struct QuestionsStructure {
 /// Returns a JSON representation of questions stored in the database.
 #[get("/questions")]
 async fn fetch_questions(state: web::Data<AppState>) -> impl Responder {
-    let Ok(client) = &mut state.client.lock() else {
-        return HttpResponse::InternalServerError().finish();
-    };
+    let client = &mut state.client.lock().await;
     let questions = retrieve_questions(client).await;
     let available_tags = retrieve_tags(client).await.unwrap_or(HashSet::new());
     let structure = QuestionsStructure {
@@ -107,14 +104,14 @@ async fn fetch_questions(state: web::Data<AppState>) -> impl Responder {
 
 #[get("/tags")]
 async fn fetch_tags(data: Data<AppState>) -> impl Responder {
-    let mut client = data.client.lock().unwrap();
+    let mut client = data.client.lock().await;
     let tags = db::retrieve_tags(&mut client).await.unwrap_or(HashSet::new());
     HttpResponse::Ok().json(tags)
 }
 
 #[get("/files")]
 async fn fetch_files(data: Data<AppState>, user: User) -> impl Responder {
-    let mut client = data.client.lock().unwrap();
+    let mut client = data.client.lock().await;
     let files = db::retrieve_files(&user.id, &mut client).await.unwrap_or(vec![]);
     HttpResponse::Ok().json(files)
 }
@@ -183,9 +180,7 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
                         }
 
                         println!("Locking for state.client!");
-                        let Ok(mut client) = state.client.lock() else {
-                            return HttpResponse::InternalServerError().finish();
-                        };
+                        let mut client = state.client.lock().await;
                         println!("Lock acquired!");
 
                         let Ok(file_id) = db::insert_file(&mut client, &original_name, &file_uuid, &file_extension, &user_id).await else {
@@ -293,9 +288,7 @@ async fn submit_csv(state: web::Data<AppState>, user: User, mut payload: Multipa
         }
     }
 
-    let Ok(mut client) = state.client.lock() else {
-        return HttpResponse::InternalServerError().finish();
-    };
+    let mut client = state.client.lock().await;
 
     if let None = file_information {
         return HttpResponse::BadRequest().finish();
@@ -311,7 +304,7 @@ async fn submit_csv(state: web::Data<AppState>, user: User, mut payload: Multipa
 
 #[post("/feedback")]
 async fn submit_feedback(state: Data<AppState>, feedback: web::Json<String>, user: User) -> impl Responder {
-    let mut client = state.client.lock().unwrap();
+    let mut client = state.client.lock().await;
     let feedback = feedback.0;
     db::insert_feedback(feedback, &user.id, &mut client).await;
     HttpResponse::Ok().finish()
@@ -324,10 +317,7 @@ struct SearchQuery {
 
 #[get("/search")]
 async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* , user: User */) -> impl Responder {
-    let Ok(client) = state.client.lock() else {
-        eprintln!("State.client.lock failed");
-        return HttpResponse::InternalServerError().finish();
-    };
+    let mut client = state.client.lock().await;
 
     // Removed due to opening the chat service to everyone.
     if let Err(error) = db::insert_query(1, &client, &search_query.0.query).await {
@@ -371,9 +361,8 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* 
 
 #[get("/download/{file_id}")]
 pub async fn download(state: Data<AppState>, file_id: web::Path<String>) -> HttpResponse {
-    let Ok(mut client) = state.client.lock() else {
-        return HttpResponse::NotFound().finish();
-    };
+    let mut client = state.client.lock().await;
+
     let file = db::find_file(file_id.parse().unwrap(), &mut client).await;
     println!("File found to be downloaded: {:?}", file);
     if let Ok(file_info) = file {
@@ -420,10 +409,8 @@ async fn login(
     data: web::Data<AppState>,
     login_details: web::Json<LoginDetails>,
 ) -> AuthResult<HttpResponse> {
-    let Ok(client) = &mut data.client.lock() else {
-        return Ok(HttpResponse::InternalServerError().finish());
-    };
-    let Ok(user) = check_login(client, login_details.0).await else {
+    let mut client = data.client.lock().await;
+    let Ok(user) = check_login(&mut client, login_details.0).await else {
         return Ok(HttpResponse::BadRequest().finish());
     };
     let token_signer = &token_signer;
@@ -437,9 +424,8 @@ async fn login(
 
 #[post("/register")]
 async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginDetails>) -> AuthResult<HttpResponse> {
-    let Ok(client) = &mut data.client.lock() else {
-        return Ok(HttpResponse::InternalServerError().finish());
-    };
+    let mut client = data.client.lock().await;
+
     let pg = PasswordGenerator {
         length: 12,
         numbers: true,
@@ -453,7 +439,7 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
     let password = pg.generate_one().expect("Unable to generate a secure password");
     login_details.password = Some(password.clone());
 
-    if let Err(error) = insert_new_password(client, &login_details.0).await {
+    if let Err(error) = insert_new_password(&mut client, &login_details.0).await {
         return Ok(HttpResponse::BadRequest().body(error));
     };
     println!("Generated: {},{}", login_details.0.email, password);
@@ -464,7 +450,7 @@ async fn register(data: web::Data<AppState>, mut login_details: web::Json<LoginD
 
 #[post("/verify")]
 async fn verify(data: web::Data<AppState>, _: User, request: HttpRequest) -> HttpResponse {
-    let guard = data.invalidated_tokens.lock().expect("Should be able to lock the mutex");
+    let guard = data.invalidated_tokens.lock().await;
     if let Some(mut access) = request.cookie("access_token") {
         if guard.contains(&access.value().to_string()) {
             access.make_removal();
@@ -478,7 +464,7 @@ async fn verify(data: web::Data<AppState>, _: User, request: HttpRequest) -> Htt
 #[post("/invalidate")]
 async fn invalidate(data: web::Data<AppState>, _: User, request: HttpRequest) -> HttpResponse {
     let mut builder = HttpResponseBuilder::new(StatusCode::OK);
-    let mut tokens = data.invalidated_tokens.lock().expect("Should be able to lock the mutex.");
+    let mut tokens = data.invalidated_tokens.lock().await;
     if let Some(mut access) = request.cookie("access_token") {
         if tokens.len() >= 10 {
             tokens.pop_back();
@@ -508,10 +494,7 @@ struct PostBody {
 
 #[post("/collaborate")]
 async fn new_post(state: web::Data<AppState>, user: User, body: web::Json<PostBody>) -> HttpResponse {
-    let Ok(mut client) = state.client.lock() else {
-        eprintln!("State.client.lock failed");
-        return HttpResponse::InternalServerError().finish();
-    };
+    let mut client = state.client.lock().await;
     let post = body.0;
     let result = db::upsert_post(post.id, post.title, post.body, &user.id, &mut client).await;
     let mut builder = HttpResponseBuilder::new(if result.is_ok() {
@@ -524,10 +507,8 @@ async fn new_post(state: web::Data<AppState>, user: User, body: web::Json<PostBo
 
 #[get("/posts")]
 async fn retrieve_posts(state: web::Data<AppState>) -> HttpResponse {
-    let Ok(mut client) = state.client.lock() else {
-        eprintln!("State.client.lock failed");
-        return HttpResponse::InternalServerError().finish();
-    };
+    let mut client = state.client.lock().await;
+
     let posts = db::get_posts(&mut client).await;
     let mut builder = HttpResponseBuilder::new(StatusCode::OK);
 
@@ -539,7 +520,7 @@ async fn retrieve_posts(state: web::Data<AppState>) -> HttpResponse {
 
 async fn check_refresh(data: Data<AppState>, request: HttpRequest) -> Result<(), actix_web::Error> {
     println!("Refresh!");
-    let guard = data.invalidated_tokens.lock().expect("Should be able to lock the mutex");
+    let guard = data.invalidated_tokens.lock().await;
     if let Some(mut refresh) = request.cookie("refresh_token") {
         if guard.contains(&refresh.value().to_string()) {
             refresh.make_removal();
