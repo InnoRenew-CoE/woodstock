@@ -295,7 +295,7 @@ pub async fn insert_file(
     Ok(row.get("id"))
 }
 
-pub async fn insert_answer(client: &Client, answer: Answer, file_id: &i32) -> Result<(), anyhow::Error> {
+pub async fn insert_answer(client: &Client, answer: &Answer, file_id: &i32) -> Result<(), anyhow::Error> {
     let Answer {
         text,
         question_id,

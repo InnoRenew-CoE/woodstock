@@ -127,13 +127,9 @@ struct FileInformation {
 /// Stores files in the env["FILES_FOLDER"] folder, submits answers for each file into the database.
 #[post("/answers")]
 async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user: User) -> impl Responder {
-    let file_uuid = uuid::Uuid::new_v4().to_string();
     let base_path = std::env::var("FILES_FOLDER").unwrap_or("/data/woodstock/files/".to_string());
-    let file_path = format!("{}/{}", base_path, file_uuid);
     let user_id = user.id;
-    let mut file_information: Option<FileInformation> = None;
     let mut answers: Vec<Answer> = Vec::new();
-    println!("User ID: {} | submitted: {}", user_id, file_path);
 
     while let Some(item) = payload.next().await {
         if let Ok(mut field) = item {
@@ -154,6 +150,10 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
                         answers.extend(parsed_answers);
                     }
                     "file" => {
+                        let file_uuid = uuid::Uuid::new_v4().to_string();
+                        let file_path = format!("{}/{}", base_path, file_uuid);
+                        println!("User ID: {} | submitted: {}", user_id, file_path);
+
                         let Some(content_disposition) = field.content_disposition() else {
                             return HttpResponse::BadRequest().finish();
                         };
@@ -182,9 +182,53 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
                             }
                         }
 
-                        file_information = Some(FileInformation {
+                        println!("Locking for state.client!");
+                        let Ok(mut client) = state.client.lock() else {
+                            return HttpResponse::InternalServerError().finish();
+                        };
+                        println!("Lock acquired!");
+
+                        let Ok(file_id) = db::insert_file(&mut client, &original_name, &file_uuid, &file_extension, &user_id).await else {
+                            eprintln!("Unable to insert the file into the database!");
+                            return HttpResponse::BadRequest().finish();
+                        };
+
+                        for answer in &answers {
+                            if let Err(error) = db::insert_answer(&mut client, answer, &file_id).await {
+                                println!("Answer insert result: {:?}", error);
+                            };
+                        }
+
+                        drop(client);
+                        println!("Processing document_id: {file_id} | {file_uuid} | {original_name}");
+
+                        let processable_file_type = match file_extension.to_ascii_lowercase().as_str() {
+                            "txt" => RagProcessableFileType::Text,
+                            "md" => RagProcessableFileType::Markdown,
+                            "pdf" => RagProcessableFileType::Pdf,
+                            _ => {
+                                eprintln!("File must be txt, md or pdf - but is: {}", file_extension);
+                                return HttpResponse::BadRequest().finish();
+                            }
+                        };
+
+                        let rag_file = RagProcessableFile {
+                            path: PathBuf::from(file_path),
+                            file_type: processable_file_type,
+                            internal_id: format!("{file_id}"),
                             original_name,
-                            extension: file_extension,
+                            file_description: None,
+                            tags: None,
+                        };
+
+                        // Disabled for the demonstration
+                        tokio::spawn(async move {
+                            match Rag::default().insert(rag_file).await {
+                                Ok(res) => res,
+                                Err(e) => {
+                                    println!("rag.insert failed: {:#?}", e.to_string());
+                                }
+                            };
                         });
                     }
                     _ => (),
@@ -193,57 +237,6 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
         }
     }
 
-    println!("Locking for state.client!");
-    let Ok(mut client) = state.client.lock() else {
-        return HttpResponse::InternalServerError().finish();
-    };
-    println!("Lock acquired!");
-    let Some(FileInformation { original_name, extension }) = file_information else {
-        return HttpResponse::BadRequest().finish();
-    };
-
-    let Ok(file_id) = db::insert_file(&mut client, &original_name, &file_uuid, &extension, &user_id).await else {
-        eprintln!("Unable to insert the file into the database!");
-        return HttpResponse::BadRequest().finish();
-    };
-
-    for answer in answers {
-        if let Err(error) = db::insert_answer(&mut client, answer, &file_id).await {
-            println!("Answer insert result: {:?}", error);
-        };
-    }
-
-    drop(client);
-    println!("Processing document_id: {file_id} | {file_uuid} | {original_name}");
-
-    let processable_file_type = match extension.to_ascii_lowercase().as_str() {
-        "txt" => RagProcessableFileType::Text,
-        "md" => RagProcessableFileType::Markdown,
-        "pdf" => RagProcessableFileType::Pdf,
-        _ => {
-            eprintln!("File must be txt, md or pdf - but is: {}", extension);
-            return HttpResponse::BadRequest().finish();
-        }
-    };
-
-    let rag_file = RagProcessableFile {
-        path: PathBuf::from(file_path),
-        file_type: processable_file_type,
-        internal_id: format!("{file_id}"),
-        original_name,
-        file_description: None,
-        tags: None,
-    };
-
-    // Disabled for the demonstration
-    tokio::spawn(async move {
-        match Rag::default().insert(rag_file).await {
-            Ok(res) => res,
-            Err(e) => {
-                println!("rag.insert failed: {:#?}", e.to_string());
-            }
-        };
-    });
     HttpResponse::Ok().finish()
 }
 
