@@ -32,11 +32,9 @@ async fn prompt(rag: &Rag, question: &str) -> Result<()> {
     let mut result = rag.search(question.into()).await?;
     let mut stdout = io::stdout();
     while let Some(res) = result.stream.next().await {
-        let responses = res.unwrap();
-        for resp in responses {
-            stdout.write_all(resp.response.as_bytes()).await.unwrap();
-            stdout.flush().await.unwrap();
-        }
+        let text = res.unwrap();
+        stdout.write_all(text.as_bytes()).await.unwrap();
+        stdout.flush().await.unwrap();
     }
     Ok(())
 }
