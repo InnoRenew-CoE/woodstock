@@ -193,10 +193,11 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
         }
     }
 
+    println!("Locking for state.client!");
     let Ok(mut client) = state.client.lock() else {
         return HttpResponse::InternalServerError().finish();
     };
-
+    println!("Lock acquired!");
     let Some(FileInformation { original_name, extension }) = file_information else {
         return HttpResponse::BadRequest().finish();
     };
