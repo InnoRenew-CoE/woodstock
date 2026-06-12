@@ -116,11 +116,6 @@ async fn fetch_files(data: Data<AppState>, user: User) -> impl Responder {
     HttpResponse::Ok().json(files)
 }
 
-struct FileInformation {
-    original_name: String,
-    extension: String,
-}
-
 /// Stores files in the env["FILES_FOLDER"] folder, submits answers for each file into the database.
 #[post("/answers")]
 async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user: User) -> impl Responder {
@@ -237,11 +232,8 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
 
 #[post("/submit")]
 async fn submit_csv(state: web::Data<AppState>, user: User, mut payload: Multipart) -> impl Responder {
-    let file_uuid = uuid::Uuid::new_v4().to_string();
     let base_path = std::env::var("FILES_FOLDER").unwrap_or("/data/woodstock/files/".to_string());
-    let file_path = format!("{}/{}", base_path, file_uuid);
     let user_id = user.id;
-    let mut file_information: Option<FileInformation> = None;
 
     while let Some(item) = payload.next().await {
         if let Ok(mut field) = item {
@@ -265,6 +257,9 @@ async fn submit_csv(state: web::Data<AppState>, user: User, mut payload: Multipa
                             .unwrap_or("unknown")
                             .to_uppercase();
 
+                        let file_uuid = uuid::Uuid::new_v4().to_string();
+                        let file_path = format!("{}/{}", base_path, file_uuid);
+
                         let Ok(mut file) = File::create(&file_path) else {
                             return HttpResponse::BadRequest().finish();
                         };
@@ -276,28 +271,18 @@ async fn submit_csv(state: web::Data<AppState>, user: User, mut payload: Multipa
                                 };
                             }
                         }
+                        let mut client = state.client.lock().await;
 
-                        file_information = Some(FileInformation {
-                            original_name,
-                            extension: file_extension,
-                        });
+                        let Ok(_) = db::insert_template(file_uuid, &user_id, &mut client).await else {
+                            eprintln!("Unable to insert the file into the database!");
+                            return HttpResponse::BadRequest().finish();
+                        };
                     }
                     _ => (),
                 }
             }
         }
     }
-
-    let mut client = state.client.lock().await;
-
-    if let None = file_information {
-        return HttpResponse::BadRequest().finish();
-    };
-
-    let Ok(_) = db::insert_template(file_uuid, &user_id, &mut client).await else {
-        eprintln!("Unable to insert the file into the database!");
-        return HttpResponse::BadRequest().finish();
-    };
 
     HttpResponse::Ok().finish()
 }
