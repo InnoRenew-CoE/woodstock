@@ -304,6 +304,18 @@ struct SearchQuery {
     query: String,
 }
 
+#[derive(Deserialize)]
+struct ChatRequest {
+    query: String,
+    history: Vec<ChatMessage>,
+}
+
+#[derive(Deserialize)]
+struct ChatMessage {
+    role: String,
+    content: String,
+}
+
 fn split_tokens(text: &str) -> Vec<String> {
     text.split_inclusive(|c: char| c.is_whitespace() || c == '\n')
         .filter(|s| !s.is_empty())
@@ -311,23 +323,11 @@ fn split_tokens(text: &str) -> Vec<String> {
         .collect()
 }
 
-#[get("/search")]
-async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* , user: User */) -> impl Responder {
-    let query = &search_query.0.query;
-    println!("[SEARCH] Incoming query: \"{query}\"");
-
-    let mut client = state.client.lock().await;
-
-    if let Err(error) = db::insert_query(1, &client, query).await {
-        eprintln!("[SEARCH] Inserting query log failed: {:?}", error);
-        return HttpResponse::InternalServerError().finish();
-    }
-    drop(client);
-
-    let (ndjson_tx, ndjson_rx) = mpsc::channel::<Result<Bytes, Infallible>>(10_000);
-    let stream = ReceiverStream::new(ndjson_rx);
-
-    let query = query.clone();
+fn spawn_agent_search(
+    ndjson_tx: mpsc::Sender<Result<Bytes, Infallible>>,
+    query: String,
+    history: Vec<reagent_rs::Message>,
+) {
     actix_web::rt::spawn(async move {
         let start = Instant::now();
         let (chunks_tx, mut chunks_rx) = tokio::sync::mpsc::channel::<Value>(16);
@@ -345,6 +345,15 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* 
                 return;
             }
         };
+
+        // push history into agent so it sees prior conversation
+        let history_count = history.len();
+        for msg in history {
+            agent.history.push(msg);
+        }
+        if history_count > 0 {
+            println!("[SEARCH] Injected {history_count} history messages into agent");
+        }
 
         // spawn task to forward chunks from the tool to the ndjson stream
         let ndjson_tx_clone = ndjson_tx.clone();
@@ -409,6 +418,56 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* 
         }
         println!("[SEARCH] Agent invocation completed — total time: {:?}", start.elapsed());
     });
+}
+
+#[get("/search")]
+async fn search_get(state: web::Data<AppState>, search_query: Query<SearchQuery> /* , user: User */) -> impl Responder {
+    let query = &search_query.0.query;
+    println!("[SEARCH] GET query: \"{query}\"");
+
+    let mut client = state.client.lock().await;
+    if let Err(error) = db::insert_query(1, &client, query).await {
+        eprintln!("[SEARCH] Inserting query log failed: {:?}", error);
+        return HttpResponse::InternalServerError().finish();
+    }
+    drop(client);
+
+    let (ndjson_tx, ndjson_rx) = mpsc::channel::<Result<Bytes, Infallible>>(10_000);
+    let stream = ReceiverStream::new(ndjson_rx);
+
+    spawn_agent_search(ndjson_tx, query.clone(), vec![]);
+
+    HttpResponse::Ok().content_type("application/x-ndjson").streaming(stream)
+}
+
+#[post("/search")]
+async fn search_post(state: web::Data<AppState>, body: web::Json<ChatRequest>) -> impl Responder {
+    println!("[SEARCH] POST query: \"{}\" with {} history messages", body.query, body.history.len());
+
+    let mut client = state.client.lock().await;
+    if let Err(error) = db::insert_query(1, &client, &body.query).await {
+        eprintln!("[SEARCH] Inserting query log failed: {:?}", error);
+        return HttpResponse::InternalServerError().finish();
+    }
+    drop(client);
+
+    let history: Vec<reagent_rs::Message> = body
+        .history
+        .iter()
+        .filter_map(|m| match m.role.as_str() {
+            "user" => Some(reagent_rs::Message::user(&m.content)),
+            "assistant" => Some(reagent_rs::Message::assistant(&m.content)),
+            _ => {
+                eprintln!("[SEARCH] Unknown history role: {}", m.role);
+                None
+            }
+        })
+        .collect();
+
+    let (ndjson_tx, ndjson_rx) = mpsc::channel::<Result<Bytes, Infallible>>(10_000);
+    let stream = ReceiverStream::new(ndjson_rx);
+
+    spawn_agent_search(ndjson_tx, body.query.clone(), history);
 
     HttpResponse::Ok().content_type("application/x-ndjson").streaming(stream)
 }
@@ -630,7 +689,7 @@ pub async fn start_server(rag: Rag) {
             .service(retrieve_posts)
             .route("/audio", web::get().to(audio_ws))
             .route("/transcribe", web::post().to(transcribe_audio))
-            .service(web::scope("/chat").service(search).service(download))
+            .service(web::scope("/chat").service(search_get).service(search_post).service(download))
             .use_jwt(
                 authority,
                 // .service(
