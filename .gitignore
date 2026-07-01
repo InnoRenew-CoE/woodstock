@@ -4,3 +4,7 @@ qdrant_storage/
 .env
 resources
 files
+.venv/
+.docling-models/
+.local-bin/
+staging/

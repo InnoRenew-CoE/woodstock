@@ -17,13 +17,28 @@ pub use models::chunks::{Chunk, EmbeddedChunk, HypeChunk, ResultChunk};
 pub use models::ChunkedFile;
 pub use models::{RagProcessableFile, RagProcessableFileType};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Rag {
     pub llm: ChatClient,
     pub embeddings: OllamaEmbeddingClient,
 }
 
+impl Default for Rag {
+    fn default() -> Self {
+        Self {
+            llm: ChatClient::default(),
+            embeddings: OllamaEmbeddingClient::default(),
+        }
+    }
+}
+
 impl Rag {
+    pub fn for_ingestion() -> Self {
+        Self {
+            llm: ChatClient::for_ingestion(),
+            embeddings: OllamaEmbeddingClient::for_ingestion(),
+        }
+    }
     pub async fn insert(&self, file: RagProcessableFile) -> Result<()> {
         let loaded_file = self.insert_meta(&file).await?;
         let chunked_file = Self::insert_chunk(loaded_file);

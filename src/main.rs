@@ -5,6 +5,7 @@ use std::io::Write;
 use std::time::Instant;
 
 mod db;
+mod docling;
 mod rag;
 mod server;
 mod shared;
@@ -17,10 +18,12 @@ async fn main() -> Result<()> {
         return Err(e.into());
     }
 
+    docling::bootstrap()?;
+
     let rag = Rag::default();
 
-    // Spawn background worker
-    let worker_rag = Rag::default();
+    // Spawn background worker with separate ingestion model config
+    let worker_rag = Rag::for_ingestion();
     tokio::spawn(async {
         if let Err(e) = worker::run(worker_rag).await {
             eprintln!("[WORKER] Fatal error: {e}");
@@ -65,13 +68,8 @@ async fn embed_all(rag: &Rag) -> Result<()> {
 
         let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("").to_lowercase();
 
-        let file_type = match extension.as_str() {
-            "pdf" => RagProcessableFileType::Pdf,
-            "md" => RagProcessableFileType::Markdown,
-            "txt" => RagProcessableFileType::Text,
-            _ => {
-                continue;
-            }
+        let Some(file_type) = RagProcessableFileType::from_extension(&extension) else {
+            continue;
         };
 
         let woodstock_data = RagProcessableFile {
