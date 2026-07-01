@@ -1,12 +1,13 @@
 use std::env;
+use std::collections::HashSet;
 
 use anyhow::Result;
 use once_cell::sync::Lazy;
-use qdrant_client::qdrant::{PointStruct, SearchResponse, UpsertPointsBuilder};
+use qdrant_client::qdrant::{Condition, Filter, PointId, PointStruct, ScrollPointsBuilder, SearchResponse, UpsertPointsBuilder};
 use qdrant_client::Qdrant;
 use tokio::sync::Mutex;
 
-use crate::rag::models::chunks::EmbeddedChunk;
+use crate::rag::models::chunks::{EmbeddedChunk, ResultChunk};
 
 use super::embedding::EmbeddingVector;
 
@@ -46,6 +47,40 @@ pub async fn vector_search(embedding: EmbeddingVector) -> Result<SearchResponse>
     let client = Qdrant::from_url(&qdrant_server).build()?;
     let search_result = client.search_points(embedding).await?;
     Ok(search_result.into())
+}
+
+pub async fn chunks_for_document(document_id: &str) -> Result<Vec<ResultChunk>> {
+    let qdrant_server = env::var("QDRANT_SERVER").expect("QDRANT_SERVER not defined");
+    let qdrant_collection = env::var("QDRANT_COLLECTION").expect("QDRANT_COLLECTION not defined");
+    let client = Qdrant::from_url(&qdrant_server).build()?;
+
+    let mut offset: Option<PointId> = None;
+    let mut chunks = Vec::new();
+
+    loop {
+        let mut request = ScrollPointsBuilder::new(qdrant_collection.clone())
+            .filter(Filter::must([Condition::matches("doc_id", document_id.to_string())]))
+            .limit(256)
+            .with_payload(true)
+            .with_vectors(false);
+
+        if let Some(next_offset) = offset {
+            request = request.offset(next_offset);
+        }
+
+        let response = client.scroll(request).await?;
+        chunks.extend(response.result.into_iter().map(ResultChunk::from));
+
+        offset = response.next_page_offset;
+        if offset.is_none() {
+            break;
+        }
+    }
+
+    let mut seen = HashSet::new();
+    chunks.retain(|chunk| seen.insert(chunk.doc_seq_num));
+    chunks.sort_by_key(|chunk| chunk.doc_seq_num);
+    Ok(chunks)
 }
 
 pub async fn insert_chunks_to_qdrant(embedded_chunks: Vec<EmbeddedChunk>) -> Result<()> {

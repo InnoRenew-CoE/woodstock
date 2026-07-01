@@ -133,6 +133,13 @@ impl ChatClient {
         }
     }
 
+    pub async fn generate_with_image(&self, question: Question, image: ImageInput) -> Result<ChatResponse> {
+        match self {
+            Self::Ollama(_) => anyhow::bail!("image hype is only wired for openai-compatible ingestion chat providers"),
+            Self::OpenAICompatible(client) => client.generate_with_image(question, image).await,
+        }
+    }
+
     pub async fn generate_stream(&self, question: Question) -> Result<ChatTextStream> {
         match self {
             Self::Ollama(client) => client.generate_stream(question).await,
@@ -174,6 +181,11 @@ impl ChatClient {
         .collect::<Vec<_>>()
         .await
     }
+}
+
+pub struct ImageInput {
+    pub bytes: Vec<u8>,
+    pub mime_type: String,
 }
 
 #[derive(Debug)]
@@ -288,6 +300,32 @@ impl OpenAICompatibleChatClient {
         let request = OpenAIChatRequest {
             model: self.model_for(&question),
             messages: question_to_openai_messages(&question),
+            stream: false,
+        };
+
+        let response = self
+            .request_builder()
+            .json(&request)
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<OpenAIChatResponse>()
+            .await?;
+
+        let content = response
+            .choices
+            .into_iter()
+            .next()
+            .map(|choice| choice.message.content)
+            .unwrap_or_default();
+
+        Ok(ChatResponse { content })
+    }
+
+    pub async fn generate_with_image(&self, question: Question, image: ImageInput) -> Result<ChatResponse> {
+        let request = OpenAIVisionChatRequest {
+            model: self.model_for(&question),
+            messages: question_to_openai_vision_messages(&question, image),
             stream: false,
         };
 
@@ -425,6 +463,31 @@ fn question_to_openai_messages(question: &Question) -> Vec<OpenAIChatMessage> {
     ]
 }
 
+fn question_to_openai_vision_messages(question: &Question, image: ImageInput) -> Vec<OpenAIVisionChatMessage> {
+    use base64::Engine;
+
+    let encoded = base64::engine::general_purpose::STANDARD.encode(image.bytes);
+    let image_url = format!("data:{};base64,{}", image.mime_type, encoded);
+
+    vec![
+        OpenAIVisionChatMessage {
+            role: "system",
+            content: OpenAIVisionContent::Text(question.system_prompt().to_owned()),
+        },
+        OpenAIVisionChatMessage {
+            role: "user",
+            content: OpenAIVisionContent::Parts(vec![
+                OpenAIVisionPart::Text {
+                    text: question.user_content(),
+                },
+                OpenAIVisionPart::ImageUrl {
+                    image_url: OpenAIVisionImageUrl { url: image_url },
+                },
+            ]),
+        },
+    ]
+}
+
 fn is_retryable(err: &anyhow::Error) -> bool {
     if let Some(err) = err.downcast_ref::<OllamaError>() {
         return is_retryable_ollama(err);
@@ -512,6 +575,38 @@ struct OpenAIChatRequest {
     model: String,
     messages: Vec<OpenAIChatMessage>,
     stream: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct OpenAIVisionChatRequest {
+    model: String,
+    messages: Vec<OpenAIVisionChatMessage>,
+    stream: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct OpenAIVisionChatMessage {
+    role: &'static str,
+    content: OpenAIVisionContent,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum OpenAIVisionContent {
+    Text(String),
+    Parts(Vec<OpenAIVisionPart>),
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+enum OpenAIVisionPart {
+    Text { text: String },
+    ImageUrl { image_url: OpenAIVisionImageUrl },
+}
+
+#[derive(Debug, Serialize)]
+struct OpenAIVisionImageUrl {
+    url: String,
 }
 
 #[derive(Debug, Serialize)]

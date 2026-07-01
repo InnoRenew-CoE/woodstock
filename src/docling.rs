@@ -45,6 +45,10 @@ pub fn ocr_enabled() -> bool {
     env_bool("DUCLING_OCR", false)
 }
 
+pub fn image_root() -> PathBuf {
+    env_path("RAG_IMAGE_FOLDER", "files/rag-images")
+}
+
 fn ensure_venv(venv_dir: &Path) -> Result<()> {
     let python = venv_dir.join("bin/python");
     if python.exists() {

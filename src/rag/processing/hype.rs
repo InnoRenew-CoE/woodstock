@@ -5,6 +5,7 @@ use crate::rag::comm::question::Question;
 use crate::rag::comm::ChatClient;
 use crate::rag::models::chunks::{Chunk, HypeChunk};
 use crate::rag::models::ChunkedFile;
+use crate::rag::processing::add_image_hype_questions;
 
 static LIST_PATTERN: Lazy<regex::Regex> = Lazy::new(|| {
     RegexBuilder::new(r"^\s*[\-\*]|\s*\d+\.\s*|\s*[a-zA-Z]\)\s*|\s*\(\d+\)\s*|\s*\([ivxlcdm]+\)\s*")
@@ -18,7 +19,8 @@ pub async fn hype(file: ChunkedFile<Chunk>, llm: &ChatClient) -> ChunkedFile<Hyp
     let hype_question_prompts = generate_hype_prompt_questions(&file);
     let hype_questions = llm.answer_all(hype_question_prompts).await;
     print!("Generated hype questions for {} chunks\n", hype_questions.len());
-    let hype_chunks = generate_hype_chunks(&file.chunks, hype_questions);
+    let mut hype_chunks = generate_hype_chunks(&file.chunks, hype_questions);
+    add_image_hype_questions(&mut hype_chunks, llm).await;
     replace_chunks(file, hype_chunks)
 }
 
@@ -30,6 +32,7 @@ fn replace_chunks(file: ChunkedFile<Chunk>, hype_chunks: Vec<HypeChunk>) -> Chun
         tags,
         original_file_description,
         syntetic_file_description,
+        images,
     } = file;
 
     ChunkedFile {
@@ -39,6 +42,7 @@ fn replace_chunks(file: ChunkedFile<Chunk>, hype_chunks: Vec<HypeChunk>) -> Chun
         tags,
         original_file_description,
         syntetic_file_description,
+        images,
     }
 }
 

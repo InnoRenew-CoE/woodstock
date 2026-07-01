@@ -2,7 +2,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::rag::loading::loaded_data::LoadedFile;
-use crate::rag::models::{chunks::Chunk, ChunkedFile};
+use crate::rag::models::{chunks::Chunk, ChunkedFile, ImageRef};
 use crate::rag::processing::ChunkSize;
 
 
@@ -14,7 +14,12 @@ pub fn split_markdown(file: LoadedFile, chunk_size: &ChunkSize) -> ChunkedFile<C
     // 1) parse markdown into paragraph blocks + section path
     let blocks = extract_para_blocks(&file.content);
     if blocks.is_empty() {
-        let chunks = vec![Chunk { seq_num: 0, text: file.content.clone(), embedding_vector: None }];
+        let chunks = vec![Chunk {
+            seq_num: 0,
+            text: file.content.clone(),
+            embedding_vector: None,
+            images: images_for_chunk(&file.content, &file.images),
+        }];
         println!("EARLY CUNKS 2: {:#?}", chunks);
         return (file, chunks).into();
     }
@@ -84,6 +89,7 @@ pub fn split_markdown(file: LoadedFile, chunk_size: &ChunkSize) -> ChunkedFile<C
         .into_iter()
         .enumerate()
         .map(|(i, text)| Chunk {
+            images: images_for_chunk(&text, &file.images),
             seq_num: i as i32,
             text,
             embedding_vector: None,
@@ -93,6 +99,14 @@ pub fn split_markdown(file: LoadedFile, chunk_size: &ChunkSize) -> ChunkedFile<C
     println!("CUNKS: {:#?}", chunks.len());
 
     (file, chunks).into()
+}
+
+fn images_for_chunk(text: &str, images: &[ImageRef]) -> Vec<ImageRef> {
+    images
+        .iter()
+        .filter(|image| text.contains(&image.route))
+        .cloned()
+        .collect()
 }
 
 /* ---------------- internal helpers ---------------- */
