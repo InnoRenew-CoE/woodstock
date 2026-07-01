@@ -3,10 +3,11 @@ use comm::embedding::EmbeddingVector;
 use comm::qdrant::{insert_chunks_to_qdrant, vector_search};
 use comm::{ChatClient, OllamaEmbeddingClient};
 use loading::load_file;
-use models::SearchResult;
+use models::chunks::ResultChunk;
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
-use processing::{chunk, dedup, hype, prepare_for_upload, prompt};
+use processing::{chunk, dedup, hype, prepare_for_upload};
 
+pub mod agent;
 pub mod comm;
 mod loading;
 mod models;
@@ -16,8 +17,8 @@ pub use models::{RagProcessableFile, RagProcessableFileType};
 
 #[derive(Debug, Default)]
 pub struct Rag {
-    llm: ChatClient,
-    embeddings: OllamaEmbeddingClient,
+    pub llm: ChatClient,
+    pub embeddings: OllamaEmbeddingClient,
 }
 
 impl Rag {
@@ -33,7 +34,7 @@ impl Rag {
         insert_chunks_to_qdrant(embedded_chunks).await
     }
 
-    pub async fn search(&self, query: String) -> Result<SearchResult> {
+    pub async fn search_raw(&self, query: String) -> Result<Vec<ResultChunk>> {
         let emb_query = GenerateEmbeddingsRequest::new("bge-m3".to_owned(), EmbeddingsInput::Single(query.clone()));
         let embedding = match self.embeddings.embed(emb_query).await {
             Ok(resp) => EmbeddingVector(resp.embeddings[0].clone()),
@@ -42,9 +43,6 @@ impl Rag {
         let resp = vector_search(embedding).await?;
         let resp = dedup(resp);
         println!("{:#?}", resp);
-        match prompt(query, resp, &self.llm).await {
-            Ok(r) => Ok(r),
-            Err(e) => Err(anyhow!(e.to_string())),
-        }
+        Ok(resp)
     }
 }

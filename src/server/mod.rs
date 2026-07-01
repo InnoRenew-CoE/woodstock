@@ -1,6 +1,7 @@
 use crate::db::{
     build_db_client, check_login, insert_new_password, retrieve_questions, retrieve_tags, setup_db, {self},
 };
+use crate::rag::agent;
 use crate::rag::{Rag, RagProcessableFile, RagProcessableFileType};
 use actix_jwt_auth_middleware::use_jwt::UseJWTOnApp;
 use actix_jwt_auth_middleware::{AuthResult, Authority, FromRequest, TokenSigner};
@@ -13,6 +14,9 @@ use actix_web::web::{
 };
 use actix_web::{get, post, App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer, Responder};
 use actix_web_lab::web::spa;
+use reagent_rs::notifications::NotificationContent;
+use serde_json::Value;
+use std::collections::HashMap;
 use ed25519_compact::KeyPair;
 use jwt_compact::alg::Ed25519;
 use lettre::message::header::ContentType;
@@ -30,7 +34,6 @@ use std::fs::{create_dir_all, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use tokio::sync::{mpsc, Mutex};
-use tokio::time::sleep;
 use tokio_postgres::Client;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::StreamExt;
@@ -304,44 +307,75 @@ struct SearchQuery {
 async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* , user: User */) -> impl Responder {
     let mut client = state.client.lock().await;
 
-    // Removed due to opening the chat service to everyone.
     if let Err(error) = db::insert_query(1, &client, &search_query.0.query).await {
         eprintln!("Inserting query log failed: {:?}", error);
         return HttpResponse::InternalServerError().finish();
     }
     drop(client);
 
-    let rag = Rag::default();
+    let (ndjson_tx, ndjson_rx) = mpsc::channel::<Result<Bytes, Infallible>>(10_000);
+    let stream = ReceiverStream::new(ndjson_rx);
 
-    let mut result = match rag.search(search_query.query.clone()).await {
-        Ok(res) => res,
-        Err(e) => {
-            println!("rag.search failed: {:#?}", e.to_string());
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
-
-    let (tx, rx) = mpsc::channel::<Result<Bytes, Infallible>>(10_000);
-    let stream = ReceiverStream::new(rx);
-
-    let Ok(chunks_json) = serde_json::to_string(&result.chunks) else {
-        println!("To json failed");
-        return HttpResponse::InternalServerError().finish();
-    };
-
-    let _ = tx.send(Bytes::try_from(chunks_json + "\r\n")).await;
-
+    let query = search_query.query.clone();
     actix_web::rt::spawn(async move {
-        sleep(std::time::Duration::from_secs(2)).await;
-        while let Some(res) = result.stream.next().await {
-            if let Ok(text) = res {
-                let data = Bytes::copy_from_slice(text.as_bytes());
-                let _ = tx.send(Ok(data)).await;
+        let (chunks_tx, mut chunks_rx) = tokio::sync::mpsc::channel::<Value>(16);
+
+        let (mut agent, mut notification_rx) = match agent::build_search_agent(chunks_tx).await {
+            Ok((a, n)) => (a, n),
+            Err(e) => {
+                let err = serde_json::json!({"type": "error", "value": e.to_string(), "display": false});
+                let _ = ndjson_tx.send(Ok(Bytes::from(serde_json::to_string(&err).unwrap() + "\n"))).await;
+                return;
             }
+        };
+
+        // spawn task to forward chunks from the tool to the ndjson stream
+        let ndjson_tx_clone = ndjson_tx.clone();
+        tokio::spawn(async move {
+            while let Some(msg) = chunks_rx.recv().await {
+                let line = serde_json::to_string(&msg).unwrap_or_default() + "\n";
+                if ndjson_tx_clone.send(Ok(Bytes::from(line))).await.is_err() {
+                    break;
+                }
+            }
+        });
+
+        // spawn task to forward agent notifications to the ndjson stream
+        let ndjson_tx_clone = ndjson_tx.clone();
+        tokio::spawn(async move {
+            while let Some(notification) = notification_rx.recv().await {
+                match notification.content {
+                    NotificationContent::Token(t) => {
+                        let msg = serde_json::json!({
+                            "type": "token",
+                            "value": t.value,
+                            "display": true,
+                        });
+                        let line = serde_json::to_string(&msg).unwrap_or_default() + "\n";
+                        if ndjson_tx_clone.send(Ok(Bytes::from(line))).await.is_err() {
+                            break;
+                        }
+                    }
+                    NotificationContent::Done(_, _) => {
+                        let msg = serde_json::json!({"type": "done", "display": false});
+                        let line = serde_json::to_string(&msg).unwrap_or_default() + "\n";
+                        let _ = ndjson_tx_clone.send(Ok(Bytes::from(line))).await;
+                        break;
+                    }
+                    _ => {}
+                }
+            }
+        });
+
+        let prompt_data = HashMap::from([("query", query.as_str())]);
+        if let Err(e) = agent.invoke_flow_with_template(prompt_data).await {
+            let err = serde_json::json!({"type": "error", "value": e.to_string(), "display": false});
+            let line = serde_json::to_string(&err).unwrap_or_default() + "\n";
+            let _ = ndjson_tx.send(Ok(Bytes::from(line))).await;
         }
     });
 
-    HttpResponse::Ok().content_type("text/plain").streaming(stream)
+    HttpResponse::Ok().content_type("application/x-ndjson").streaming(stream)
 }
 
 #[get("/download/{file_id}")]

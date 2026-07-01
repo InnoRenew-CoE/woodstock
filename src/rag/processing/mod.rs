@@ -11,7 +11,6 @@ mod dedup_embeddings;
 mod embedd_file;
 mod hype;
 mod prepare;
-mod prompt;
 mod simple;
 mod summarize;
 mod markdown_chunking;
@@ -19,7 +18,6 @@ mod markdown_chunking;
 pub use dedup_embeddings::dedup;
 pub use hype::hype;
 pub use prepare::prepare_for_upload;
-pub use prompt::prompt;
 
 type ChunkSize = i32;
 type ChunkOverlap = i32;

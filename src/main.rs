@@ -3,8 +3,6 @@ use rag::{Rag, RagProcessableFile, RagProcessableFileType};
 use std::fs;
 use std::io::Write;
 use std::time::Instant;
-use tokio::io::{self, AsyncWriteExt};
-use tokio_stream::StreamExt;
 
 mod db;
 mod rag;
@@ -29,13 +27,8 @@ async fn main() -> Result<()> {
 }
 
 async fn prompt(rag: &Rag, question: &str) -> Result<()> {
-    let mut result = rag.search(question.into()).await?;
-    let mut stdout = io::stdout();
-    while let Some(res) = result.stream.next().await {
-        let text = res.unwrap();
-        stdout.write_all(text.as_bytes()).await.unwrap();
-        stdout.flush().await.unwrap();
-    }
+    let result = rag.search_raw(question.into()).await?;
+    println!("{:#?}", result);
     Ok(())
 }
 
