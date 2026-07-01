@@ -14,8 +14,8 @@
     const paths = [
         { text: "Home", url: "/", icon: "/home.svg" },
         { text: "Best practices", url: "/practices", icon: "/best.svg" },
-        // { text: "About", url: "/about", icon: "/heart.svg" },
-        { text: "Chat", url: "/search", icon: "/search.svg" },
+        { text: "About", url: "/about", icon: "/heart.svg" },
+        { text: "Ask & Explore", url: "/search", icon: "/search.svg" },
         // { text: "Login", url: "/login", icon: "/home.svg" },
     ];
 

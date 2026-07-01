@@ -16,7 +16,7 @@
     --color-background: #ecece6;
 
     --color-light-background: #ecece6;
-    --color-dark-background: #595959;
+    /*--color-dark-background: #595959;*/
     --color-background: #d5d6c9;
     --animate-vote: vote 0.5s ease-in-out 2;
 
