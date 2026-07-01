@@ -1,5 +1,6 @@
 use std::env;
 use std::sync::Arc;
+use std::time::Instant;
 
 use anyhow::{anyhow, Result};
 use serde_json::Value;
@@ -24,6 +25,8 @@ pub async fn build_search_agent(chunks_tx: Sender<Value>) -> Result<(Agent, toki
     let system_prompt = std::fs::read_to_string("resources/agent/search_system.txt").map_err(|e| anyhow!("Failed to load system prompt: {e}"))?;
     let prompt_template = Template::from_file("resources/agent/search_prompt.txt").map_err(|e| anyhow!("Failed to load prompt template: {e}"))?;
 
+    println!("[AGENT] Building search agent — model: {model}, base_url: {base_url}, api_key: {}", api_key.is_some());
+
     let rag_tool = build_rag_tool(chunks_tx)?;
 
     let mut builder = AgentBuilder::default()
@@ -32,7 +35,7 @@ pub async fn build_search_agent(chunks_tx: Sender<Value>) -> Result<(Agent, toki
         .set_base_url(&base_url)
         .set_provider(Provider::OpenAi)
         .set_stream(true)
-        .set_system_prompt(system_prompt)
+        .set_system_prompt(&system_prompt)
         .set_template(prompt_template)
         .add_tool(rag_tool);
 
@@ -40,10 +43,12 @@ pub async fn build_search_agent(chunks_tx: Sender<Value>) -> Result<(Agent, toki
         builder = builder.set_api_key(key);
     }
 
+    let start = Instant::now();
     let (agent, rx) = builder
         .build_with_notification()
         .await
         .map_err(|e| anyhow!("Failed to build agent: {e}"))?;
+    println!("[AGENT] Agent built in {:?}", start.elapsed());
 
     Ok((agent, rx))
 }
@@ -57,33 +62,57 @@ fn build_rag_tool(chunks_tx: Sender<Value>) -> Result<Tool> {
             let embeddings = embeddings.clone();
             let chunks_tx = chunks_tx.clone();
             Box::pin(async move {
+                let start = Instant::now();
+
                 let query = args
                     .get("query")
                     .and_then(|v| v.as_str())
-                    .ok_or_else(|| ToolExecutionError::ArgumentParsingError("Missing 'query' argument".into()))?;
+                    .ok_or_else(|| {
+                        ToolExecutionError::ArgumentParsingError("Missing 'query' argument".into())
+                    })?;
 
+                println!("[RAG TOOL] Called with query: \"{query}\"");
+
+                let emb_start = Instant::now();
                 let emb_query = GenerateEmbeddingsRequest::new("bge-m3".to_owned(), EmbeddingsInput::Single(query.to_owned()));
-                let emb = embeddings
-                    .embed(emb_query)
-                    .await
-                    .map_err(|e| ToolExecutionError::ExecutionFailed(format!("Embedding failed: {e}")))?;
+                let emb = embeddings.embed(emb_query).await.map_err(|e| {
+                    let msg = format!("Embedding failed: {e}");
+                    println!("[RAG TOOL] ERROR — {msg}");
+                    ToolExecutionError::ExecutionFailed(msg)
+                })?;
+                println!("[RAG TOOL] Embedding done in {:?} — vector dim: {}", emb_start.elapsed(), emb.embeddings[0].len());
+
                 let vector = EmbeddingVector(emb.embeddings[0].clone());
 
-                let search_resp = vector_search(vector)
-                    .await
-                    .map_err(|e| ToolExecutionError::ExecutionFailed(format!("Vector search failed: {e}")))?;
+                let search_start = Instant::now();
+                let search_resp = vector_search(vector).await.map_err(|e| {
+                    let msg = format!("Vector search failed: {e}");
+                    println!("[RAG TOOL] ERROR — {msg}");
+                    ToolExecutionError::ExecutionFailed(msg)
+                })?;
+                println!("[RAG TOOL] Vector search done in {:?}", search_start.elapsed());
 
+                let dedup_start = Instant::now();
                 let chunks: Vec<ResultChunk> = dedup(search_resp);
+                println!("[RAG TOOL] Dedup done in {:?} — got {} chunks", dedup_start.elapsed(), chunks.len());
 
-                let chunks_json =
-                    serde_json::to_value(&chunks).map_err(|e| ToolExecutionError::ExecutionFailed(format!("Serialize chunks failed: {e}")))?;
+                for (i, c) in chunks.iter().enumerate() {
+                    println!("  chunk[{}] — doc_id: {}, seq: {}, score: {:.4}", i, c.doc_id, c.doc_seq_num, c.score);
+                }
+
+                let chunks_json = serde_json::to_value(&chunks).map_err(|e| {
+                    let msg = format!("Serialize chunks failed: {e}");
+                    println!("[RAG TOOL] ERROR — {msg}");
+                    ToolExecutionError::ExecutionFailed(msg)
+                })?;
 
                 let msg = serde_json::json!({
                     "type": "chunks",
                     "value": chunks_json,
                     "display": false,
                 });
-                let _ = chunks_tx.try_send(msg);
+                let sent = chunks_tx.try_send(msg);
+                println!("[RAG TOOL] Chunks sent to stream channel: {:?} — total time: {:?}", sent.map(|_| "ok"), start.elapsed());
 
                 Ok(serde_json::to_string(&chunks).unwrap_or_default())
             })

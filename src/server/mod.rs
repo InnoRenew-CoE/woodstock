@@ -29,6 +29,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashSet, VecDeque};
 use std::convert::Infallible;
 use std::env;
+use std::time::Instant;
 use std::ffi::OsStr;
 use std::fs::{create_dir_all, File};
 use std::io::{Read, Write};
@@ -305,10 +306,13 @@ struct SearchQuery {
 
 #[get("/search")]
 async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* , user: User */) -> impl Responder {
+    let query = &search_query.0.query;
+    println!("[SEARCH] Incoming query: \"{query}\"");
+
     let mut client = state.client.lock().await;
 
-    if let Err(error) = db::insert_query(1, &client, &search_query.0.query).await {
-        eprintln!("Inserting query log failed: {:?}", error);
+    if let Err(error) = db::insert_query(1, &client, query).await {
+        eprintln!("[SEARCH] Inserting query log failed: {:?}", error);
         return HttpResponse::InternalServerError().finish();
     }
     drop(client);
@@ -316,13 +320,19 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* 
     let (ndjson_tx, ndjson_rx) = mpsc::channel::<Result<Bytes, Infallible>>(10_000);
     let stream = ReceiverStream::new(ndjson_rx);
 
-    let query = search_query.query.clone();
+    let query = query.clone();
     actix_web::rt::spawn(async move {
+        let start = Instant::now();
         let (chunks_tx, mut chunks_rx) = tokio::sync::mpsc::channel::<Value>(16);
 
+        println!("[SEARCH] Building agent...");
         let (mut agent, mut notification_rx) = match agent::build_search_agent(chunks_tx).await {
-            Ok((a, n)) => (a, n),
+            Ok((a, n)) => {
+                println!("[SEARCH] Agent built successfully");
+                (a, n)
+            }
             Err(e) => {
+                eprintln!("[SEARCH] ERROR — Failed to build agent: {e}");
                 let err = serde_json::json!({"type": "error", "value": e.to_string(), "display": false});
                 let _ = ndjson_tx.send(Ok(Bytes::from(serde_json::to_string(&err).unwrap() + "\n"))).await;
                 return;
@@ -333,6 +343,7 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* 
         let ndjson_tx_clone = ndjson_tx.clone();
         tokio::spawn(async move {
             while let Some(msg) = chunks_rx.recv().await {
+                println!("[SEARCH] Forwarding {} chunks message to stream", msg.get("value").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0));
                 let line = serde_json::to_string(&msg).unwrap_or_default() + "\n";
                 if ndjson_tx_clone.send(Ok(Bytes::from(line))).await.is_err() {
                     break;
@@ -343,9 +354,11 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* 
         // spawn task to forward agent notifications to the ndjson stream
         let ndjson_tx_clone = ndjson_tx.clone();
         tokio::spawn(async move {
+            let mut token_count = 0;
             while let Some(notification) = notification_rx.recv().await {
                 match notification.content {
                     NotificationContent::Token(t) => {
+                        token_count += 1;
                         let msg = serde_json::json!({
                             "type": "token",
                             "value": t.value,
@@ -356,7 +369,17 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* 
                             break;
                         }
                     }
-                    NotificationContent::Done(_, _) => {
+                    NotificationContent::ToolCallRequest(tool) => {
+                        println!("[SEARCH] Agent called tool: {}", tool.function.name);
+                    }
+                    NotificationContent::ToolCallSuccessResult(result) => {
+                        println!("[SEARCH] Tool call succeeded — result length: {}", result.len());
+                    }
+                    NotificationContent::ToolCallErrorResult(error) => {
+                        eprintln!("[SEARCH] Tool call error: {error}");
+                    }
+                    NotificationContent::Done(success, response) => {
+                        println!("[SEARCH] Agent done — success: {success}, token_count: {token_count}, response_len: {:?}, elapsed: {:?}", response.as_ref().map(|r| r.len()), start.elapsed());
                         let msg = serde_json::json!({"type": "done", "display": false});
                         let line = serde_json::to_string(&msg).unwrap_or_default() + "\n";
                         let _ = ndjson_tx_clone.send(Ok(Bytes::from(line))).await;
@@ -367,12 +390,15 @@ async fn search(state: web::Data<AppState>, search_query: Query<SearchQuery> /* 
             }
         });
 
+        println!("[SEARCH] Invoking agent flow...");
         let prompt_data = HashMap::from([("query", query.as_str())]);
         if let Err(e) = agent.invoke_flow_with_template(prompt_data).await {
+            eprintln!("[SEARCH] ERROR — Agent invocation failed: {e}");
             let err = serde_json::json!({"type": "error", "value": e.to_string(), "display": false});
             let line = serde_json::to_string(&err).unwrap_or_default() + "\n";
             let _ = ndjson_tx.send(Ok(Bytes::from(line))).await;
         }
+        println!("[SEARCH] Agent invocation completed — total time: {:?}", start.elapsed());
     });
 
     HttpResponse::Ok().content_type("application/x-ndjson").streaming(stream)
