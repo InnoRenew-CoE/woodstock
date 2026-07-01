@@ -316,12 +316,7 @@ struct ChatMessage {
     content: String,
 }
 
-fn split_tokens(text: &str) -> Vec<String> {
-    text.split_inclusive(|c: char| c.is_whitespace() || c == '\n')
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
-        .collect()
-}
+
 
 fn spawn_agent_search(
     ndjson_tx: mpsc::Sender<Result<Bytes, Infallible>>,
@@ -374,17 +369,15 @@ fn spawn_agent_search(
             while let Some(notification) = notification_rx.recv().await {
                 match notification.content {
                     NotificationContent::Token(t) => {
-                        for word in split_tokens(&t.value) {
-                            token_count += 1;
-                            let msg = serde_json::json!({
-                                "type": "token",
-                                "value": word,
-                                "display": true,
-                            });
-                            let line = serde_json::to_string(&msg).unwrap_or_default() + "\n";
-                            if ndjson_tx_clone.send(Ok(Bytes::from(line))).await.is_err() {
-                                return;
-                            }
+                        token_count += 1;
+                        let msg = serde_json::json!({
+                            "type": "token",
+                            "value": t.value,
+                            "display": true,
+                        });
+                        let line = serde_json::to_string(&msg).unwrap_or_default() + "\n";
+                        if ndjson_tx_clone.send(Ok(Bytes::from(line))).await.is_err() {
+                            return;
                         }
                     }
                     NotificationContent::ToolCallRequest(tool) => {
