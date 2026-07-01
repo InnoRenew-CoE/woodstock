@@ -3,16 +3,20 @@
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
     import { pushNotification } from "$lib/stores/notifications";
     import { marked } from "marked";
+    import { SvelteMap } from "svelte/reactivity";
     import { fade } from "svelte/transition";
     import { AudioRecorder } from "./AudioRecorder";
 
     interface Message {
-        sender: string;
-        data: string;
+        role: string;
+        content: string;
     }
 
     let activeQuery = $state("");
     let conversation = $state<Message[]>([]);
+    let chunks = $state<Chunk[]>([]);
+    let files = new SvelteMap<string, Chunk[]>();
+    let fileMap = new SvelteMap<string, string>(); // chunk-id, doc-id
 
     let waiting = $state(false);
 
@@ -39,7 +43,7 @@
 
     interface StreamMessage {
         type: "chunks" | "token" | "done";
-        value?: string;
+        value?: any;
         display?: boolean;
     }
 
@@ -55,9 +59,17 @@
     async function sendQuery(queryParam: string) {
         waiting = true;
 
-        conversation.push({ sender: "user", data: queryParam });
-
-        const response = await fetch(`${PUBLIC_API_BASE_URL}/chat/search?query=${encodeURIComponent(queryParam)}`);
+        conversation.push({ role: "user", content: queryParam });
+        const response = await fetch(`${PUBLIC_API_BASE_URL}/chat/search`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                query: activeQuery,
+                history: conversation,
+            }),
+        });
         const stream = response.body?.getReader();
 
         if (!stream) {
@@ -71,7 +83,7 @@
 
         let message = "";
 
-        conversation.push({ sender: "assistant", data: message });
+        conversation.push({ role: "assistant", content: message });
 
         while (true) {
             const { done, value } = await stream.read();
@@ -84,34 +96,25 @@
 
             for (const line of lines) {
                 if (!line.trim()) continue;
-                console.log(line);
 
                 try {
                     const msg: StreamMessage = JSON.parse(line);
-
-                    if (msg.display) {
-                        switch (msg.type) {
-                            case "chunks":
-                                break;
-                            case "token":
-                                const data = conversation.at(-1);
-                                if (data) {
-                                    data.data += msg.value ?? "";
-                                }
-                                break;
-                        }
-                    } else {
-                        switch (msg.type) {
-                            case "chunks":
-                                // retrievedChunks = msg.value as Chunk[];
-                                break;
-                            case "token":
-                                // answerTokens = [...answerTokens, msg.value as string];
-                                break;
-                            case "done":
-                                // streaming finished
-                                break;
-                        }
+                    switch (msg.type) {
+                        case "chunks":
+                            const chunks = msg.value as Chunk[];
+                            for (const chunk of chunks) {
+                                fileMap.set(chunk.id, chunk.doc_id);
+                                const f = files.get(chunk.doc_id) ?? [];
+                                f.push(chunk);
+                                files.set(chunk.doc_id, f);
+                            }
+                            break;
+                        case "token":
+                            const data = conversation.at(-1);
+                            if (data && msg.display) {
+                                data.content += msg.value ?? "";
+                            }
+                            break;
                     }
                 } catch (e) {
                     console.error("Failed to parse stream message:", line, e);
@@ -181,18 +184,32 @@
             </div>
         </form>
     {:else}
-        <div class="p-10 grid grid-rows-1 overflow-hidden">
-            <div class="card gap-5 p-5 grid grid-rows-[1fr_min-content] max-h-full overflow-hidden">
-                <div class="w-full min-h-0 overflow-auto no-scrollbar text-sm prose max-w-none">
+        <div class="p-10 gap-5 grid grid-rows-1 grid-cols-[min-content_1fr] overflow-hidden">
+            <div id="files" class="p-5 card">
+                {#each files as [doc_id, chunks]}
+                    {@const firstChunk = chunks[0]}
+                    <div id={doc_id}>
+                        <div>{firstChunk.score.toFixed(2)}</div>
+                        <div class="truncate">{firstChunk.additional_data}</div>
+                    </div>
+                {/each}
+            </div>
+            <div id="conversation" class="card gap-5 p-5 grid grid-rows-[1fr_min-content] max-h-full overflow-hidden">
+                <div class=" w-full min-h-0 overflow-auto no-scrollbar text-sm prose max-w-none">
                     {#each conversation as msg}
-                        {#if msg.data.length > 0}
-                            <div class="flex h-min {msg.sender === 'user' ? 'justify-end' : 'justify-start'}">
-                                <div class="max-w-[70%] rounded-lg px-3 py-1 {msg.sender === 'user' ? 'bg-primary text-white' : 'bg-white card'}">
-                                    <div class="">{@html marked(msg.data)}</div>
+                        {#if msg.content.length > 0}
+                            <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
+                                <div class="max-w-[70%] rounded-xl p-2 {msg.role === 'user' ? 'bg-primary text-white' : 'bg-white card'}">
+                                    <div class="[&_p]:m-0!">{@html marked(msg.content)}</div>
                                 </div>
                             </div>
                         {/if}
                     {/each}
+                    {#if waiting}
+                        <span class="loading-dots p-3">
+                            <span></span><span></span><span></span>
+                        </span>
+                    {/if}
                 </div>
                 <form onsubmit={sendQuestion} class="bg-white card flex gap-2 items-end p-2">
                     <textarea
@@ -216,3 +233,37 @@
         </div>
     {/if}
 </div>
+
+<style>
+    .loading-dots {
+        display: inline-flex;
+        gap: 4px;
+        padding: 8px 0;
+    }
+    .loading-dots span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: black;
+        animation: dot-bounce 1.4s infinite ease-in-out both;
+    }
+    .loading-dots span:nth-child(1) {
+        animation-delay: -0.32s;
+    }
+    .loading-dots span:nth-child(2) {
+        animation-delay: -0.16s;
+    }
+    .loading-dots span:nth-child(3) {
+        animation-delay: 0s;
+    }
+    @keyframes dot-bounce {
+        0%,
+        80%,
+        100% {
+            transform: scale(0);
+        }
+        40% {
+            transform: scale(1);
+        }
+    }
+</style>
