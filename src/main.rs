@@ -19,8 +19,8 @@ async fn main() -> Result<()> {
 
     let rag = Rag::default();
 
-    // Spawn background worker
-    let worker_rag = Rag::default();
+    // Spawn background worker with separate ingestion model config
+    let worker_rag = Rag::for_ingestion();
     tokio::spawn(async {
         if let Err(e) = worker::run(worker_rag).await {
             eprintln!("[WORKER] Fatal error: {e}");

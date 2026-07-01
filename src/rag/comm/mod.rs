@@ -55,11 +55,11 @@ pub struct OllamaEmbeddingClient {
     ollama: Ollama,
 }
 
-impl Default for OllamaEmbeddingClient {
-    fn default() -> Self {
-        let ollama_host = env::var("OLLAMA_HOST").expect("OLLAMA HOST not set");
-        let ollama_port = env::var("OLLAMA_PORT").expect("OLLAMA PORT not set");
-        let ollama_port: u16 = ollama_port.parse().expect("OLLAMA_PORT not u16");
+impl OllamaEmbeddingClient {
+    fn from_env(host_key: &str, port_key: &str) -> Self {
+        let ollama_host = env::var(host_key).expect(&format!("{host_key} not set"));
+        let ollama_port = env::var(port_key).expect(&format!("{port_key} not set"));
+        let ollama_port: u16 = ollama_port.parse().expect(&format!("{port_key} not u16"));
         let api_key = env::var("API_KEY").ok();
         let mut ollama = Ollama::new(ollama_host, ollama_port);
 
@@ -70,6 +70,18 @@ impl Default for OllamaEmbeddingClient {
         }
 
         Self { ollama }
+    }
+}
+
+impl OllamaEmbeddingClient {
+    pub fn for_ingestion() -> Self {
+        Self::from_env("INGESTION_OLLAMA_HOST", "INGESTION_OLLAMA_PORT")
+    }
+}
+
+impl Default for OllamaEmbeddingClient {
+    fn default() -> Self {
+        Self::from_env("OLLAMA_HOST", "OLLAMA_PORT")
     }
 }
 
@@ -85,13 +97,23 @@ pub enum ChatClient {
     OpenAICompatible(OpenAICompatibleChatClient),
 }
 
+impl ChatClient {
+    fn from_provider(provider_key: &str, ollama_host_key: &str, ollama_port_key: &str, openai_prefix: &str) -> Self {
+        match env::var(provider_key).unwrap_or_else(|_| "openai-compatible".to_owned()).as_str() {
+            "ollama" => Self::Ollama(OllamaChatClient::from_env(ollama_host_key, ollama_port_key)),
+            "openai-compatible" | "oaic" | "openai" => Self::OpenAICompatible(OpenAICompatibleChatClient::from_prefix(openai_prefix)),
+            other => panic!("Unsupported {provider_key}: {other}"),
+        }
+    }
+
+    pub fn for_ingestion() -> Self {
+        Self::from_provider("INGESTION_CHAT_PROVIDER", "INGESTION_OLLAMA_HOST", "INGESTION_OLLAMA_PORT", "INGESTION")
+    }
+}
+
 impl Default for ChatClient {
     fn default() -> Self {
-        match env::var("CHAT_PROVIDER").unwrap_or_else(|_| "openai-compatible".to_owned()).as_str() {
-            "ollama" => Self::Ollama(OllamaChatClient::default()),
-            "openai-compatible" | "oaic" | "openai" => Self::OpenAICompatible(OpenAICompatibleChatClient::default()),
-            other => panic!("Unsupported CHAT_PROVIDER: {other}"),
-        }
+        Self::from_provider("CHAT_PROVIDER", "OLLAMA_HOST", "OLLAMA_PORT", "OPENAI")
     }
 }
 
@@ -160,11 +182,11 @@ pub struct OllamaChatClient {
     backoff: BackoffConfig,
 }
 
-impl Default for OllamaChatClient {
-    fn default() -> Self {
-        let ollama_host = env::var("OLLAMA_HOST").expect("OLLAMA HOST not set");
-        let ollama_port = env::var("OLLAMA_PORT").expect("OLLAMA PORT not set");
-        let ollama_port: u16 = ollama_port.parse().expect("OLLAMA_PORT not u16");
+impl OllamaChatClient {
+    fn from_env(host_key: &str, port_key: &str) -> Self {
+        let ollama_host = env::var(host_key).expect(&format!("{host_key} not set"));
+        let ollama_port = env::var(port_key).expect(&format!("{port_key} not set"));
+        let ollama_port: u16 = ollama_port.parse().expect(&format!("{port_key} not u16"));
         let api_key = env::var("API_KEY").ok();
         let mut ollama = Ollama::new(ollama_host, ollama_port);
 
@@ -178,6 +200,12 @@ impl Default for OllamaChatClient {
             ollama,
             backoff: BackoffConfig::default(),
         }
+    }
+}
+
+impl Default for OllamaChatClient {
+    fn default() -> Self {
+        Self::from_env("OLLAMA_HOST", "OLLAMA_PORT")
     }
 }
 
@@ -223,22 +251,35 @@ pub struct OpenAICompatibleChatClient {
     backoff: BackoffConfig,
 }
 
-impl Default for OpenAICompatibleChatClient {
-    fn default() -> Self {
+impl OpenAICompatibleChatClient {
+    fn from_prefix(prefix: &str) -> Self {
+        let base_url_key = format!("{prefix}_COMPATIBLE_BASE_URL");
+        let api_key_key = format!("{prefix}_COMPATIBLE_API_KEY");
+        let model_key = format!("{prefix}_MODEL");
         Self {
             http: reqwest::Client::new(),
-            base_url: env::var("OPENAI_COMPATIBLE_BASE_URL")
-                .or_else(|_| env::var("OPENAI_BASE_URL"))
-                .unwrap_or_else(|_| "http://localhost:11434/v1".to_owned())
+            base_url: env::var(&base_url_key)
+                .unwrap_or_else(|_| env::var("OPENAI_COMPATIBLE_BASE_URL")
+                    .or_else(|_| env::var("OPENAI_BASE_URL"))
+                    .unwrap_or_else(|_| "http://localhost:11434/v1".to_owned()))
                 .trim_end_matches('/')
                 .to_owned(),
-            api_key: env::var("OPENAI_COMPATIBLE_API_KEY")
+            api_key: env::var(&api_key_key)
+                .or_else(|_| env::var("OPENAI_COMPATIBLE_API_KEY"))
                 .or_else(|_| env::var("OPENAI_API_KEY"))
                 .or_else(|_| env::var("API_KEY"))
                 .ok(),
-            model: env::var("CHAT_MODEL").unwrap_or_else(|_| "hf.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF:UD-Q4_K_XL".to_owned()),
+            model: env::var(&model_key).unwrap_or_else(|_|
+                env::var("CHAT_MODEL").unwrap_or_else(|_|
+                    "hf.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF:UD-Q4_K_XL".to_owned())),
             backoff: BackoffConfig::default(),
         }
+    }
+}
+
+impl Default for OpenAICompatibleChatClient {
+    fn default() -> Self {
+        Self::from_prefix("OPENAI")
     }
 }
 
