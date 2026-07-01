@@ -1,4 +1,5 @@
 use std::env;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -18,12 +19,19 @@ use crate::rag::processing::dedup;
 
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
 
+fn resource_path(relative: &str) -> PathBuf {
+    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    manifest.join(relative)
+}
+
 pub async fn build_search_agent(chunks_tx: Sender<Value>) -> Result<(Agent, tokio::sync::mpsc::Receiver<Notification>)> {
     let model = env::var("CHAT_MODEL").unwrap_or_else(|_| "DeepSeek-V4-Flash".into());
     let base_url = env::var("OPENAI_COMPATIBLE_BASE_URL").unwrap_or_else(|_| "http://localhost:11434/v1".into());
     let api_key = env::var("OPENAI_COMPATIBLE_API_KEY").ok();
-    let system_prompt = std::fs::read_to_string("resources/agent/search_system.txt").map_err(|e| anyhow!("Failed to load system prompt: {e}"))?;
-    let prompt_template = Template::from_file("resources/agent/search_prompt.txt").map_err(|e| anyhow!("Failed to load prompt template: {e}"))?;
+    let system_prompt_path = resource_path("resources/agent/search_system.txt");
+    let prompt_template_path = resource_path("resources/agent/search_prompt.txt");
+    let system_prompt = std::fs::read_to_string(&system_prompt_path).map_err(|e| anyhow!("Failed to load system prompt from {:?}: {e}", system_prompt_path))?;
+    let prompt_template = Template::from_file(&prompt_template_path).map_err(|e| anyhow!("Failed to load prompt template from {:?}: {e}", prompt_template_path))?;
 
     println!("[AGENT] Building search agent — model: {model}, base_url: {base_url}, api_key: {}", api_key.is_some());
 
