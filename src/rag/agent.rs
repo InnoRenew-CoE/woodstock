@@ -122,7 +122,12 @@ fn build_rag_tool(chunks_tx: Sender<Value>) -> Result<Tool> {
                 let sent = chunks_tx.try_send(msg);
                 println!("[RAG TOOL] Chunks sent to stream channel: {:?} — total time: {:?}", sent.map(|_| "ok"), start.elapsed());
 
-                Ok(serde_json::to_string(&chunks).unwrap_or_default())
+                let agent_text: String = chunks
+                    .iter()
+                    .map(|c| format!("---chunk start---\n[[{}]]\n{}---chunk end---\n", c.short_id(), c.content))
+                    .collect();
+
+                Ok(agent_text)
             })
         })
     };

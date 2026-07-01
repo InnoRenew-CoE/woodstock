@@ -10,26 +10,18 @@ usage() {
 }
 
 port=${SERVER_PORT:-6970}
-base_url="http://localhost:${port}/chat/search"
+base_url="https://observatory.innorenew.eu/chat/search"
 
 history='[]'
 
 send_query() {
     local q="$1"
     local method="$2"
-    local body=""
-    local url="$base_url"
-
-    if [ "$method" = "post" ]; then
-        body=$(jq -n -c --arg q "$q" --argjson h "$history" '{query: $q, history: $h}')
-        url="$base_url -X POST -H 'Content-Type: application/json' -d '$body'"
-    else
-        query_enc=$(printf '%s' "$q" | jq -sRr @uri)
-        url="${base_url}?query=${query_enc}"
-    fi
-
     local reply=""
+
     if [ "$method" = "post" ]; then
+        local tmp
+        tmp=$(jq -n -c --arg q "$q" --argjson h "$history" '{query: $q, history: $h}')
         while IFS= read -r line; do
             [ -z "$line" ] && continue
             type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
@@ -52,8 +44,10 @@ send_query() {
                 error) echo "--- ERROR ---"; echo "$line" | jq -r '.value' ;;
                 *) echo "$line" ;;
             esac
-        done < <(eval "curl -sN $url")
+        done < <(curl -sN -X POST -H "Content-Type: application/json" -d "$tmp" "$base_url")
     else
+        local query_enc
+        query_enc=$(printf '%s' "$q" | jq -sRr @uri)
         while IFS= read -r line; do
             [ -z "$line" ] && continue
             type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
@@ -76,7 +70,7 @@ send_query() {
                 error) echo "--- ERROR ---"; echo "$line" | jq -r '.value' ;;
                 *) echo "$line" ;;
             esac
-        done < <(curl -sN "$url")
+        done < <(curl -sN "${base_url}?query=${query_enc}")
     fi
 
     history=$(echo "$history" | jq -c \
