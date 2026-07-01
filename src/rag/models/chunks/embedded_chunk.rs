@@ -1,9 +1,10 @@
 use qdrant_client::qdrant::PointStruct;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::rag::comm::embedding::EmbeddingVector;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct EmbeddedChunk {
     pub embedding_vector: EmbeddingVector,
     pub id: String,

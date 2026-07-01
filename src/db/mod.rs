@@ -78,8 +78,13 @@ create table if not exists files
     name            varchar(200),
     submission_date date default now(),
     type            varchar(30),
-    submitted_by    int references users
+    submitted_by    int references users,
+    status          varchar(50) default 'uploaded',
+    status_message text default ''
 );
+
+alter table files add column if not exists status varchar(50) default 'uploaded';
+alter table files add column if not exists status_message text default '';
 
 create table if not exists answers_selection
 (
@@ -293,6 +298,34 @@ pub async fn insert_file(
         .query_one(INSERT_FILES_QUERY, &[&original_name, &file_uuid, &extension, user_id])
         .await?;
     Ok(row.get("id"))
+}
+
+pub async fn update_file_status(
+    client: &Client,
+    internal_id: &str,
+    status: &str,
+    status_message: Option<&str>,
+) -> Result<u64, tokio_postgres::Error> {
+    client
+        .execute(
+            "update files set status = $2, status_message = $3 where internal_id = $1",
+            &[&internal_id, &status, &status_message.unwrap_or("")],
+        )
+        .await
+}
+
+pub async fn update_file_status_by_id(
+    client: &Client,
+    file_id: i32,
+    status: &str,
+    status_message: Option<&str>,
+) -> Result<u64, tokio_postgres::Error> {
+    client
+        .execute(
+            "update files set status = $2, status_message = $3 where id = $1",
+            &[&file_id, &status, &status_message.unwrap_or("")],
+        )
+        .await
 }
 
 pub async fn insert_answer(client: &Client, answer: &Answer, file_id: &i32) -> Result<(), anyhow::Error> {

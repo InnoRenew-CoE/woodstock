@@ -1,6 +1,7 @@
 use crate::rag::models::RagProcessableFileType;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LoadedFile {
     pub file_type: RagProcessableFileType,
     pub content: String,

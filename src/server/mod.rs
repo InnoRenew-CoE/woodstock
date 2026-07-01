@@ -3,6 +3,7 @@ use crate::db::{
 };
 use crate::rag::agent;
 use crate::rag::{Rag, RagProcessableFile, RagProcessableFileType};
+use crate::worker::stage_io;
 use actix_jwt_auth_middleware::use_jwt::UseJWTOnApp;
 use actix_jwt_auth_middleware::{AuthResult, Authority, FromRequest, TokenSigner};
 use actix_multipart::Multipart;
@@ -193,7 +194,6 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
                             };
                         }
 
-                        drop(client);
                         println!("Processing document_id: {file_id} | {file_uuid} | {original_name}");
 
                         let processable_file_type = match file_extension.to_ascii_lowercase().as_str() {
@@ -206,24 +206,54 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
                             }
                         };
 
+                        // Write to staging/new/{uuid} instead of processing inline
+                        let staging_dir = std::env::var("STAGING_FOLDER")
+                            .unwrap_or_else(|_| "./staging".to_string());
+                        let submission_dir = format!("{}/new/{}", staging_dir, file_uuid);
+                        if let Err(e) = tokio::fs::create_dir_all(&submission_dir).await {
+                            eprintln!("Failed to create staging directory: {e}");
+                            return HttpResponse::InternalServerError().finish();
+                        }
+
+                        // Copy file to staging dir (keep original at FILES_FOLDER for download)
+                        let staging_file_path = format!("{}/file", submission_dir);
+                        if let Err(e) = tokio::fs::copy(&file_path, &staging_file_path).await {
+                            eprintln!("Failed to copy file to staging: {e}");
+                            let _ = tokio::fs::remove_dir_all(&submission_dir).await;
+                            return HttpResponse::InternalServerError().finish();
+                        }
+
+                        // Write metadata.json
                         let rag_file = RagProcessableFile {
-                            path: PathBuf::from(file_path),
+                            path: PathBuf::from(&staging_file_path),
                             file_type: processable_file_type,
                             internal_id: format!("{file_id}"),
                             original_name,
                             file_description: None,
                             tags: None,
                         };
+                        let metadata_path = format!("{}/metadata.json", submission_dir);
+                        if let Err(e) = stage_io::write_json(
+                            &PathBuf::from(&metadata_path),
+                            &rag_file,
+                        ).await {
+                            eprintln!("Failed to write metadata.json: {e}");
+                            let _ = tokio::fs::remove_dir_all(&submission_dir).await;
+                            return HttpResponse::InternalServerError().finish();
+                        }
 
-                        // Disabled for the demonstration
-                        tokio::spawn(async move {
-                            match Rag::default().insert(rag_file).await {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    println!("rag.insert failed: {:#?}", e.to_string());
-                                }
-                            };
-                        });
+                        // Write answers.json
+                        let answers_path = format!("{}/answers.json", submission_dir);
+                        if let Err(e) = stage_io::write_json(
+                            &PathBuf::from(&answers_path),
+                            &answers,
+                        ).await {
+                            eprintln!("Failed to write answers.json: {e}");
+                        }
+
+                        println!("Staged submission {file_uuid} in {submission_dir}");
+                        drop(client);
+
                     }
                     _ => (),
                 }

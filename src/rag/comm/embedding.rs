@@ -12,7 +12,7 @@ pub trait Embeddable {
     fn prepare_for_upload(self, parent_doc_id: String, doc_summary: Option<String>) -> Result<Vec<EmbeddedChunk>>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct EmbeddingVector(pub Vec<f32>);
 
 impl Into<SearchPoints> for EmbeddingVector {
