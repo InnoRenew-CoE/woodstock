@@ -89,9 +89,31 @@ fn ensure_pip(python: &Path) -> Result<()> {
         return Ok(());
     }
 
-    run_command(
+    let ensurepip_result = run_command(
         Command::new(python).arg("-m").arg("ensurepip").arg("--upgrade"),
         "bootstrap pip for Docling",
+    );
+    if ensurepip_result.is_ok() {
+        return Ok(());
+    }
+
+    println!("[DOCLING] ensurepip unavailable, bootstrapping pip with get-pip.py");
+    run_command(
+        Command::new(python).arg("-c").arg(
+            r#"
+import runpy
+import tempfile
+import urllib.request
+
+url = "https://bootstrap.pypa.io/get-pip.py"
+with tempfile.NamedTemporaryFile(suffix="-get-pip.py") as script:
+    with urllib.request.urlopen(url, timeout=120) as response:
+        script.write(response.read())
+    script.flush()
+    runpy.run_path(script.name, run_name="__main__")
+"#,
+        ),
+        "bootstrap pip for Docling with get-pip.py",
     )
 }
 
