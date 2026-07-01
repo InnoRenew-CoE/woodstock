@@ -22,6 +22,7 @@ impl FileLoader for TextFileLoader {
             tags: file.tags.clone(),
             original_file_description: file.file_description.clone(),
             syntetic_file_description: None,
+            images: vec![],
         })
     }
 }

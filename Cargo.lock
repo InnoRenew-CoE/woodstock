@@ -5195,6 +5195,7 @@ dependencies = [
  "actix-ws",
  "anyhow",
  "awc",
+ "base64 0.22.1",
  "chrono",
  "dotenv",
  "ed25519-compact",

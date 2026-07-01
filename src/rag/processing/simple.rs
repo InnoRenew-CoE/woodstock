@@ -24,6 +24,7 @@ pub fn simple_word_chunking(file: LoadedFile, chunk_size: &ChunkSize, overlap: &
             seq_num: chunk_id,
             text,
             embedding_vector: None,
+            images: vec![],
         });
         chunk_id += 1;
 

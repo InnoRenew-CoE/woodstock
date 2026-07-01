@@ -1,4 +1,8 @@
-use crate::rag::{comm::embedding::Embeddable, loading::loaded_data::LoadedFile, models::RagProcessableFileType};
+use crate::rag::{
+    comm::embedding::Embeddable,
+    loading::loaded_data::LoadedFile,
+    models::{ImageRef, RagProcessableFileType},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -12,6 +16,8 @@ where
     pub original_file_description: Option<String>,
     pub syntetic_file_description: Option<String>,
     pub tags: Option<Vec<String>>,
+    #[serde(default)]
+    pub images: Vec<ImageRef>,
 }
 
 impl<T> From<(LoadedFile, Vec<T>)> for ChunkedFile<T>
@@ -28,6 +34,7 @@ where
             tags: file.tags,
             original_file_description: file.original_file_description,
             syntetic_file_description: file.syntetic_file_description,
+            images: file.images,
         }
     }
 }

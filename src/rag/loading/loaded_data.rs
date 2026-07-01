@@ -1,4 +1,4 @@
-use crate::rag::models::RagProcessableFileType;
+use crate::rag::models::{ImageRef, RagProcessableFileType};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -9,4 +9,6 @@ pub struct LoadedFile {
     pub syntetic_file_description: Option<String>,
     pub internal_id: String,
     pub tags: Option<Vec<String>>,
+    #[serde(default)]
+    pub images: Vec<ImageRef>,
 }

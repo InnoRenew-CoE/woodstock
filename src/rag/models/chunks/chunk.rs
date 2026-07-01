@@ -1,16 +1,38 @@
-use crate::rag::comm::embedding::{Embeddable, EmbeddingVector};
+use crate::rag::{
+    comm::embedding::{Embeddable, EmbeddingVector},
+    models::ImageRef,
+};
 use anyhow::{anyhow, Result};
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::json;
 
 use super::embedded_chunk::EmbeddedChunk;
 
-#[derive(Debug, Serialize, Deserialize)]
+pub fn image_payload(images: &[ImageRef]) -> serde_json::Value {
+    serde_json::Value::Array(
+        images
+            .iter()
+            .map(|image| {
+                json!({
+                    "id": image.id,
+                    "document_id": image.document_id,
+                    "file_name": image.file_name,
+                    "route": image.route,
+                    "alt_text": image.alt_text,
+                })
+            })
+            .collect(),
+    )
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Chunk {
     pub seq_num: i32,
     pub text: String,
     pub embedding_vector: Option<EmbeddingVector>,
+    #[serde(default)]
+    pub images: Vec<ImageRef>,
 }
 
 impl Embeddable for Chunk {
@@ -34,7 +56,9 @@ impl Embeddable for Chunk {
             doc_id,
             doc_seq_num: self.seq_num,
             content: self.text,
-            additional_data: Value::Null,
+            additional_data: json!({
+                "images": image_payload(&self.images),
+            }),
             doc_summary,
         }])
     }

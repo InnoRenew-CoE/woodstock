@@ -1,10 +1,13 @@
-use crate::rag::comm::embedding::{Embeddable, EmbeddingVector};
+use crate::rag::{
+    comm::embedding::{Embeddable, EmbeddingVector},
+    models::ImageRef,
+};
 use anyhow::{anyhow, Result};
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::json;
 
-use super::{chunk::Chunk, embedded_chunk::EmbeddedChunk};
+use super::{chunk::{image_payload, Chunk}, embedded_chunk::EmbeddedChunk};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HypeChunk {
@@ -12,6 +15,8 @@ pub struct HypeChunk {
     pub text: String,
     pub questions: Vec<String>,
     pub embedding_vector: Option<Vec<EmbeddingVector>>,
+    #[serde(default)]
+    pub images: Vec<ImageRef>,
 }
 
 impl From<&Chunk> for HypeChunk {
@@ -21,6 +26,7 @@ impl From<&Chunk> for HypeChunk {
             text: value.text.clone(),
             questions: vec![],
             embedding_vector: None,
+            images: value.images.clone(),
         }
     }
 }
@@ -62,7 +68,10 @@ impl Embeddable for HypeChunk {
                 doc_id: parent_doc.clone(),
                 doc_seq_num: self.seq_num,
                 content: self.text.clone(),
-                additional_data: Value::String(question.to_string()),
+                additional_data: json!({
+                    "question": question,
+                    "images": image_payload(&self.images),
+                }),
                 doc_summary: doc_summary.clone(),
             });
         }

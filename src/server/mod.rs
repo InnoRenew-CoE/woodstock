@@ -1,6 +1,7 @@
 use crate::db::{
     build_db_client, check_login, insert_new_password, retrieve_questions, retrieve_tags, setup_db, {self},
 };
+use crate::docling;
 use crate::rag::agent;
 use crate::rag::{Rag, RagProcessableFile, RagProcessableFileType};
 use crate::worker::stage_io;
@@ -45,6 +46,29 @@ struct AppState {
     rag: Mutex<Rag>,
     token_signer: TokenSigner<User, Ed25519>,
     invalidated_tokens: Mutex<VecDeque<String>>,
+}
+
+async fn rag_image(path: web::Path<(String, String)>) -> HttpResponse {
+    let (document_id, image_name) = path.into_inner();
+    if !is_safe_path_segment(&document_id) || !is_safe_path_segment(&image_name) {
+        return HttpResponse::BadRequest().finish();
+    }
+
+    let image_path = docling::image_root().join(document_id).join(&image_name);
+    let Ok(bytes) = tokio::fs::read(&image_path).await else {
+        return HttpResponse::NotFound().finish();
+    };
+
+    let content_type = mime_guess::from_path(&image_path).first_or_octet_stream();
+    HttpResponse::Ok().content_type(content_type.as_ref()).body(bytes)
+}
+
+fn is_safe_path_segment(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
+        && !value.contains("..")
 }
 
 #[derive(Serialize, Deserialize, FromRequest, Clone, Debug)]
@@ -677,6 +701,7 @@ pub async fn start_server(rag: Rag) {
     let client = build_db_client().await;
     setup_db(&client).await;
     create_dir_all(env::var("FILES_FOLDER").unwrap_or("/var/woodstock/files".to_string())).expect("Unable to create the files folder.");
+    create_dir_all(docling::image_root()).expect("Unable to create the RAG image folder.");
 
     println!("Server is running on localhost:{}", server_port);
     let KeyPair {
@@ -712,6 +737,7 @@ pub async fn start_server(rag: Rag) {
             .service(login)
             .service(register)
             .service(retrieve_posts)
+            .route("/rag/images/{document_id}/{image_name}", web::get().to(rag_image))
             .route("/audio", web::get().to(audio_ws))
             .route("/transcribe", web::post().to(transcribe_audio))
             .service(web::scope("/chat").service(search_get).service(search_post).service(download))
