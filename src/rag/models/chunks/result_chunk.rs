@@ -1,3 +1,4 @@
+use qdrant_client::qdrant::point_id::PointIdOptions;
 use qdrant_client::qdrant::ScoredPoint;
 use serde::Serialize;
 use serde_json::Value;
@@ -12,10 +13,19 @@ pub struct ResultChunk {
     pub score: f32,
 }
 
+impl ResultChunk {
+    pub fn short_id(&self) -> &str {
+        &self.id
+    }
+}
+
 impl From<ScoredPoint> for ResultChunk {
     fn from(value: ScoredPoint) -> Self {
         let id: String = match value.id {
-            Some(d) => format!("{:?}", d),
+            Some(d) => match d.point_id_options {
+                Some(PointIdOptions::Uuid(uuid)) => uuid,
+                _ => format!("{:?}", d),
+            },
             None => "Unknown".into(),
         };
 

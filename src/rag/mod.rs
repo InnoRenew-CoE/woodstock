@@ -3,16 +3,18 @@ use comm::embedding::EmbeddingVector;
 use comm::qdrant::{insert_chunks_to_qdrant, vector_search};
 use comm::{ChatClient, OllamaEmbeddingClient};
 use loading::load_file;
-use models::chunks::ResultChunk;
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
 use processing::{chunk, dedup, hype, prepare_for_upload};
 
 pub mod agent;
 pub mod comm;
-mod loading;
-mod models;
+pub mod loading;
+pub mod models;
 mod processing;
 
+pub use loading::loaded_data::LoadedFile;
+pub use models::chunks::{Chunk, EmbeddedChunk, HypeChunk, ResultChunk};
+pub use models::ChunkedFile;
 pub use models::{RagProcessableFile, RagProcessableFileType};
 
 #[derive(Debug, Default)]
@@ -23,14 +25,30 @@ pub struct Rag {
 
 impl Rag {
     pub async fn insert(&self, file: RagProcessableFile) -> Result<()> {
-        let loaded_file = load_file(&file).await?;
-        // let chunked_file = chunk(loaded_file, processing::ChunkingStrategy::Word(250, 30));
-        let chunked_file = chunk(loaded_file, processing::ChunkingStrategy::Markdown(250));
-        println!("[RAG] chunking...");
-        let enriched_file = hype(chunked_file, &self.llm).await;
-        println!("[RAG] Preparing for upload...");
-        let embedded_chunks = prepare_for_upload(enriched_file, &self.embeddings).await?;
-        println!("[RAG] Upserting to qdrant...");
+        let loaded_file = self.insert_meta(&file).await?;
+        let chunked_file = Self::insert_chunk(loaded_file);
+        let hyped_file = self.insert_hype(chunked_file).await?;
+        let embedded_chunks = self.insert_embed(hyped_file).await?;
+        Self::insert_qdrant(embedded_chunks).await
+    }
+
+    pub async fn insert_meta(&self, file: &RagProcessableFile) -> Result<LoadedFile> {
+        load_file(file).await
+    }
+
+    pub fn insert_chunk(loaded: LoadedFile) -> ChunkedFile<Chunk> {
+        chunk(loaded, processing::ChunkingStrategy::Markdown(250))
+    }
+
+    pub async fn insert_hype(&self, chunked: ChunkedFile<Chunk>) -> Result<ChunkedFile<HypeChunk>> {
+        Ok(hype(chunked, &self.llm).await)
+    }
+
+    pub async fn insert_embed(&self, hyped: ChunkedFile<HypeChunk>) -> Result<Vec<EmbeddedChunk>> {
+        prepare_for_upload(hyped, &self.embeddings).await
+    }
+
+    pub async fn insert_qdrant(embedded_chunks: Vec<EmbeddedChunk>) -> Result<()> {
         insert_chunks_to_qdrant(embedded_chunks).await
     }
 

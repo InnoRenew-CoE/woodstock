@@ -1,11 +1,12 @@
 use crate::rag::comm::embedding::{Embeddable, EmbeddingVector};
 use anyhow::{anyhow, Result};
 use ollama_rs::generation::embeddings::request::{EmbeddingsInput, GenerateEmbeddingsRequest};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::embedded_chunk::EmbeddedChunk;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Chunk {
     pub seq_num: i32,
     pub text: String,

@@ -16,6 +16,7 @@ mod summarize;
 mod markdown_chunking;
 
 pub use dedup_embeddings::dedup;
+pub use embedd_file::embedd_file;
 pub use hype::hype;
 pub use prepare::prepare_for_upload;
 

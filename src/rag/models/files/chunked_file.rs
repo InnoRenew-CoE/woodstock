@@ -1,6 +1,7 @@
 use crate::rag::{comm::embedding::Embeddable, loading::loaded_data::LoadedFile, models::RagProcessableFileType};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ChunkedFile<T>
 where
     T: Embeddable,

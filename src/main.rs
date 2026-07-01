@@ -8,6 +8,7 @@ mod db;
 mod rag;
 mod server;
 mod shared;
+mod worker;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -17,6 +18,14 @@ async fn main() -> Result<()> {
     }
 
     let rag = Rag::default();
+
+    // Spawn background worker
+    let worker_rag = Rag::default();
+    tokio::spawn(async {
+        if let Err(e) = worker::run(worker_rag).await {
+            eprintln!("[WORKER] Fatal error: {e}");
+        }
+    });
 
     // if let Err(e) = prompt(&rag, "When did academic publications about wood densification first appear?").await {
     //     println!("Something went wrong with prompt: {:#?}", e);
