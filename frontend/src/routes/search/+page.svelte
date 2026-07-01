@@ -1,6 +1,7 @@
 <script lang="ts">
     import { PUBLIC_API_BASE_URL } from "$env/static/public";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
+    import Spacer from "$lib/common/Spacer.svelte";
     import { pushNotification } from "$lib/stores/notifications";
     import { marked } from "marked";
     import { SvelteMap } from "svelte/reactivity";
@@ -18,28 +19,20 @@
     let files = new SvelteMap<string, Chunk[]>();
     let fileMap = new SvelteMap<string, string>(); // chunk-id, doc-id
 
+    let fileContainer = $state();
     let waiting = $state(false);
+    let hoveredId: string | undefined = $state(undefined);
 
-    // chunks = [
-    //     {
-    //         id: 'PointId { point_id_options: Some(Uuid("c0f02548-4da3-4fcd-82bf-c63dadbb445a")) }',
-    //         doc_id: "2",
-    //         doc_seq_num: 7,
-    //         content:
-    //             "vector space. When a user query q arrives, it is embedded into q = f ( q ) . The system then locates the nearest v ij vectors within E , and retrieves the associated chunks for nal answer generation by an LLM. Although the pipeline remains structurally similar to a Naive RAG, the key difference is that HyPE matches questions against questions, rather than questions against chunk text. This questionquestion alignment increases the probabil- ity of nding the correct chunks for two main reasons. First, many embedding models exhibit style-based clustering [13]. Texts of similar form (e.g., interrogative sentences) often lie closer in the vector space. As a result, a user’s real-world query naturally aligns more closely with the hypothetical prompts that share its interrogative style. Second, generating multiple hypothetical queries per chunk broadens the se- mantic reach, covering a wider range of possible question formulations. Even if a user query is phrased in a slightly different way, there is a higher chance that at least one of the chunk’s hypothetical questions closely corresponds to it. Another advantage of HyPE lies in how it addresses the inherent chunking tradeoff in retrieval systems. If chunks are too large, their embeddings become less precise because they encode a mix of multiple concepts, making vector-based similarity less reliable [14]. Conversely, reducing chunk size improves embedding specicity but risks losing crucial sur- rounding context. HyPE mitigates this issue by ensuring that each stored vector represents a specic piece of information within a chunk,",
-    //         additional_data: "What is HyPE?",
-    //         score: 0.687968,
-    //     },
-    //     {
-    //         id: 'PointId { point_id_options: Some(Uuid("1e717a2c-fab1-4460-b8c0-03f64f0bbbff")) }',
-    //         doc_id: "2",
-    //         doc_seq_num: 5,
-    //         content:
-    //             "time and, instead, alters how we store the passages (i.e., their hypothetical question embeddings). More recently, HyDE [5] addresses querydocument mis- match by generating a hypothetical answer or short passage at query time. Instead of embedding the user's question directly, HyDE prompts an LLM to produce an approximate response, then embeds that synthetic text. This is used to retrieve relevant real documents from a vector index. While HyDE can improve retrieval accuracy for zero-shot question answering, it incurs an extra inference cost per user query. Additionally, the method may struggle, where the prompt queries for niche domain knowledge, where the model may not have sufcient knowledge to produce a representative sample. III. METHODOLOGY HyPE addresses the challenge of aligning user queries and relevant content by pre-computing hypothetical prompts at the indexing stage, contrasting with HyDE's runtime genera- tion of synthetic answers. This shift avoids additional infer- ence overhead per query and improves retrieval precision by ensuring that both user queries and stored embeddings share a question-like form. The method begins by splitting the corpus D into coherent chunks C 1 ; C 2 ; : : : ; C n , where each chunk provides a self-contained unit of information. For each chunk C i , an LLM G generates multiple hypothetical prompts Q i = q i 1 ; q i 2 ; : : : ; q ik , simu- lating possible user queries that the chunk might answer. This ofine step does not introduce any additional computational",
-    //         additional_data: "What is the main idea of HyPE according to the passage?",
-    //         score: 0.65756434,
-    //     },
-    // ];
+    const setHoveredId = (id: string) => {
+        hoveredId = id;
+        const docId = fileMap.get(id);
+        if (docId) {
+            extendedDocument = docId;
+            fileContainer?.scrollIntoView({ behavior: "smooth", block: "end" });
+        }
+    };
+
+    window.setHoveredId = setHoveredId;
 
     interface StreamMessage {
         type: "chunks" | "token" | "done";
@@ -184,26 +177,31 @@
             </div>
         </form>
     {:else}
-        <div class="p-10 gap-5 grid grid-rows-1 grid-cols-[2fr_3fr] overflow-hidden">
-            <div id="files" class="flex-col flex gap-2 items-start h-full overflow-auto min-h-0 no-scrollbar">
+        <div class="p-10 gap-5 grid grid-rows-1 grid-cols-[minmax(300px,2fr)_3fr] overflow-hidden">
+            <div bind:this={fileContainer} id="files" class="flex-col flex gap-2 items-start h-full overflow-auto min-h-0 no-scrollbar">
                 {#each files as [doc_id, chunks]}
                     {@const isExtended = extendedDocument === doc_id}
+                    {@const isHovered = fileMap.get(hoveredId ?? "") === doc_id}
                     {@const firstChunk = chunks[0]}
-                    <div onclick={() => (isExtended ? (extendedDocument = undefined) : (extendedDocument = doc_id))} id={doc_id} class="card">
-                        <div class="flex items-center gap-3 bg-white/50 rounded-lg px-3 py-2 hover:bg-white transition-colors cursor-pointer">
-                            <div class="p-2 font-mono text-xs rounded-lg bg-secondary/50 border border-secondary card flex items-center justify-center font-bold text-primary">
+                    <div onclick={() => (isExtended ? (extendedDocument = undefined) : (extendedDocument = doc_id))} id={doc_id} class="card w-full bg-white">
+                        <div class="w-full flex items-center gap-3 rounded-lg px-3 py-2 transition-colors cursor-pointer">
+                            <div class="text-sm text-gray-700">{firstChunk.additional_data}</div>
+                            <Spacer />
+                            <div class="font-mono text-xs rounded-lg flex items-center justify-center font-light text-secondary">
                                 {firstChunk.score.toFixed(2)}
                             </div>
-                            <div class="text-sm text-gray-700">{firstChunk.additional_data}</div>
-                            <a href="/download/{doc_id}" class="bg-primary rounded-lg p-2">
-                                <MaskedIcon src="/download.svg" class="bg-white" />
+                            <a href="{PUBLIC_API_BASE_URL}/chat/download/{doc_id}" class="bg-primary rounded-lg p-2">
+                                <MaskedIcon src="/download.svg" class="bg-white size-3" />
                             </a>
                         </div>
                         {#if isExtended}
-                            <div class="overflow-auto max-h-full min-h-0 grid gap-5 p-5">
+                            <div in:fade class="overflow-auto max-h-full min-h-0 grid gap-5 p-5">
                                 {#each chunks as chunk}
-                                    <div class="prose text-xs p-5 card bg-white">
-                                        {@html marked(chunk.content)}
+                                    {@const isHovered = hoveredId === chunk.id}
+                                    <div id={chunk.id} class="prose text-xs max-w-none p-5 card bg-white {isHovered ? 'bg-amber-200! ' : ''}">
+                                        {#await marked(chunk.content) then data}
+                                            {@html data}
+                                        {/await}
                                     </div>
                                 {/each}
                             </div>
@@ -217,7 +215,17 @@
                         {#if msg.content.length > 0}
                             <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
                                 <div class="max-w-[70%] rounded-xl p-2 {msg.role === 'user' ? 'bg-primary text-white' : 'bg-white card'}">
-                                    <div class="[&_p]:m-0!">{@html marked(msg.content)}</div>
+                                    <div class="[&_p]:m-0!">
+                                        {#await marked(msg.content) then data}
+                                            {@html (() => {
+                                                let i = 0;
+                                                return data.replace(/\[\[(.*?)\]\]/gi, (match, id) => {
+                                                    i += 1;
+                                                    return `<a href="#${id}" class="p-1 card text-amber-700 hover:text-amber-900 text-xs font-mono px-1 underline underline-offset-2" onmouseover="setHoveredId('${id}')">${i}</a>`;
+                                                });
+                                            })()}
+                                        {/await}
+                                    </div>
                                 </div>
                             </div>
                         {/if}
