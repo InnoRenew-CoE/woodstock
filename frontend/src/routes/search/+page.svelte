@@ -12,9 +12,9 @@
         content: string;
     }
 
-    let activeQuery = $state("");
+    let activeQuery = $state("what is wood densification");
     let conversation = $state<Message[]>([]);
-    let chunks = $state<Chunk[]>([]);
+    let extendedDocument: string | undefined = $state(undefined);
     let files = new SvelteMap<string, Chunk[]>();
     let fileMap = new SvelteMap<string, string>(); // chunk-id, doc-id
 
@@ -156,7 +156,7 @@
     };
 </script>
 
-<div class="h-[80vh] grid">
+<div class="h-full max-h-[80vh] grid">
     {#if conversation.length === 0}
         <form onsubmit={sendQuestion} class="m-auto w-[80%] card rounded-3xl p-10 grid gap-5">
             <div class="rounded-lg flex flex-col items-center justify-center h-full p-10 text-center px-6">
@@ -184,13 +184,30 @@
             </div>
         </form>
     {:else}
-        <div class="p-10 gap-5 grid grid-rows-1 grid-cols-[min-content_1fr] overflow-hidden">
-            <div id="files" class="p-5 card">
+        <div class="p-10 gap-5 grid grid-rows-1 grid-cols-[2fr_3fr] overflow-hidden">
+            <div id="files" class="flex-col flex gap-2 items-start h-full overflow-auto min-h-0 no-scrollbar">
                 {#each files as [doc_id, chunks]}
+                    {@const isExtended = extendedDocument === doc_id}
                     {@const firstChunk = chunks[0]}
-                    <div id={doc_id}>
-                        <div>{firstChunk.score.toFixed(2)}</div>
-                        <div class="truncate">{firstChunk.additional_data}</div>
+                    <div onclick={() => (isExtended ? (extendedDocument = undefined) : (extendedDocument = doc_id))} id={doc_id} class="card">
+                        <div class="flex items-center gap-3 bg-white/50 rounded-lg px-3 py-2 hover:bg-white transition-colors cursor-pointer">
+                            <div class="p-2 font-mono text-xs rounded-lg bg-secondary/50 border border-secondary card flex items-center justify-center font-bold text-primary">
+                                {firstChunk.score.toFixed(2)}
+                            </div>
+                            <div class="text-sm text-gray-700">{firstChunk.additional_data}</div>
+                            <a href="/download/{doc_id}" class="bg-primary rounded-lg p-2">
+                                <MaskedIcon src="/download.svg" class="bg-white" />
+                            </a>
+                        </div>
+                        {#if isExtended}
+                            <div class="overflow-auto max-h-full min-h-0 grid gap-5 p-5">
+                                {#each chunks as chunk}
+                                    <div class="prose text-xs p-5 card bg-white">
+                                        {@html marked(chunk.content)}
+                                    </div>
+                                {/each}
+                            </div>
+                        {/if}
                     </div>
                 {/each}
             </div>
