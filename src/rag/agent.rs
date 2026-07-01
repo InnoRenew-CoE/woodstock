@@ -12,7 +12,7 @@ use reagent_rs::prelude::*;
 use reagent_rs::AsyncToolFn;
 
 use crate::rag::comm::embedding::EmbeddingVector;
-use crate::rag::comm::qdrant::vector_search;
+use crate::rag::comm::qdrant::{chunks_for_document, vector_search};
 use crate::rag::comm::OllamaEmbeddingClient;
 use crate::rag::models::chunks::ResultChunk;
 use crate::rag::processing::dedup;
@@ -35,7 +35,8 @@ pub async fn build_search_agent(chunks_tx: Sender<Value>) -> Result<(Agent, toki
 
     println!("[AGENT] Building search agent — model: {model}, base_url: {base_url}, api_key: {}", api_key.is_some());
 
-    let rag_tool = build_rag_tool(chunks_tx)?;
+    let rag_tool = build_rag_tool(chunks_tx.clone())?;
+    let document_chunks_tool = build_document_chunks_tool(chunks_tx)?;
 
     let mut builder = AgentBuilder::default()
         .set_name("woodstock-search")
@@ -45,7 +46,8 @@ pub async fn build_search_agent(chunks_tx: Sender<Value>) -> Result<(Agent, toki
         .set_stream(true)
         .set_system_prompt(&system_prompt)
         .set_template(prompt_template)
-        .add_tool(rag_tool);
+        .add_tool(rag_tool)
+        .add_tool(document_chunks_tool);
 
     if let Some(key) = api_key {
         builder = builder.set_api_key(key);
@@ -59,6 +61,75 @@ pub async fn build_search_agent(chunks_tx: Sender<Value>) -> Result<(Agent, toki
     println!("[AGENT] Agent built in {:?}", start.elapsed());
 
     Ok((agent, rx))
+}
+
+fn build_document_chunks_tool(chunks_tx: Sender<Value>) -> Result<Tool> {
+    let exec: AsyncToolFn = Arc::new(move |args: Value| {
+        let chunks_tx = chunks_tx.clone();
+        Box::pin(async move {
+            let start = Instant::now();
+            let document_id = args
+                .get("document_id")
+                .or_else(|| args.get("doc_id"))
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| ToolExecutionError::ArgumentParsingError("Missing 'document_id' argument".into()))?;
+
+            println!("[DOC CHUNKS TOOL] Called for document_id: {document_id}");
+
+            let chunks = chunks_for_document(document_id).await.map_err(|e| {
+                let msg = format!("Document chunk fetch failed: {e}");
+                println!("[DOC CHUNKS TOOL] ERROR — {msg}");
+                ToolExecutionError::ExecutionFailed(msg)
+            })?;
+
+            println!(
+                "[DOC CHUNKS TOOL] Loaded {} unique chunks for document_id {document_id} in {:?}",
+                chunks.len(),
+                start.elapsed()
+            );
+
+            let chunks_json = serde_json::to_value(&chunks).map_err(|e| {
+                let msg = format!("Serialize document chunks failed: {e}");
+                println!("[DOC CHUNKS TOOL] ERROR — {msg}");
+                ToolExecutionError::ExecutionFailed(msg)
+            })?;
+
+            let msg = serde_json::json!({
+                "type": "chunks",
+                "value": chunks_json,
+                "display": false,
+            });
+            let sent = chunks_tx.try_send(msg);
+            println!("[DOC CHUNKS TOOL] Chunks sent to stream channel: {:?}", sent.map(|_| "ok"));
+
+            let agent_text: String = chunks
+                .iter()
+                .map(|c| {
+                    format!(
+                        "---chunk start---\n[[{}]]\ndoc_id: {}\ndoc_seq_num: {}\n{}\n---chunk end---\n",
+                        c.short_id(),
+                        c.doc_id,
+                        c.doc_seq_num,
+                        c.content
+                    )
+                })
+                .collect();
+
+            Ok(agent_text)
+        })
+    });
+
+    ToolBuilder::new()
+        .function_name("get_document_chunks")
+        .function_description(
+            "Returns all unique chunks for a known document id, sorted by their document sequence number. \
+             Use this when the user asks to inspect, summarize, or reason over a specific document that is \
+             already identified by doc_id/document_id. The returned chunks are deduplicated and in document order.",
+        )
+        .add_required_property("document_id", "string", "The document id/doc_id whose chunks should be returned")
+        .executor(exec)
+        .build()
+        .map_err(|e| anyhow!("Failed to build document chunks tool: {e}"))
 }
 
 fn build_rag_tool(chunks_tx: Sender<Value>) -> Result<Tool> {
@@ -124,7 +195,15 @@ fn build_rag_tool(chunks_tx: Sender<Value>) -> Result<Tool> {
 
                 let agent_text: String = chunks
                     .iter()
-                    .map(|c| format!("---chunk start---\n[[{}]]\n{}---chunk end---\n", c.short_id(), c.content))
+                    .map(|c| {
+                        format!(
+                            "---chunk start---\n[[{}]]\ndoc_id: {}\ndoc_seq_num: {}\n{}\n---chunk end---\n",
+                            c.short_id(),
+                            c.doc_id,
+                            c.doc_seq_num,
+                            c.content
+                        )
+                    })
                     .collect();
 
                 Ok(agent_text)

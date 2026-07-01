@@ -1,5 +1,5 @@
 use qdrant_client::qdrant::point_id::PointIdOptions;
-use qdrant_client::qdrant::ScoredPoint;
+use qdrant_client::qdrant::{RetrievedPoint, ScoredPoint};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -21,31 +21,47 @@ impl ResultChunk {
 
 impl From<ScoredPoint> for ResultChunk {
     fn from(value: ScoredPoint) -> Self {
-        let id: String = match value.id {
+        let id = id_from_point(value.id);
+        Self::from_payload(id, value.payload, value.score)
+    }
+}
+
+impl From<RetrievedPoint> for ResultChunk {
+    fn from(value: RetrievedPoint) -> Self {
+        let id = id_from_point(value.id);
+        Self::from_payload(id, value.payload, 1.0)
+    }
+}
+
+fn id_from_point(id: Option<qdrant_client::qdrant::PointId>) -> String {
+    match id {
             Some(d) => match d.point_id_options {
                 Some(PointIdOptions::Uuid(uuid)) => uuid,
                 _ => format!("{:?}", d),
             },
             None => "Unknown".into(),
-        };
+    }
+}
 
-        let doc_id = match value.payload.get("doc_id") {
+impl ResultChunk {
+    fn from_payload(id: String, payload: std::collections::HashMap<String, qdrant_client::qdrant::Value>, score: f32) -> Self {
+        let doc_id = match payload.get("doc_id") {
             Some(d) => d.as_str().map_or("Unknown", |v| v),
             None => "Unknown",
         };
         let doc_id = doc_id.to_string();
 
-        let doc_seq_num = match value.payload.get("doc_seq_num") {
+        let doc_seq_num = match payload.get("doc_seq_num") {
             Some(d) => d.as_integer().unwrap_or(-1) as i32,
             None => -1,
         };
 
-        let content: String = match value.payload.get("content") {
+        let content: String = match payload.get("content") {
             Some(d) => d.as_str().map_or("".into(), |v| v.into()),
             None => "".into(),
         };
 
-        let additional_data = match value.payload.get("additional_data") {
+        let additional_data = match payload.get("additional_data") {
             Some(d) => d.to_owned(),
             None => Value::Null.into(),
         };
@@ -56,7 +72,7 @@ impl From<ScoredPoint> for ResultChunk {
             doc_seq_num,
             content,
             additional_data: additional_data.into(),
-            score: value.score,
+            score,
         }
     }
 }
