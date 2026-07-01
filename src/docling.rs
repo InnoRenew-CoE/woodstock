@@ -64,6 +64,7 @@ fn ensure_docling_installed(venv_dir: &Path) -> Result<()> {
     }
 
     println!("[DOCLING] installing/updating Python docling package");
+    ensure_pip(&python)?;
     run_command(
         Command::new(&python).arg("-m").arg("pip").arg("install").arg("--upgrade").arg("pip"),
         "upgrade pip for Docling",
@@ -71,6 +72,26 @@ fn ensure_docling_installed(venv_dir: &Path) -> Result<()> {
     run_command(
         Command::new(&python).arg("-m").arg("pip").arg("install").arg("--upgrade").arg("docling"),
         "install Docling",
+    )
+}
+
+fn ensure_pip(python: &Path) -> Result<()> {
+    let has_pip = Command::new(python)
+        .arg("-m")
+        .arg("pip")
+        .arg("--version")
+        .output()
+        .with_context(|| format!("check pip in {}", python.display()))?
+        .status
+        .success();
+
+    if has_pip {
+        return Ok(());
+    }
+
+    run_command(
+        Command::new(python).arg("-m").arg("ensurepip").arg("--upgrade"),
+        "bootstrap pip for Docling",
     )
 }
 
