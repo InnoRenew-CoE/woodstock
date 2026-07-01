@@ -46,7 +46,7 @@
         <Header />
     {/key}
 </header>
-<div id="layout" bind:this={layout_component} class="font-roboto grid grid-rows-[auto_1fr_auto]">
+<div id="layout" bind:this={layout_component} class="font-roboto grid h-full grid-rows-[auto_1fr_auto]">
     <div class="flex-1 h-full relative py-5">
         {@render children()}
         <div class="fixed right-0 bottom-0 top-0 flex flex-col justify-end gap-5 p-10 pointer-events-none">

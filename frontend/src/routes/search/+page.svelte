@@ -1,19 +1,20 @@
 <script lang="ts">
     import { PUBLIC_API_BASE_URL } from "$env/static/public";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
-    import Spacer from "$lib/common/Spacer.svelte";
     import { pushNotification } from "$lib/stores/notifications";
-    import type { ResultChunk } from "$lib/types/question";
     import { marked } from "marked";
-    import { fade, slide } from "svelte/transition";
+    import { fade } from "svelte/transition";
     import { AudioRecorder } from "./AudioRecorder";
 
-    let data: string = $state("");
-    let query: string = $state("");
+    interface Message {
+        sender: string;
+        data: string;
+    }
+
+    let activeQuery = $state("");
+    let conversation = $state<Message[]>([]);
+
     let waiting = $state(false);
-    let component: HTMLDivElement | undefined = $state(undefined);
-    let maxHeight = $derived((component?.clientHeight ?? 100) * 0.8);
-    let chunks: ResultChunk[] = $state([]);
 
     // chunks = [
     //     {
@@ -30,48 +31,94 @@
     //         doc_id: "2",
     //         doc_seq_num: 5,
     //         content:
-    //             "time and, instead, alters how we store the passages (i.e., their hypothetical question embeddings). More recently, HyDE [5] addresses querydocument mis- match by generating a hypothetical answer or short passage at query time. Instead of embedding the user’s question directly, HyDE prompts an LLM to produce an approximate response, then embeds that synthetic text. This is used to retrieve relevant real documents from a vector index. While HyDE can improve retrieval accuracy for zero-shot question answering, it incurs an extra inference cost per user query. Additionally, the method may struggle, where the prompt queries for niche domain knowledge, where the model may not have sufcient knowledge to produce a representative sample. III. METHODOLOGY HyPE addresses the challenge of aligning user queries and relevant content by pre-computing hypothetical prompts at the indexing stage, contrasting with HyDE’s runtime genera- tion of synthetic answers. This shift avoids additional infer- ence overhead per query and improves retrieval precision by ensuring that both user queries and stored embeddings share a question-like form. The method begins by splitting the corpus D into coherent chunks C 1 ; C 2 ; : : : ; C n , where each chunk provides a self-contained unit of information. For each chunk C i , an LLM G generates multiple hypothetical prompts Q i = q i 1 ; q i 2 ; : : : ; q ik , simu- lating possible user queries that the chunk might answer. This ofine step does not introduce any additional computational",
+    //             "time and, instead, alters how we store the passages (i.e., their hypothetical question embeddings). More recently, HyDE [5] addresses querydocument mis- match by generating a hypothetical answer or short passage at query time. Instead of embedding the user's question directly, HyDE prompts an LLM to produce an approximate response, then embeds that synthetic text. This is used to retrieve relevant real documents from a vector index. While HyDE can improve retrieval accuracy for zero-shot question answering, it incurs an extra inference cost per user query. Additionally, the method may struggle, where the prompt queries for niche domain knowledge, where the model may not have sufcient knowledge to produce a representative sample. III. METHODOLOGY HyPE addresses the challenge of aligning user queries and relevant content by pre-computing hypothetical prompts at the indexing stage, contrasting with HyDE's runtime genera- tion of synthetic answers. This shift avoids additional infer- ence overhead per query and improves retrieval precision by ensuring that both user queries and stored embeddings share a question-like form. The method begins by splitting the corpus D into coherent chunks C 1 ; C 2 ; : : : ; C n , where each chunk provides a self-contained unit of information. For each chunk C i , an LLM G generates multiple hypothetical prompts Q i = q i 1 ; q i 2 ; : : : ; q ik , simu- lating possible user queries that the chunk might answer. This ofine step does not introduce any additional computational",
     //         additional_data: "What is the main idea of HyPE according to the passage?",
     //         score: 0.65756434,
     //     },
     // ];
 
-    async function sendQuery() {
-        data = "";
-        chunks = [];
+    interface StreamMessage {
+        type: "chunks" | "token" | "done";
+        value?: string;
+        display?: boolean;
+    }
+
+    interface Chunk {
+        id: string;
+        doc_id: string;
+        doc_seq_num: number;
+        content: string;
+        additional_data: string;
+        score: number;
+    }
+
+    async function sendQuery(queryParam: string) {
         waiting = true;
-        console.log(`${PUBLIC_API_BASE_URL}/chat/search?query=${query}`);
-        const response = await fetch(`${PUBLIC_API_BASE_URL}/chat/search?query=${query}`);
+
+        conversation.push({ sender: "user", data: queryParam });
+
+        const response = await fetch(`${PUBLIC_API_BASE_URL}/chat/search?query=${encodeURIComponent(queryParam)}`);
         const stream = response.body?.getReader();
 
         if (!stream) {
-            console.error("idk bro ");
+            console.error("Failed to get response stream");
+            waiting = false;
             return;
         }
-        const decoder = new TextDecoder("utf-8");
-        let total = 0;
+
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        let message = "";
+
+        conversation.push({ sender: "assistant", data: message });
+
         while (true) {
-            const { done, value } = await stream?.read();
-            const decoded = decoder.decode(value);
-            data += decoded;
-            total++;
-            try {
-                chunks = JSON.parse(data);
-                data = "";
-            } catch (e) {}
-            // if (total === 1) {
-            //     chunks = JSON.parse(decoded);
-            //     continue;
-            // }
-            if (done) {
-                console.log("Done");
-                break;
+            const { done, value } = await stream.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                console.log(line);
+
+                try {
+                    const msg: StreamMessage = JSON.parse(line);
+
+                    if (msg.display) {
+                        switch (msg.type) {
+                            case "chunks":
+                                break;
+                            case "token":
+                                const data = conversation.at(-1);
+                                if (data) {
+                                    data.data += msg.value ?? "";
+                                }
+                                break;
+                        }
+                    } else {
+                        switch (msg.type) {
+                            case "chunks":
+                                // retrievedChunks = msg.value as Chunk[];
+                                break;
+                            case "token":
+                                // answerTokens = [...answerTokens, msg.value as string];
+                                break;
+                            case "done":
+                                // streaming finished
+                                break;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to parse stream message:", line, e);
+                }
             }
         }
-        const datas = data.split("</think>");
-        const think = datas[0];
-        const notThink = datas[1];
-        // data = notThink;
+
         waiting = false;
     }
 
@@ -88,123 +135,84 @@
         if (recording) {
             recording = false;
             loading = true;
-            await recorder.stop((text) => (query = text));
+            await recorder.stop((text) => (activeQuery = text));
             loading = false;
             warning = true;
-            await sendQuery();
+            await sendQuery(activeQuery);
         } else {
             await recorder.start();
             loading = false;
             recording = true;
         }
     }
+
+    const sendQuestion = async () => {
+        if (activeQuery.length === 0) return;
+        sendQuery(activeQuery);
+        activeQuery = "";
+    };
 </script>
 
-<div class="m-auto w-[90%]">
-    <div class="flex flex-wrap sm:grid grid-cols-2 h-full gap-5 min-h-[80vh] glass p-3">
-        <div class="p-5 glass w-full overflow-hidden">
-            <div class="font-light text-sm text-accent flex justify-between items-center py-3">
-                <div>
-                    {#if recording}
-                        When you want to stop recording, press the button again.
-                    {:else}
-                        Please click the microphone button and speak.
-                    {/if}
-                </div>
-                <div>
-                    {#if recording}
-                        <div class="{recording ? 'animate-pulse' : 'opacity-0'} text-secondary font-light">Recording ...</div>
-                    {:else if loading}
-                        <span class="{loading ? 'animate-pulse' : 'opacity-0'} text-secondary-1 font-light">Transcribing ...</span>
-                        <span class="text-xs text-red-600 font-light opacity-30">We've detected noise, we'll do our best!</span>
-                    {/if}
-                </div>
+<div class="h-[80vh] grid">
+    {#if conversation.length === 0}
+        <form onsubmit={sendQuestion} class="m-auto w-[80%] card rounded-3xl p-10 grid gap-5">
+            <div class="rounded-lg flex flex-col items-center justify-center h-full p-10 text-center px-6">
+                <h1 class="text-2xl md:text-3xl font-semibold mb-2">Ask the expert a question</h1>
+                <p class="text-sm md:text-base max-w-md">Get answers on wood construction, circular design, and sustainable building practices.</p>
             </div>
-            <form class="flex gap-2 items-stretch">
-                <input bind:value={query} type="text" class="w-full py-2 px-4 glass border-1 rounded-xl placholder:text-accent" placeholder="Ask (or record) a question ..." />
-                <button type="submit" onclick={sendQuery} class="font-light text-sm glass rounded-xl px-5 flex-1 flex gap-3 items-center hover:bg-secondary/10">
-                    <MaskedIcon src="../contact.svg" class="size-3 bg-secondary" />
-                    Submit
-                </button>
-                <button class="glass p-2 {recording ? 'animate-pulse bg-secondary' : 'hover:bg-secondary/10'}" onclick={toggle}>
-                    <MaskedIcon src="/microphone.svg" class="bg-secondary {recording ? 'bg-white' : ''}" />
-                </button>
-            </form>
-
-            {#if waiting}
-                <div class="flex items-center justify-center gap-5 p-5 animate-pulse">
-                    <MaskedIcon src="../loading.svg" class="size-3 bg-secondary animate-spin" />
-                    Waiting for data!
-                </div>
-            {/if}
-
-            {#if chunks.length > 0}
-                <div class="pt-5 pl-5 opacity-50 font-mono text-xs">Data retrieved from files:</div>
-            {/if}
-
-            <ul class="grid gap-5 py-3">
-                {#each chunks.slice(0, 5) as chunk, i}
-                    <li class="glass p-3" in:slide={{ delay: i * 1000 }}>
-                        <div>
-                            <div class="p-3 flex gap-3 items-center">
-                                <div class="flex-1 flex gap-2 items-center">
-                                    <div class="text-secondary bg-secondary/5 border-secondary/50 p-2 shadow-secondary/30 glass rounded-full font-mono text-xs">#{i + 1}</div>
-                                    <span class="text-xs">Score</span>
-                                    <div class="py-1 px-3 text-xs h-min glass bg-green-700/10 border border-green-700/40 rounded-sm text-green-700">high</div>
-                                </div>
-                                {#if (parseInt(chunk.doc_id) ?? 0) > 0}
-                                    <a target="_blank" href="{PUBLIC_API_BASE_URL}/chat/download/{chunk.doc_id}" class="disabled:opacity-50 disabled:!cursor-no-drop glass px-3 py-2 flex gap-2 items-center">
-                                        <MaskedIcon src="../download.svg" class="size-3 bg-secondary group-hover:bg-accent/50" />
-                                    </a>
-                                {/if}
-                            </div>
-                            <div class="">
-                                <div class="grid grid-rows-[min-content_1fr] overflow-hidden transition-all response preview p-3 prose-sm glass text-sm max-w-none w-full">
-                                    <div class="flex gap-3 items-center pb-3">
-                                        <div class="uppercase text-accent/50 font-mono text-xs pb-2">Preview</div>
-                                        <Spacer />
-                                        <div class="glass p-1 flex gap-3 items-center rounded-full">
-                                            <button onclick={vote} class=" hover:brightness-110 active:brightness-90 hover:bg-green-500/5 hover:border-green-500 glass p-2 rounded-full"><MaskedIcon src="../thumbs-up.svg" class="bg-green-500" /></button>
-                                            <button onclick={vote} class=" hover:brightness-110 active:brightness-90 hover:bg-red-500/5 hover:border-red-500 glass p-2 rounded-full"><MaskedIcon src="../thumbs-down.svg" class="bg-red-500" /></button>
-                                        </div>
-                                    </div>
-                                    <div class="text-wrap whitespace-break-spaces max-w-full overflow-hidden">{@html marked("... " + chunk.content.slice(0, 3000) + " ...")}</div>
+            <div class="bg-white card flex gap-2 items-end p-2">
+                <textarea
+                    bind:value={activeQuery}
+                    name=""
+                    id=""
+                    placeholder="Ask your question"
+                    class="resize-none w-full p-5 ring-0"
+                    onkeydown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            sendQuestion();
+                        }
+                    }}></textarea>
+                {#if activeQuery.length > 0}
+                    <button type="submit" in:fade class="transition-all bg-primary p-2 rounded-lg hover:bg-background">
+                        <MaskedIcon src="/arrow.svg" class="bg-white" />
+                    </button>
+                {/if}
+            </div>
+        </form>
+    {:else}
+        <div class="p-10 grid grid-rows-1 overflow-hidden">
+            <div class="card gap-5 p-5 grid grid-rows-[1fr_min-content] max-h-full overflow-hidden">
+                <div class="w-full min-h-0 overflow-auto no-scrollbar text-sm prose max-w-none">
+                    {#each conversation as msg}
+                        {#if msg.data.length > 0}
+                            <div class="flex h-min {msg.sender === 'user' ? 'justify-end' : 'justify-start'}">
+                                <div class="max-w-[70%] rounded-lg px-3 py-1 {msg.sender === 'user' ? 'bg-primary text-white' : 'bg-white card'}">
+                                    <div class="">{@html marked(msg.data)}</div>
                                 </div>
                             </div>
-                        </div>
-                    </li>
-                {/each}
-            </ul>
-        </div>
-        <div id="llm" class=" p-10 glass w-full" bind:this={component}>
-            {#if data && data.length >= 0}
-                <div in:fade>
-                    <div class="opacity-30">Digital Expert's response</div>
-                    <div class="overflow-auto p-5 flex flex-col-reverse w-full">
-                        <div class="flex-1 response preview spacing-y-2 prose-sm w-full prose-stone">
-                            {@html marked(data)}
-                        </div>
-                    </div>
+                        {/if}
+                    {/each}
                 </div>
-            {:else if waiting}
-                <div class="flex items-center justify-center gap-5">
-                    <MaskedIcon src="../loading.svg" class="size-3 bg-secondary animate-spin" />
-                    Waiting for data!
-                </div>
-            {:else}
-                <div class="text-center text-accent glass p-5">You haven't asked or queried for anything yet.</div>
-            {/if}
+                <form onsubmit={sendQuestion} class="bg-white card flex gap-2 items-end p-2">
+                    <textarea
+                        autofocus
+                        bind:value={activeQuery}
+                        placeholder="Ask your question"
+                        class="resize-none w-full p-3 ring-0"
+                        onkeydown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                sendQuestion();
+                            }
+                        }}></textarea>
+                    {#if activeQuery.length > 0}
+                        <button type="submit" in:fade class="transition-all bg-primary p-2 rounded-lg hover:bg-background">
+                            <MaskedIcon src="/arrow.svg" class="bg-white" />
+                        </button>
+                    {/if}
+                </form>
+            </div>
         </div>
-    </div>
+    {/if}
 </div>
-
-<style>
-    .response :global(li) {
-        padding: 0.25rem 0;
-        transition: all 0.2s ease-in-out;
-    }
-
-    .initial * {
-        all: initial;
-    }
-</style>

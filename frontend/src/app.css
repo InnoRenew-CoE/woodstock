@@ -29,8 +29,29 @@
             transform: rotate(30deg);
         }
     }
-}
 
+    --font-roboto: "Roboto";
+    --font-sans: "Inter", "Segoe UI", sans-serif;
+    --font-display: "Inter", "Segoe UI", sans-serif;
+    --font-serif: "Calisto MT", "Book Antiqua", "Palatino Linotype", serif;
+    --font-mono: "JetBrains Mono", "Consolas", monospace;
+
+    --color-background: #f5f5f5;
+    --color-navigation-bar: #000;
+    --color-surface: #fafafa;
+    --color-primary: #18181b;
+    --color-primary-foreground: #ffffff;
+    --color-primary-border: #18181b05;
+    --color-destructive: #ff3737;
+    --color-success: #64bd97;
+    --color-warning: #f59e0b;
+    --color-info: #44acff;
+
+    /*
+	--color-accent: #ffd166;
+	--color-accent: #cb9b4d;    CGP
+	*/
+}
 @layer utilities {
     .no-scrollbar::-webkit-scrollbar {
         display: none;
@@ -99,5 +120,60 @@ button {
         font-weight: 100 900;
         font-display: swap;
         src: url("/fonts/roboto/Roboto-Italic-VariableFont_wdth,wght.ttf") format("truetype");
+    }
+}
+
+@layer utilities {
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .shadow,
+    .shadow-xs {
+        /*box-shadow: none;*/
+    }
+
+    .reset-tw,
+    .reset-tw * {
+        all: revert;
+    }
+}
+
+@layer base {
+    ::selection {
+        @apply bg-accent/10 text-accent;
+    }
+}
+
+@layer components {
+    .card {
+        @apply rounded-xl bg-surface border border-primary-foreground shadow-xs transition-all;
+    }
+
+    input {
+        @apply border border-primary/10 rounded-md px-3 py-1 outline-none ring-1 ring-transparent focus:ring-accent
+		invalid:not-focus:bg-destructive/5 invalid:not-focus:border-destructive/20;
+    }
+
+    input.plain {
+        @apply border-0 bg-transparent;
+    }
+
+    textarea {
+        @apply ring-accent focus:ring-1 focus:ring-accent focus:outline-none;
+    }
+
+    select {
+        @apply border appearance-none border-primary/10 rounded-lg px-3 pr-10 py-1 bg-background ring-1 ring-transparent focus:ring-accent
+		invalid:not-focus:bg-destructive/5 invalid:not-focus:border-destructive/20;
+
+        background-image: url("data:image/svg+xml,%3Csvg width='100%' height='100%' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9L12 15L18 9' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-size: 1rem;
+        background-repeat: no-repeat;
+        background-position: right 0.5rem center;
     }
 }
