@@ -168,7 +168,12 @@ fn persist_and_rewrite_images(markdown: &str, md_path: &Path, document_id: &str)
             continue;
         }
 
-        let source_path = md_parent.join(target);
+        let target_path_ref = Path::new(target);
+        let source_path = if target_path_ref.is_absolute() {
+            target_path_ref.to_path_buf()
+        } else {
+            md_parent.join(target_path_ref)
+        };
         if !source_path.is_file() {
             continue;
         }
@@ -201,5 +206,5 @@ fn persist_and_rewrite_images(markdown: &str, md_path: &Path, document_id: &str)
 }
 
 fn is_external_image_target(target: &str) -> bool {
-    target.starts_with("http://") || target.starts_with("https://") || target.starts_with("data:") || target.starts_with('/')
+    target.starts_with("http://") || target.starts_with("https://") || target.starts_with("data:")
 }
