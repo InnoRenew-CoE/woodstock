@@ -1,38 +1,5 @@
 <script lang="ts">
-    import { PUBLIC_API_BASE_URL } from "$env/static/public";
-    import { verify } from "$lib";
     import MaskedIcon from "$lib/common/MaskedIcon.svelte";
-    import { onMount } from "svelte";
-
-    const cards = [
-        {
-            title: "Woodstock",
-            description:
-                "Our platform helps researchers collaborate more effectively by turning uploaded research files into a shared, searchable knowledge system. Instead of manually reviewing documents, users can ask questions and receive clear answers about ongoing projects, progress updates, and related work.                 By understanding the meaning behind the content—not just keywords—the system makes it easy to track developments, discover collaboration opportunities, and stay informed about fellow researchers’ work. The goal is to make research more connected, accessible, and efficient.",
-            image: "./platform.png",
-            link: "/login",
-        },
-
-        {
-            title: "TIMBERHAUS Focus: Sustainable Wood Construction & Circular Economy",
-            description:
-                "TIMBERHAUS is a European innovation project dedicated to reducing the construction sector’s carbon footprint by developing climate-smart, circular solutions for wood construction. Addressing the fact that the building industry accounts for 40% of global CO₂ emissions and 35% of waste, TIMBERHAUS focuses on increasing the use of wood as a primary, sustainable material. The project is currently validating its technologies and strategies in three diverse pilot cities—Berlin (Germany), Baia Mare (Romania), and Siena (Italy)—to demonstrate how timber can be integrated into different urban contexts and heritage settings.",
-            image: "./timberhaus.svg",
-            link: "https://timberhaus.eu",
-        },
-    ];
-
-    let posts: { id: number | null; title: string; body: string; email: string; created: string }[] = $state([]);
-    let isLoggedIn = $state(false);
-
-    onMount(async () => {
-        isLoggedIn = (await verify()) === 200;
-        const response = await fetch(`${PUBLIC_API_BASE_URL}/posts`);
-        posts = await response.json();
-        posts.reverse();
-        console.log(isLoggedIn);
-    });
-
     const courses = [
         {
             title: "Information Technology for Sustainable Design - BIM with Elements of Algorithmics",
@@ -392,78 +359,110 @@
             photo: "https://neb.academy/images/b/b/6/d/1/bb6d158e61229a94efff96aba6e4b77daefc4447-stl.webp",
         },
     ];
+
+    const demos = [
+        {
+            title: "InnoRenew - IoT Platform",
+            description:
+                "Our IoT platform collects and aggregates data from connected devices in real time, transforming it into clear, actionable insights. Sensor data is visualized directly on interactive floorplans, dashboards, and charts, making it easy to monitor environments, track performance, and identify issues at a glance. The platform centralizes complex device data into a simple, intuitive interface for smarter decision-making.",
+            image: "./iot.jpg",
+            links: [
+                { text: "First floor", url: "https://iaq.innorenew.eu/grafana/public-dashboards/cbfa51fc8a644889844bd0ed7d313f08" },
+                { text: "Ground floor", url: "https://iaq.innorenew.eu/grafana/public-dashboards/38c19ae07e8745ef83d54366c14d7b31" },
+                { text: "Second floor", url: "https://iaq.innorenew.eu/grafana/public-dashboards/820b595ec2394acfb2180c4ab8be1669" },
+                { text: "Third floor", url: "https://iaq.innorenew.eu/grafana/public-dashboards/556c3912bd9e42a28992983a5b4a9d3d" },
+                { text: "Wall Mounted Sensors", url: "https://iaq.innorenew.eu/grafana/public-dashboards/bce5fe464a724190a3d9e3abc5dde8b5" },
+            ],
+        },
+        // {
+        //     title: "Ctfc - IoT Platform",
+        //     description:
+        //         "Our IoT platform collects and aggregates data from connected devices in real time, transforming it into clear, actionable insights. Sensor data is visualized directly on interactive floorplans, dashboards, and charts, making it easy to monitor environments, track performance, and identify issues at a glance. The platform centralizes complex device data into a simple, intuitive interface for smarter decision-making.",
+        //     image: "./iot.jpg",
+        //     link: "https://ctfc.innorenew.eu/grafana/public-dashboards/535d826acc744109b4d64a68654ee262?orgId=1&refresh=10s",
+        // },
+    ];
 </script>
 
-<div class="w-[80%] px-6 py-12 bg-white/60 rounded-2xl text-gray-800 m-auto shadow-sm grid gap-10">
-    <section class="text-center">
-        <div class="text-xl font-bold">The European Wood Construction Observatory</div>
-        <div class="text-lg bg-gradient-to-b from-amber-700 via-yellow-800 to-amber-900 bg-clip-text text-transparent font-bold">Ask. Explore. Build better with wood.</div>
-    </section>
-    <section class="">
-        <section class="bg-gradient-to-br from-amber-900 via-yellow-800 to-stone-900 text-amber-50 rounded-2xl p-10 relative">
-            <h2 class="text-3xl md:text-4xl font-bold mb-4">European Wood Construction Observatory</h2>
-            <div class="grid grid-cols-[1fr_100px]">
-                <p class="text-amber-100/90 max-w-2xl mb-6 leading-relaxed">
-                    An AI-driven tool for anyone looking for information on the wood and wood construction sector. Developed within the
-                    <a href="http://www.woodstockproject.eu" class="underline decoration-amber-300 hover:text-white">Horizon Europe WoodStock project</a>, with open-source data and data from project partners. At a later stage, it will use data from at least three mass-timber building projects,
-                    including the InnoRenew Living Lab building (Slovenia). Additional data from the University of Bordeaux and University of Galway Living Lab buildings may also be incorporated.
-                </p>
-                <img src="/lighthouse.png" alt="" class="rounded-xl" />
-            </div>
+<div class="p-10 grid gap-10 sm:max-w-[80%] m-auto">
+    <div class="flex items-center justify-center">
+        <section class="">
+            <h2 class="text-2xl font-bold text-amber-950 mb-8">Key features</h2>
 
-            <ul class="grid sm:grid-cols-3 gap-4">
-                <li class="bg-white/10 rounded-xl p-4">
-                    <p class="font-semibold mb-1">Guidelines &amp; solutions</p>
-                    <p class="text-sm text-amber-100/80">For circular and zero-waste building design.</p>
+            <ol class="space-y-5">
+                <li class="flex gap-4">
+                    <span class="flex-none w-8 h-8 rounded-full bg-amber-800 text-amber-50 font-semibold flex items-center justify-center">1</span>
+                    <p class="text-stone-700"><span class="font-semibold text-stone-900">Deep learning server</span> — the platform will run on a deep learning server to facilitate data processing and analysis.</p>
                 </li>
-                <li class="bg-white/10 rounded-xl p-4">
-                    <p class="font-semibold mb-1">Knowledge tools</p>
-                    <p class="text-sm text-amber-100/80">To expand the knowledge base in sustainable wood construction.</p>
+                <li class="flex gap-4">
+                    <span class="flex-none w-8 h-8 rounded-full bg-amber-800 text-amber-50 font-semibold flex items-center justify-center">2</span>
+                    <p class="text-stone-700"><span class="font-semibold text-stone-900">Data management</span> — a decentralised user and data management structure will ensure open data accessibility while protecting intellectual property rights.</p>
                 </li>
-                <li class="bg-white/10 rounded-xl p-4">
-                    <p class="font-semibold mb-1">Shared best practices</p>
-                    <p class="text-sm text-amber-100/80">Collect, share, and exchange practices, including WoodStock results.</p>
+                <li class="flex gap-4">
+                    <span class="flex-none w-8 h-8 rounded-full bg-amber-800 text-amber-50 font-semibold flex items-center justify-center">3</span>
+                    <p class="text-stone-700"><span class="font-semibold text-stone-900">User interface</span> — a responsive web interface with interactive visualisation tools to enhance user experience.</p>
                 </li>
-            </ul>
-            <div class="flex items-center justify-center p-5">
-                <a href="/search" class="px-6 py-3 rounded-full bg-gradient-to-r from-amber-600 to-amber-500 text-amber-50 font-semibold shadow-md hover:shadow-lg hover:from-amber-600 hover:to-amber-800 active:scale-95 transition-all duration-200"> Ask &amp; Explore here </a>
-            </div>
+                <li class="flex gap-4">
+                    <span class="flex-none w-8 h-8 rounded-full bg-amber-800 text-amber-50 font-semibold flex items-center justify-center">4</span>
+                    <p class="text-stone-700"><span class="font-semibold text-stone-900">IoT integration</span> — a versatile data ingestion module integrating diverse building data sources, including IoT sensors and various repositories.</p>
+                </li>
+                <li class="flex gap-4">
+                    <span class="flex-none w-8 h-8 rounded-full bg-amber-800 text-amber-50 font-semibold flex items-center justify-center">5</span>
+                    <p class="text-stone-700"><span class="font-semibold text-stone-900">AI system</span> — AI based on a Large Language Model (LLM), adhering to the seven requirements of trustworthy AI.</p>
+                </li>
+            </ol>
+
+            <h2 class="text-2xl font-bold text-amber-950 mt-14 mb-4">Data sources</h2>
+            <p class="text-stone-700 leading-relaxed">
+                EWCO will be built with open-source data and data from project partners. At a later stage, it will use data from at least three mass-timber building projects, including the InnoRenew Living Lab building (Slovenia). Additional data from the University of Bordeaux and University of
+                Galway Living Lab buildings may also be incorporated.
+            </p>
         </section>
-    </section>
-    <div class="h-[1px] bg-black/10 w-full"></div>
-    <section>
-        <h1 class="text-3xl font-bold mb-4">Latest posts</h1>
-        {#if posts.length > 0}
-            <div class="grid gap-5 md:grid-cols-3 place-items-stretch">
-                {#each posts as post}
-                    <a target="_blank" href="/post/{post.id}" class=" bg-white rounded-lg border border-teal-800/10 overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                        <div class="p-6">
-                            <div class="flex justify-between items-center">
-                                <h2 class="text-xl text-accent mb-3 line-clamp-1">{post.title}</h2>
-                                {#if isLoggedIn}
-                                    <a href="/app/collaborate?id={post.id}" target="_blank">
-                                        <MaskedIcon class="hover:bg-secondary bg-primary size-5" src="./edit.svg" />
-                                    </a>
-                                {/if}
-                            </div>
-                            <div class="text-gray-600 text-sm leading-relaxed line-clamp-2 w-full">{@html post.body}</div>
-                            <div class="pt-5 flex justify-between items-center text-xs">
-                                <span class="text-secondary">{post.email}</span><span class="text-secondary-1">{post.created}</span>
-                            </div>
-                        </div>
-                    </a>
-                {/each}
+    </div>
+    <section class="">
+        <h2 class="text-2xl font-semibold mb-6">Demo buildings using an IoT platform and deep learning</h2>
+
+        <div class="grid gap-5 grid-cols-1 md:grid-cols-4">
+            {#each demos as card}
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <!-- <img src={card.image} alt="Placeholder image" class="w-full h-[200px] object-cover border-2 rounded-lg shadow-xs border-white" /> -->
+
+                    <div class="p-4">
+                        <h3 class="text-xl mb-1">
+                            {card.title}
+                        </h3>
+
+                        <p class="text-sm mb-3 line-clamp-5">
+                            {card.description}
+                        </p>
+
+                        {#each card.links as link}
+                            <a href={link.url} target="_blank" rel="noopener noreferrer" class="text-sm text-blue-400 hover:underline font-medium">
+                                <div class="flex gap-3">
+                                    <MaskedIcon src="./external-link.svg" class="bg-blue-400" />
+                                    {link.text}
+                                </div>
+                            </a>
+                        {/each}
+                    </div>
+                </div>
+            {/each}
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <!-- <img src={card.image} alt="Placeholder image" class="w-full h-[200px] object-cover border-2 rounded-lg shadow-xs border-white" /> -->
+
+                <div class="p-4">
+                    <h3 class="text-xl mb-1">More coming soon</h3>
+
+                    <p class="text-sm mb-3 line-clamp-5">Soon more demos will be added.</p>
+                </div>
             </div>
-        {:else}
-            <div class="text-sm text-center text-accent">No posts yet.</div>
-        {/if}
+        </div>
     </section>
 
-    <div class="h-[1px] bg-black/10 w-full"></div>
     <section>
         <h2 class="text-2xl font-semibold mb-6">Visit our courses (NEB Academy)</h2>
         <div class="grid md:grid-cols-3 gap-3">
-            {#each courses.splice(0, 5) as course}
+            {#each courses as course}
                 <a target="_blank" href={course.url} class="hover:shadow hover:brightness-95 bg-white rounded-xl p-5">
                     {#if course.photo}
                         <img src={course.photo} class="rounded-lg" />
@@ -473,7 +472,6 @@
                     <div class="text-sm py-3 text-primary">{course.description}</div>
                 </a>
             {/each}
-            <a href="/about" class="p-10 bg-accent/20 rounded-lg shadow flex items-center justify-center text-amber-800 border border-accent/30 underline underline-offset-2 hover:text-amber-950">Find more</a>
         </div>
     </section>
 </div>
