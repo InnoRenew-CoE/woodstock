@@ -122,8 +122,10 @@ fn build_rag_tool(chunks_tx: Sender<Value>) -> Result<Tool> {
     ToolBuilder::new()
         .function_name("rag_search")
         .function_description(
-            "Searches the document store for information relevant to the user's query. \
-             Returns a list of document excerpts with metadata. Call this first before answering.",
+            "Searches the document store and returns the most relevant document excerpts with metadata. \
+             The query should be formulated as a natural language question (e.g. \"What is the tensile \
+             strength of densified wood?\") because the retrieval system matches questions to questions. \
+             Call this first to gather evidence before answering.",
         )
         .add_required_property("query", "string", "The search query to find relevant documents")
         .executor(exec)
