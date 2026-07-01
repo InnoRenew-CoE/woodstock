@@ -2,80 +2,118 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: $0 [-p] <question>"
-    echo "  -p    Use POST (send with empty history)"
+    echo "Usage: $0 <question> [<question2> ...]"
+    echo ""
+    echo "If only one question is given, interactive mode starts."
+    echo "Each turn appends the previous Q&A to history sent via POST."
     exit 1
 }
 
-use_post=false
-while getopts "p" opt; do
-    case "$opt" in
-        p) use_post=true ;;
-        *) usage ;;
-    esac
-done
-shift $((OPTIND - 1))
+port=${SERVER_PORT:-6970}
+base_url="http://localhost:${port}/chat/search"
+
+history='[]'
+
+send_query() {
+    local q="$1"
+    local method="$2"
+    local body=""
+    local url="$base_url"
+
+    if [ "$method" = "post" ]; then
+        body=$(jq -n -c --arg q "$q" --argjson h "$history" '{query: $q, history: $h}')
+        url="$base_url -X POST -H 'Content-Type: application/json' -d '$body'"
+    else
+        query_enc=$(printf '%s' "$q" | jq -sRr @uri)
+        url="${base_url}?query=${query_enc}"
+    fi
+
+    local reply=""
+    if [ "$method" = "post" ]; then
+        while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
+            display=$(echo "$line" | jq -r '.display // false' 2>/dev/null)
+            case "$type" in
+                chunks)
+                    count=$(echo "$line" | jq '.value | length')
+                    echo "--- Chunks (${count} retrieved) ---"
+                    echo "$line" | jq -r '.value[] | "  [\(.score | tostring)] doc_id=\(.doc_id) seq=\(.doc_seq_num) \(.content[0:120])..."'
+                    echo ""
+                    ;;
+                token)
+                    if [ "$display" = "true" ]; then
+                        val=$(echo "$line" | jq -r '.value')
+                        printf '%s' "$val"
+                        reply="${reply}${val}"
+                    fi
+                    ;;
+                done) echo ""; echo "--- END ---" ;;
+                error) echo "--- ERROR ---"; echo "$line" | jq -r '.value' ;;
+                *) echo "$line" ;;
+            esac
+        done < <(eval "curl -sN $url")
+    else
+        while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
+            display=$(echo "$line" | jq -r '.display // false' 2>/dev/null)
+            case "$type" in
+                chunks)
+                    count=$(echo "$line" | jq '.value | length')
+                    echo "--- Chunks (${count} retrieved) ---"
+                    echo "$line" | jq -r '.value[] | "  [\(.score | tostring)] doc_id=\(.doc_id) seq=\(.doc_seq_num) \(.content[0:120])..."'
+                    echo ""
+                    ;;
+                token)
+                    if [ "$display" = "true" ]; then
+                        val=$(echo "$line" | jq -r '.value')
+                        printf '%s' "$val"
+                        reply="${reply}${val}"
+                    fi
+                    ;;
+                done) echo ""; echo "--- END ---" ;;
+                error) echo "--- ERROR ---"; echo "$line" | jq -r '.value' ;;
+                *) echo "$line" ;;
+            esac
+        done < <(curl -sN "$url")
+    fi
+
+    history=$(echo "$history" | jq -c \
+        --arg q "$q" \
+        --arg r "$reply" \
+        '. + [{"role": "user", "content": $q}, {"role": "assistant", "content": $r}]')
+}
 
 if [ $# -eq 0 ]; then
     usage
 fi
 
-port=${SERVER_PORT:-6970}
-base_url="http://localhost:${port}/chat/search"
+first="$1"
+shift
 
-echo "--- Query ---"
-echo "$*"
+echo "--- Question ---"
+echo "$first"
 echo ""
 
-if [ "$use_post" = true ]; then
-    body=$(jq -n --arg q "$*" '{query: $q, history: []}')
-    echo "--- POST ---"
-    echo "curl -sN -X POST -H 'Content-Type: application/json' -d '$body' $base_url"
+send_query "$first" "get"
+
+for q in "$@"; do
     echo ""
-    curl -sN -X POST -H "Content-Type: application/json" -d "$body" "$base_url" | while IFS= read -r line; do
-        [ -z "$line" ] && continue
-        type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
-        display=$(echo "$line" | jq -r '.display // false' 2>/dev/null)
-        case "$type" in
-            chunks)
-                count=$(echo "$line" | jq '.value | length')
-                echo "--- Chunks (${count} retrieved) ---"
-                echo "$line" | jq -r '.value[] | "  [\(.score | tostring)] doc_id=\(.doc_id) seq=\(.doc_seq_num) \(.content[0:120])..."'
-                echo ""
-                ;;
-            token)
-                if [ "$display" = "true" ]; then
-                    printf '%s' "$(echo "$line" | jq -r '.value')"
-                fi
-                ;;
-            done) echo ""; echo "--- END ---" ;;
-            error) echo "--- ERROR ---"; echo "$line" | jq -r '.value' ;;
-            *) echo "$line" ;;
-        esac
+    echo "--- Question ---"
+    echo "$q"
+    echo ""
+    send_query "$q" "post"
+done
+
+# interactive mode — if only one question was given on the CLI
+if [ $# -eq 0 ]; then
+    while true; do
+        echo ""
+        read -r -p "> " q
+        [ -z "$q" ] && continue
+        [ "$q" = "exit" ] || [ "$q" = "quit" ] && break
+        echo ""
+        send_query "$q" "post"
     done
-    echo ""
-else
-    query=$(printf '%s' "$*" | jq -sRr @uri)
-    curl -sN "${base_url}?query=${query}" | while IFS= read -r line; do
-        [ -z "$line" ] && continue
-        type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
-        display=$(echo "$line" | jq -r '.display // false' 2>/dev/null)
-        case "$type" in
-            chunks)
-                count=$(echo "$line" | jq '.value | length')
-                echo "--- Chunks (${count} retrieved) ---"
-                echo "$line" | jq -r '.value[] | "  [\(.score | tostring)] doc_id=\(.doc_id) seq=\(.doc_seq_num) \(.content[0:120])..."'
-                echo ""
-                ;;
-            token)
-                if [ "$display" = "true" ]; then
-                    printf '%s' "$(echo "$line" | jq -r '.value')"
-                fi
-                ;;
-            done) echo ""; echo "--- END ---" ;;
-            error) echo "--- ERROR ---"; echo "$line" | jq -r '.value' ;;
-            *) echo "$line" ;;
-        esac
-    done
-    echo ""
 fi
