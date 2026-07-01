@@ -18,7 +18,7 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 
 pub mod embedding;
-pub mod marker;
+pub mod docling;
 pub mod qdrant;
 pub mod question;
 

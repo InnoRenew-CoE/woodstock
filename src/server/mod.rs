@@ -196,12 +196,14 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
 
                         println!("Processing document_id: {file_id} | {file_uuid} | {original_name}");
 
-                        let processable_file_type = match file_extension.to_ascii_lowercase().as_str() {
-                            "txt" => RagProcessableFileType::Text,
-                            "md" => RagProcessableFileType::Markdown,
-                            "pdf" => RagProcessableFileType::Pdf,
-                            _ => {
-                                eprintln!("File must be txt, md or pdf - but is: {}", file_extension);
+                        let processable_file_type = match RagProcessableFileType::from_extension(&file_extension) {
+                            Some(file_type) => file_type,
+                            None => {
+                                eprintln!(
+                                    "Unsupported file extension: {}. Supported extensions: {}",
+                                    file_extension,
+                                    RagProcessableFileType::supported_extensions().join(", ")
+                                );
                                 return HttpResponse::BadRequest().finish();
                             }
                         };

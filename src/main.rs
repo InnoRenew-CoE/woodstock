@@ -5,6 +5,7 @@ use std::io::Write;
 use std::time::Instant;
 
 mod db;
+mod docling;
 mod rag;
 mod server;
 mod shared;
@@ -16,6 +17,8 @@ async fn main() -> Result<()> {
     if let Err(e) = dotenv::dotenv() {
         return Err(e.into());
     }
+
+    docling::bootstrap()?;
 
     let rag = Rag::default();
 
@@ -65,13 +68,8 @@ async fn embed_all(rag: &Rag) -> Result<()> {
 
         let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("").to_lowercase();
 
-        let file_type = match extension.as_str() {
-            "pdf" => RagProcessableFileType::Pdf,
-            "md" => RagProcessableFileType::Markdown,
-            "txt" => RagProcessableFileType::Text,
-            _ => {
-                continue;
-            }
+        let Some(file_type) = RagProcessableFileType::from_extension(&extension) else {
+            continue;
         };
 
         let woodstock_data = RagProcessableFile {
