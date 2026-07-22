@@ -13,7 +13,7 @@
         content: string;
     }
 
-    let activeQuery = $state("what is wood densification");
+    let activeQuery = $state("");
     let conversation = $state<Message[]>([]);
     let extendedDocument: string | undefined = $state(undefined);
     let files = new SvelteMap<string, Chunk[]>();
@@ -147,6 +147,8 @@
         sendQuery(activeQuery);
         activeQuery = "";
     };
+
+    const sampleQuestions = ["Is reclaimed wood safe to use for structural purpose?", "Which materials should I use to build according to NEB values?", "Are any good design examples to build with wood?"];
 </script>
 
 <div class="h-full max-h-[80vh] grid">
@@ -155,6 +157,22 @@
             <div class="rounded-lg flex flex-col items-center justify-center h-full p-10 text-center px-6">
                 <h1 class="text-2xl md:text-3xl font-semibold mb-2">Ask the expert a question</h1>
                 <p class="text-sm md:text-base max-w-md">Get answers on wood construction, circular design, and sustainable building practices.</p>
+            </div>
+            <div class="grid gap-2">
+                <div class="uppercase text-xs opacity-30">Sample questions (click to try)</div>
+                <div class="flex gap-3 text-xs items-start">
+                    {#each sampleQuestions as question}
+                        <div
+                            class="card p-2 bg-white hover:bg-amber-200/30 hover:text-amber-600 cursor-pointer"
+                            onclick={() => {
+                                sendQuery(question);
+                                activeQuery = "";
+                            }}
+                        >
+                            {question}
+                        </div>
+                    {/each}
+                </div>
             </div>
             <div class="bg-white card flex gap-2 items-end p-2">
                 <textarea
@@ -169,6 +187,13 @@
                             sendQuestion();
                         }
                     }}></textarea>
+                {#if recording}
+                    <span class="text-info font-light animate-pulse text-xs whitespace-nowrap">We're listening to your dictation...</span>
+                {/if}
+
+                <button in:fade class="transition-all bg-info p-2 rounded-lg hover:bg-background" onclick={toggle}>
+                    <MaskedIcon src="/microphone.svg" class="bg-white" />
+                </button>
                 {#if activeQuery.length > 0}
                     <button type="submit" in:fade class="transition-all bg-primary p-2 rounded-lg hover:bg-background">
                         <MaskedIcon src="/arrow.svg" class="bg-white" />

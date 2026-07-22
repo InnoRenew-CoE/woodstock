@@ -77,7 +77,7 @@
                                 class="cursor-pointer flex items-center gap-5 sm:opacity-50 p-1.5 glass rounded-full overflow-hidden px-8 border-white/20 'bg-black sm:bg-white hover:!opacity-100 hover:text-white hover:bg-secondary/60 hover:shadow-secondary/50 hover:shadow-lg hover:border-secondary sm:text-black"
                                 href="/login"
                             >
-                                <MaskedIcon src="./home.svg" class={isSmall ? "bg-white" : "hidden"} />{"Login"}
+                                <MaskedIcon src="./home.svg" class={isSmall ? "bg-white" : "hidden"} />{"Contribute"}
                             </a>
                         {/if}
                     </div>

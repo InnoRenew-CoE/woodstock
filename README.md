@@ -67,3 +67,32 @@ export enum QuestionType {
   MultiText,
 }
 ```
+
+
+**What can I ask?**
+
+You can ask almost anything, but EWCO is especially good at providing curated knowledge about wood, wood construction,
+underutilized wood resources, and their use in buildings and other applications.
+
+**Can it help me with other topics?**
+
+Yes. EWCO can also help you discover European initiatives, good practices, policies, and funding opportunities that support the wider use of wood and sustainable construction.
+
+**Are the responses aligned with the New European Bauhaus (NEB) values?**
+
+Yes. EWCO has extensive knowledge of the New European Bauhaus principles and can suggest ways to incorporate NEB values into your project or improve its alignment with them.
+
+**Can I get inaccurate information here?**
+
+Like any AI system, EWCO can occasionally make mistakes. To help you verify the information, responses include references to the underlying sources whenever possible, allowing you to fact-check the statements directly
+
+- [x] remove latest posts
+- [x] add FAQ
+- [x] add explanation to login
+- [x] replace Login with Contribute button
+- [x] add contribution information to the FAQ / How to use card
+- [x] Add explanation to the DARA Awards in Best practices and a picture + link https://woodpop.eu/woodpop-dara-award/hall-of-fame/
+- [x] https://design-guide.build-in-wood.eu/ add to best practices
+- [x] Projects dashbaord https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Finnorenew.eu%2Fapp%2Fuploads%2F2022%2F12%2FKAB0090-2212-2000px.jpg&f=1&nofb=1&ipt=b2e6314b084fd7ae98946be765d85923f80309509a77ab286b6d3ff0de7147eb
+- [x] We'll add some pre-set questions for pills above the AI chat to pre-select.
+- [ ] Add voice dictation

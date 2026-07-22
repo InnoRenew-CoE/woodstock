@@ -49,8 +49,15 @@
 <div class="flex sm:items-center justify-center h-full p-10">
     <div class="grid gap-2 max-w-[500px] w-full sm:w-[80%] h-min">
         <div class="grid p-8 px-10 glass gap-5 bg-white/60">
-            <div class="flex gap-3 items-center font-roboto font-semibold text-2xl text-primary">
-                Login <span><img src="./info.svg" alt="Information" class="w-3" /></span>
+            <div class="grid gap-3 items-center font-roboto font-semibold text-2xl text-primary">
+                <div>Login and Contribute</div>
+                <div>
+                    <p class="text-xs text-gray-500 font-nunito font-light leading-relaxed">
+                        This tool is for approved partners only.<br />
+                        If you'd like to contribute, you must first be whitelisted and log in.<br />
+                        Please reach out to <span class="text-primary font-semibold">ewco@innorenew.eu</span> for access.
+                    </p>
+                </div>
             </div>
             <div>
                 <div class="text-sm pb-1 font-nunito text-primary/30">E-mail</div>
