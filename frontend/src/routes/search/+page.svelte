@@ -273,6 +273,13 @@
                                 sendQuestion();
                             }
                         }}></textarea>
+                    {#if recording}
+                        <span class="text-info font-light animate-pulse text-xs whitespace-nowrap">We're listening to your dictation...</span>
+                    {/if}
+
+                    <button in:fade class="transition-all bg-info p-2 rounded-lg hover:bg-background" onclick={toggle}>
+                        <MaskedIcon src="/microphone.svg" class="bg-white" />
+                    </button>
                     {#if activeQuery.length > 0}
                         <button type="submit" in:fade class="transition-all bg-primary p-2 rounded-lg hover:bg-background">
                             <MaskedIcon src="/arrow.svg" class="bg-white" />

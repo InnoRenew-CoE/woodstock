@@ -95,4 +95,4 @@ Like any AI system, EWCO can occasionally make mistakes. To help you verify the 
 - [x] https://design-guide.build-in-wood.eu/ add to best practices
 - [x] Projects dashbaord https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Finnorenew.eu%2Fapp%2Fuploads%2F2022%2F12%2FKAB0090-2212-2000px.jpg&f=1&nofb=1&ipt=b2e6314b084fd7ae98946be765d85923f80309509a77ab286b6d3ff0de7147eb
 - [x] We'll add some pre-set questions for pills above the AI chat to pre-select.
-- [ ] Add voice dictation
+- [x] Add voice dictation
