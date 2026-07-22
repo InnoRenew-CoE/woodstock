@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use once_cell::sync::Lazy;
-use qdrant_client::qdrant::{Condition, Filter, PointId, PointStruct, ScrollPointsBuilder, SearchResponse, UpsertPointsBuilder};
+use qdrant_client::qdrant::{Condition, Filter, GetPointsBuilder, PointId, PointStruct, ScrollPointsBuilder, SearchResponse, UpsertPointsBuilder};
 use qdrant_client::Qdrant;
 use tokio::sync::Mutex;
 
@@ -81,6 +81,29 @@ pub async fn chunks_for_document(document_id: &str) -> Result<Vec<ResultChunk>> 
     chunks.retain(|chunk| seen.insert(chunk.doc_seq_num));
     chunks.sort_by_key(|chunk| chunk.doc_seq_num);
     Ok(chunks)
+}
+
+pub async fn document_id_for_chunk(chunk_id: &str) -> Result<Option<String>> {
+    let qdrant_server = env::var("QDRANT_SERVER").expect("QDRANT_SERVER not defined");
+    let qdrant_collection = env::var("QDRANT_COLLECTION").expect("QDRANT_COLLECTION not defined");
+    let client = Qdrant::from_url(&qdrant_server).build()?;
+
+    let response = client
+        .get_points(
+            GetPointsBuilder::new(qdrant_collection, vec![PointId::from(chunk_id)])
+                .with_payload(true)
+                .with_vectors(false),
+        )
+        .await?;
+
+    let doc_id = response
+        .result
+        .first()
+        .and_then(|point| point.payload.get("doc_id"))
+        .and_then(|value| value.as_str())
+        .map(ToOwned::to_owned);
+
+    Ok(doc_id)
 }
 
 pub async fn insert_chunks_to_qdrant(embedded_chunks: Vec<EmbeddedChunk>) -> Result<()> {

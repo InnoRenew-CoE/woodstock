@@ -12,7 +12,7 @@ use reagent_rs::prelude::*;
 use reagent_rs::AsyncToolFn;
 
 use crate::rag::comm::embedding::EmbeddingVector;
-use crate::rag::comm::qdrant::{chunks_for_document, vector_search};
+use crate::rag::comm::qdrant::{chunks_for_document, document_id_for_chunk, vector_search};
 use crate::rag::comm::OllamaEmbeddingClient;
 use crate::rag::models::chunks::ResultChunk;
 use crate::rag::processing::dedup;
@@ -68,15 +68,45 @@ fn build_document_chunks_tool(chunks_tx: Sender<Value>) -> Result<Tool> {
         let chunks_tx = chunks_tx.clone();
         Box::pin(async move {
             let start = Instant::now();
-            let document_id = args
+            let direct_document_id = args
                 .get("document_id")
                 .or_else(|| args.get("doc_id"))
                 .and_then(|v| v.as_str())
-                .ok_or_else(|| ToolExecutionError::ArgumentParsingError("Missing 'document_id' argument".into()))?;
+                .filter(|id| !id.trim().is_empty())
+                .map(str::to_owned);
+
+            let containing_chunk_id = args
+                .get("containing_chunk_id")
+                .or_else(|| args.get("chunk_id"))
+                .and_then(|v| v.as_str())
+                .filter(|id| !id.trim().is_empty())
+                .map(str::to_owned);
+
+            let document_id = match direct_document_id {
+                Some(document_id) => document_id,
+                None => {
+                    let chunk_id = containing_chunk_id.ok_or_else(|| {
+                        ToolExecutionError::ArgumentParsingError(
+                            "Missing 'document_id' or 'containing_chunk_id' argument".into(),
+                        )
+                    })?;
+
+                    println!("[DOC CHUNKS TOOL] Resolving containing_chunk_id: {chunk_id}");
+                    document_id_for_chunk(&chunk_id).await.map_err(|e| {
+                        let msg = format!("Chunk lookup failed: {e}");
+                        println!("[DOC CHUNKS TOOL] ERROR — {msg}");
+                        ToolExecutionError::ExecutionFailed(msg)
+                    })?.ok_or_else(|| {
+                        ToolExecutionError::ExecutionFailed(format!(
+                            "No chunk found for containing_chunk_id '{chunk_id}'"
+                        ))
+                    })?
+                }
+            };
 
             println!("[DOC CHUNKS TOOL] Called for document_id: {document_id}");
 
-            let chunks = chunks_for_document(document_id).await.map_err(|e| {
+            let chunks = chunks_for_document(&document_id).await.map_err(|e| {
                 let msg = format!("Document chunk fetch failed: {e}");
                 println!("[DOC CHUNKS TOOL] ERROR — {msg}");
                 ToolExecutionError::ExecutionFailed(msg)
@@ -122,11 +152,13 @@ fn build_document_chunks_tool(chunks_tx: Sender<Value>) -> Result<Tool> {
     ToolBuilder::new()
         .function_name("get_document_chunks")
         .function_description(
-            "Returns all unique chunks for a known document id, sorted by their document sequence number. \
+            "Returns all unique chunks for a known document, sorted by their document sequence number. \
              Use this when the user asks to inspect, summarize, or reason over a specific document that is \
-             already identified by doc_id/document_id. The returned chunks are deduplicated and in document order.",
+             already identified by doc_id/document_id, or when the user refers to a chunk id and needs the \
+             whole document containing that chunk. The returned chunks are deduplicated and in document order.",
         )
-        .add_required_property("document_id", "string", "The document id/doc_id whose chunks should be returned")
+        .add_property("document_id", "string", "The document id/doc_id whose chunks should be returned")
+        .add_property("containing_chunk_id", "string", "A known chunk id; the tool will return all chunks for the document containing it")
         .executor(exec)
         .build()
         .map_err(|e| anyhow!("Failed to build document chunks tool: {e}"))
