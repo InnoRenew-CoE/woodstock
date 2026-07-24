@@ -70,6 +70,13 @@
             photo: "https://neb.academy/images/2/a/a/4/c/2aa4c5fc07c63fa2f1edf652940c968ee29bd251-timber.webp",
         },
     ];
+
+    const faq = [
+        { question: "What can I ask?", answer: "You can ask almost anything, but EWCO is especially good at providing curated knowledge about wood, wood construction, underutilized wood resources, and their use in buildings and other applications." },
+        { question: "Can it help me with other topics?", answer: "Yes. EWCO can also help you discover European initiatives, good practices, policies, and funding opportunities that support the wider use of wood and sustainable construction." },
+        { question: "Are the responses aligned with the New European Bauhaus (NEB) values?", answer: "Yes. EWCO has extensive knowledge of the New European Bauhaus principles and can suggest ways to incorporate NEB values into your project or improve its alignment with them." },
+        { question: "Can I get inaccurate information here?", answer: "Like any AI system, EWCO can occasionally make mistakes. To help you verify the information, responses include references to the underlying sources whenever possible, allowing you to fact-check the statements directly." },
+    ];
 </script>
 
 <div class="w-[80%] px-6 py-12 bg-white/60 rounded-2xl text-gray-800 m-auto shadow-sm grid gap-10">
@@ -83,8 +90,7 @@
             <div class="grid grid-cols-[1fr_100px]">
                 <p class="text-amber-100/90 max-w-2xl mb-6 leading-relaxed">
                     An AI-driven tool for anyone looking for information on the wood and wood construction sector. Developed within the
-                    <a href="http://www.woodstockproject.eu" class="underline decoration-amber-300 hover:text-white">Horizon Europe WoodStock project</a>, with open-source data and data from project partners. At a later stage, it will use data from at least three mass-timber building projects,
-                    including the InnoRenew Living Lab building (Slovenia). Additional data from the University of Bordeaux and University of Galway Living Lab buildings may also be incorporated.
+                    <a href="http://www.woodstockproject.eu" class="underline decoration-amber-300 hover:text-white">Horizon Europe WoodStock project</a>, with open-source data and data from project partners.
                 </p>
                 <img src="/lighthouse.png" alt="" class="rounded-xl" />
             </div>
@@ -108,6 +114,43 @@
             </div>
         </section>
     </section>
+    <div class="h-[1px] bg-black/10 w-full"></div>
+    <section>
+        <h2 class="text-2xl font-semibold mb-6">Frequently asked questions</h2>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {#each faq as item}
+                <div class="card bg-white/70 rounded-xl p-4 group hover:text-primary!">
+                    <div class="font-semibold text-primary cursor-pointer list-none flex items-center justify-between">
+                        {item.question}
+                    </div>
+                    <p class="mt-3 text-sm text-gray-600 leading-relaxed">{item.answer}</p>
+                </div>
+            {/each}
+        </div>
+    </section>
+    <div class="h-[1px] bg-black/10 w-full"></div>
+    <section>
+        <h2 class="text-2xl font-semibold mb-6">Visit our courses (NEB Academy)</h2>
+        <div class="grid md:grid-cols-3 gap-3">
+            {#each courses as course}
+                <a target="_blank" href={course.url} class="hover:shadow hover:brightness-95 bg-white rounded-xl p-5">
+                    {#if course.photo}
+                        <img src={course.photo} class="rounded-lg" />
+                    {/if}
+                    <div class="text-lg font-bold">{course.title}</div>
+                    <div class="text-xs text-secondary-1">{course.tags.join(" ")}</div>
+                    <div class="text-sm py-3 text-primary">{course.description}</div>
+                </a>
+            {/each}
+            <a href="/about" class="p-10 bg-accent/20 rounded-lg shadow flex items-center justify-center text-amber-800 border border-accent/30 underline underline-offset-2 hover:text-amber-950">Find more</a>
+        </div>
+    </section>
+
+    <div class="h-[1px] bg-black/10 w-full"></div>
+    <section>
+        <h1 class="text-3xl font-bold mb-4">Observatory as a tool</h1>
+    </section>
+
     <div class="h-[1px] bg-black/10 w-full"></div>
     <section>
         <h1 class="text-3xl font-bold mb-4">Latest posts</h1>
@@ -135,23 +178,5 @@
         {:else}
             <div class="text-sm text-center text-accent">No posts yet.</div>
         {/if}
-    </section>
-
-    <div class="h-[1px] bg-black/10 w-full"></div>
-    <section>
-        <h2 class="text-2xl font-semibold mb-6">Visit our courses (NEB Academy)</h2>
-        <div class="grid md:grid-cols-3 gap-3">
-            {#each courses as course}
-                <a target="_blank" href={course.url} class="hover:shadow hover:brightness-95 bg-white rounded-xl p-5">
-                    {#if course.photo}
-                        <img src={course.photo} class="rounded-lg" />
-                    {/if}
-                    <div class="text-lg font-bold">{course.title}</div>
-                    <div class="text-xs text-secondary-1">{course.tags.join(" ")}</div>
-                    <div class="text-sm py-3 text-primary">{course.description}</div>
-                </a>
-            {/each}
-            <a href="/about" class="p-10 bg-accent/20 rounded-lg shadow flex items-center justify-center text-amber-800 border border-accent/30 underline underline-offset-2 hover:text-amber-950">Find more</a>
-        </div>
     </section>
 </div>

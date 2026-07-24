@@ -359,8 +359,6 @@
             photo: "https://neb.academy/images/b/b/6/d/1/bb6d158e61229a94efff96aba6e4b77daefc4447-stl.webp",
         },
     ];
-
-
 </script>
 
 <div class="p-10 grid gap-10 sm:max-w-[80%] m-auto">
@@ -369,17 +367,23 @@
         <p>With the integrated AI assistant, anyone challenged by this topic has access to curated knowledge –<a class="underline text-warning" href="/search">Ask and Explore</a>. EWCO was created by experts from the <b>WOODSTOCK</b> and <b>TIMBERHAUS</b> projects.</p>
         <p>These projects are dedicated to developing wood processing technologies and climate-smart solutions to increase the use of underutilised wood in the construction sector.</p>
     </section>
-    <section class="grid gap-2 grid-cols-2">
-        <a target="_blank" href="https://woodstockproject.eu/about">
-            <div class="hover:bg-background card p-2 flex gap-2 items-center justify-center">
-                WoodStock project
-                <MaskedIcon src="/external-link.svg" class="bg-info" />
+    <section class="grid gap-2 grid-cols-2 items-stretch">
+        <a class="card hover:bg-background" target="_blank" href="https://woodstockproject.eu/about">
+            <div class="p-2 grid gap-2 items-center justify-center">
+                <img src="/woodstock.svg" alt="woodstock logo" class="rounded-2xl w-30" />
+                <div class="flex gap-2 justify-center items-center">
+                    WoodStock project
+                    <MaskedIcon src="/external-link.svg" class="bg-info" />
+                </div>
             </div>
         </a>
-        <a target="_blank" href="https://timberhaus.eu/project/">
-            <div class="hover:bg-background card p-2 flex gap-2 items-center justify-center">
-                TIMBERHAUS project
-                <MaskedIcon src="/external-link.svg" class="bg-info" />
+        <a class="card hover:bg-background" target="_blank" href="https://timberhaus.eu/project/">
+            <div class=" p-2 grid gap-2 items-center justify-center">
+                <img src="/timberhaus-logo.svg" alt="woodstock logo" class=" rounded-2xl w-50" />
+                <div class="flex gap-2 justify-center items-center">
+                    TIMBERHAUS project
+                    <MaskedIcon src="/external-link.svg" class="bg-info" />
+                </div>
             </div>
         </a>
     </section>
@@ -409,7 +413,6 @@
                     <p class="text-stone-700"><span class="font-semibold text-stone-900">AI system</span> — AI based on a Large Language Model (LLM), adhering to the seven requirements of trustworthy AI.</p>
                 </li>
             </ol>
-
         </section>
     </div>
 
