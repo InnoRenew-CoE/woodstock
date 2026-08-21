@@ -235,9 +235,11 @@ async fn main() -> Result<()> {
                 // Use a UUID for the folder and file name
                 let uuid_str = Uuid::new_v4().to_string();
                 let file_dir = download_path.join(&uuid_str);
+                println!("     📁  Creating directory: {}", file_dir.display());
                 fs::create_dir_all(&file_dir)
                     .await
-                    .with_context(|| format!("failed to create directory {}", file_dir.display()))?;
+                    .with_context(|| format!("failed to create directory {}", file_dir.display()))
+                    .expect("Should be able to crete the directory.");
 
                 let pdf_filename = format!("{}.pdf", uuid_str);
                 let dest_path = file_dir.join(&pdf_filename);
