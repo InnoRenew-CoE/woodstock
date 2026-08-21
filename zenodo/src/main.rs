@@ -8,6 +8,8 @@ use serde::Deserialize;
 use tokio::fs;
 use uuid::Uuid;
 
+mod db;
+
 const MAX_FILE_SIZE: u64 = 30 * 1024 * 1024; // 30 MB
 
 // ─── Zenodo API response types ──────────────────────────────────────────────
@@ -130,6 +132,8 @@ async fn main() -> Result<()> {
         .build()
         .context("failed to build HTTP client")?;
 
+    let db = db::build_db_client().await;
+
     let api_base = "https://zenodo.org/api/records";
     let mut downloaded = 0u64;
 
@@ -217,6 +221,12 @@ async fn main() -> Result<()> {
                 // Name the file with a UUID, keeping the .pdf extension
                 let uuid_filename = format!("{}.pdf", Uuid::new_v4());
                 let dest_path = download_path.join(&uuid_filename);
+
+                let id = db::insert_file(&db, &file.key, &uuid_filename, ".pdf", &1).await;
+                if let Err(e) = id {
+                    eprintln!("     ❌  Error inserting file: {:#}", e);
+                    continue;
+                }
 
                 println!("     ⬇  Downloading: {} → {}", file.key, uuid_filename);
                 match download_file(&client, url, &dest_path).await {
