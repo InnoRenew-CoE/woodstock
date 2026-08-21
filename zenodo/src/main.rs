@@ -194,12 +194,10 @@ async fn main() -> Result<()> {
             // }
 
             let title = &record.metadata.title;
-            println!("\n  📄 Record {}: {}", record.id, truncate(title, 80));
 
             for file in &record.files {
                 // Only download PDFs
                 if !file.key.ends_with(".pdf") {
-                    println!("     ⏭  Skipping (not PDF): {}", file.key);
                     continue;
                 }
 
@@ -215,7 +213,6 @@ async fn main() -> Result<()> {
                 };
 
                 // Fetch file info with a HEAD request to check size before downloading
-                println!("     🔍  Checking: {}", file.key);
                 let head_resp = client.head(url).send().await.context("HEAD request failed")?;
 
                 let content_length = head_resp
