@@ -4,13 +4,30 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tokio::fs;
 use uuid::Uuid;
 
 mod db;
 
 const MAX_FILE_SIZE: u64 = 30 * 1024 * 1024; // 30 MB
+
+// ─── RagProcessableFile ─────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize)]
+struct RagProcessableFile {
+    path: PathBuf,
+    file_type: RagProcessableFileType,
+    internal_id: String,
+    original_name: String,
+    file_description: Option<String>,
+    tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize)]
+enum RagProcessableFileType {
+    PDF,
+}
 
 // ─── Zenodo API response types ──────────────────────────────────────────────
 
@@ -218,21 +235,42 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                // Name the file with a UUID, keeping the .pdf extension
-                let uuid_filename = format!("{}.pdf", Uuid::new_v4());
-                let dest_path = download_path.join(&uuid_filename);
+                // Use a UUID for the folder and file name
+                let uuid_str = Uuid::new_v4().to_string();
+                let file_dir = download_path.join(&uuid_str);
+                fs::create_dir_all(&file_dir)
+                    .await
+                    .with_context(|| format!("failed to create directory {}", file_dir.display()))?;
 
-                let id = db::insert_file(&db, &file.key, &uuid_filename, ".pdf", &1).await;
+                let pdf_filename = format!("{}.pdf", uuid_str);
+                let dest_path = file_dir.join(&pdf_filename);
+
+                let id = db::insert_file(&db, &file.key, &pdf_filename, ".pdf", &1).await;
                 if let Err(e) = id {
                     eprintln!("     ❌  Error inserting file: {:#}", e);
                     continue;
                 }
 
-                println!("     ⬇  Downloading: {} → {}", file.key, uuid_filename);
+                println!("     ⬇  Downloading: {} → {}", file.key, uuid_str);
                 match download_file(&client, url, &dest_path).await {
                     Ok(bytes) => {
                         downloaded += 1;
                         println!("     ✅  Saved: {} ({} bytes)", dest_path.display(), bytes);
+
+                        // Write metadata.json
+                        let metadata = RagProcessableFile {
+                            path: dest_path.clone(),
+                            file_type: RagProcessableFileType::PDF,
+                            internal_id: uuid_str.clone(),
+                            original_name: file.key.clone(),
+                            file_description: None,
+                            tags: None,
+                        };
+                        let meta_path = file_dir.join("metadata.json");
+                        let meta_json = serde_json::to_string_pretty(&metadata).context("failed to serialize metadata")?;
+                        fs::write(&meta_path, &meta_json)
+                            .await
+                            .with_context(|| format!("failed to write {}", meta_path.display()))?;
                     }
                     Err(e) => {
                         eprintln!("     ❌  Error downloading {}: {:#}", file.key, e);
