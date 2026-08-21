@@ -252,6 +252,13 @@ async fn main() -> Result<()> {
                 match download_file(&client, url, &dest_path).await {
                     Ok(bytes) => {
                         downloaded += 1;
+
+                        // Verify the file was actually written
+                        if !dest_path.exists() {
+                            eprintln!("     ❌  File not found after download: {}", dest_path.display());
+                            continue;
+                        }
+
                         println!("     ✅  Saved: {} ({} bytes)", dest_path.display(), bytes);
 
                         // Write metadata.json
@@ -264,10 +271,12 @@ async fn main() -> Result<()> {
                             tags: None,
                         };
                         let meta_path = file_dir.join("metadata.json");
-                        let meta_json = serde_json::to_string_pretty(&metadata).context("failed to serialize metadata")?;
+                        let meta_json = serde_json::to_string_pretty(&metadata)?;
                         fs::write(&meta_path, &meta_json)
                             .await
                             .with_context(|| format!("failed to write {}", meta_path.display()))?;
+
+                        println!("     📝  Metadata written: {}", meta_path.display());
                     }
                     Err(e) => {
                         eprintln!("     ❌  Error downloading {}: {:#}", file.key, e);
