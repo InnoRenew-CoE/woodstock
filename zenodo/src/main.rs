@@ -285,6 +285,7 @@ async fn main() -> Result<()> {
                         eprintln!("     ❌  Error downloading {}: {:#}", file.key, e);
                     }
                 }
+                tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
             }
         }
         page += 1;
