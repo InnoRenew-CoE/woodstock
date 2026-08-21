@@ -271,7 +271,8 @@ async fn main() -> Result<()> {
                             tags: None,
                         };
                         let meta_path = file_dir.join("metadata.json");
-                        let meta_json = serde_json::to_string_pretty(&metadata)?;
+                        let meta_json =
+                            serde_json::to_string_pretty(&metadata).with_context(|| format!("failed to write {}", meta_path.display()))?;
                         fs::write(&meta_path, &meta_json)
                             .await
                             .with_context(|| format!("failed to write {}", meta_path.display()))?;
