@@ -26,7 +26,7 @@ struct RagProcessableFile {
 
 #[derive(Debug, Serialize)]
 enum RagProcessableFileType {
-    PDF,
+    Pdf,
 }
 
 // ─── Zenodo API response types ──────────────────────────────────────────────
