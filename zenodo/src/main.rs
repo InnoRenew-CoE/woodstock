@@ -266,7 +266,7 @@ async fn main() -> Result<()> {
                         // Write metadata.json
                         let metadata = RagProcessableFile {
                             path: dest_path.clone(),
-                            file_type: RagProcessableFileType::PDF,
+                            file_type: RagProcessableFileType::Pdf,
                             internal_id: uuid_str.clone(),
                             original_name: file.key.clone(),
                             file_description: None,
