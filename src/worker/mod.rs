@@ -56,10 +56,13 @@ async fn process_new(rag: &Rag) -> Result<()> {
     for uuid in list_submissions("new").await? {
         let folder = staging_dir().join("new").join(&uuid);
         let metadata_path = metadata_path("new", &uuid);
-        let Ok(metadata) = read_json::<crate::rag::RagProcessableFile>(&metadata_path).await else {
-            eprintln!("[WORKER] {uuid}: missing metadata.json");
-            move_to_failed(&folder, "new").await.ok();
-            continue;
+        let metadata = match read_json::<crate::rag::RagProcessableFile>(&metadata_path).await {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("[WORKER] {uuid}: missing metadata.json \n Error: {}", e);
+                move_to_failed(&folder, "new").await.ok();
+                continue;
+            }
         };
         match rag.insert_meta(&metadata).await {
             Ok(loaded) => {
@@ -149,10 +152,7 @@ async fn process_hyped(rag: &Rag) -> Result<()> {
         };
         match rag.insert_embed(hyped).await {
             Ok(embedded_chunks) => {
-                if let Err(e) = write_json(
-                    &staging_dir().join("hyped").join(&uuid).join("embedded.json"),
-                    &embedded_chunks,
-                ).await {
+                if let Err(e) = write_json(&staging_dir().join("hyped").join(&uuid).join("embedded.json"), &embedded_chunks).await {
                     eprintln!("[WORKER] {uuid}: failed to write embedded.json: {e}");
                     move_to_failed(&folder, "hyped").await.ok();
                     continue;
