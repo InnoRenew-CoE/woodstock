@@ -30,7 +30,13 @@
         <div class="italic text-sm">Learn about innovative solutions in wood construction through exemplary projects, design guidelines, and data from monitored buildings.</div>
     </section>
 
-    <section class="grid gap-2 grid-cols-2 items-start">
+    <section class="flex gap-2 justify-center items-start">
+        <a class="card hover:bg-background" target="_blank" href="practices/material-intensities">
+            <div class="p-2 flex gap-2 items-center justify-center">
+                Material Intensities (learn about wood in new buildings)
+                <MaskedIcon src="/external-link.svg" class="bg-info" />
+            </div>
+        </a>
         <a class="card hover:bg-background" target="_blank" href="https://woodpop.eu/woodpop-dara-award/hall-of-fame/">
             <img src="/dara.png" alt="woodstock logo" class="rounded-2xl w-100" />
             <div class="p-2 flex gap-2 items-center justify-center">

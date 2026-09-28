@@ -1,0 +1,1 @@
+import{a as e,t as i}from"../chunks/disclose-version.CTG_Ks1L.js";import"../chunks/legacy.C7W8qHJB.js";var r=i('<iframe class="h-full w-full" src="https://zoec.folk.ntnu.no/material-intensities/" title="Material Intensities"></iframe>');function s(t){var a=r();e(t,a)}export{s as component};
