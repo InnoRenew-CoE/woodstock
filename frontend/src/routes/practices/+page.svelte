@@ -30,15 +30,18 @@
         <div class="italic text-sm">Learn about innovative solutions in wood construction through exemplary projects, design guidelines, and data from monitored buildings.</div>
     </section>
 
-    <section class="flex gap-2 justify-center items-start">
+    <section class="grid grid-cols-2 w-[80%] max-w-7xl gap-2 justify-center">
         <a class="card hover:bg-background" target="_blank" href="practices/material-intensities">
-            <div class="p-2 flex gap-2 items-center justify-center">
-                Material Intensities (learn about wood in new buildings)
-                <MaskedIcon src="/external-link.svg" class="bg-info" />
+            <div class=" p-2 grid gap-2 items-center justify-center">
+                <img src="/lighthouse.png" alt="woodstock logo" class="rounded-2xl w-60 m-auto" />
+                <div class="flex gap-2 items-center justify-center">
+                    Material Intensities (learn about wood in new buildings)
+                    <MaskedIcon src="/external-link.svg" class="bg-info" />
+                </div>
             </div>
         </a>
         <a class="card hover:bg-background" target="_blank" href="https://woodpop.eu/woodpop-dara-award/hall-of-fame/">
-            <img src="/dara.png" alt="woodstock logo" class="rounded-2xl w-100" />
+            <img src="/dara.png" alt="woodstock logo" class="m-auto rounded-2xl h-80" />
             <div class="p-2 flex gap-2 items-center justify-center">
                 Dara Awards
                 <MaskedIcon src="/external-link.svg" class="bg-info" />
@@ -50,6 +53,15 @@
                 <div class="flex gap-2 items-center justify-center">
                     Design Guide Build In Wood
                     <MaskedIcon src="/external-link.svg" class="bg-info" />
+                </div>
+            </div>
+        </a>
+        <a class="hover:bg-background group card grid rounded-lg overflow-hidden" target="_blank" href="https://zenodo.org/communities/woodstock_project">
+            <div class="p-2 grid bg-blue-400 group-hover:bg-blue-600 text-white gap-2 items-center justify-center">
+                <img src="https://zenodo.org/static/images/invenio-rdm.svg" alt="woodstock logo" class="rounded-2xl w-100" />
+                <div class="flex gap-2 items-center justify-center">
+                    Woodstock Zenodo Community
+                    <MaskedIcon src="/external-link.svg" class="bg-white" />
                 </div>
             </div>
         </a>
