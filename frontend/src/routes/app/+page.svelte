@@ -263,12 +263,12 @@
 
                 <div class="glass p-5 flex flex-col gap-4">
                     <div class="flex items-center justify-between gap-3">
-                        <h2 class="font-roboto text-lg leading-none">Embedding pipeline</h2>
+                        <h2 class="font-roboto text-lg leading-none">Pipeline</h2>
                         <MaskedIcon src="/tree_of_knowledge.svg" class="size-4 bg-secondary" />
                     </div>
                     <div class="flex items-end gap-2">
                         <span class="text-4xl font-roboto leading-none">{pipeline.successRate}%</span>
-                        <span class="text-[11px] uppercase tracking-wider opacity-45 pb-1">successfully embedded</span>
+                        <span class="text-[11px] uppercase tracking-wider opacity-45 pb-1">successfully processed</span>
                     </div>
                     <div class="h-2 w-full rounded-full bg-primary/5 overflow-hidden flex">
                         <div class="h-full bg-secondary-1" style="width: {pipeline.donePercent}%"></div>
