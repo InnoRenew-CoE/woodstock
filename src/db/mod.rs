@@ -79,7 +79,7 @@ select coalesce(f.original_name, f.name) as name,
        coalesce(f.type, 'unknown')       as file_type,
        f.submission_date                 as date,
        coalesce(f.status, 'uploaded')    as status,
-       u.email                           as submitted_by
+       u.id                           as submitted_by
 from files f
          left join users u on u.id = f.submitted_by
 order by f.submission_date desc nulls last, f.id desc
