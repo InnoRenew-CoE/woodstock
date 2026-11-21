@@ -24,18 +24,67 @@ from files
 where submitted_by = $1
 "#;
 
-const SELECT_TOTAL_ANSWERS: &'static str =
-    "select SUM(coalesce((select count(*) from answers_text)) + (select count(*) from answers_selection)) as total";
+const SELECT_STATISTICS_TOTALS: &'static str = r#"
+select (select count(*) from files)                                                          as total_files,
+       (select count(*) from users)                                                          as total_users,
+       (select count(*) from tags)                                                           as total_tags,
+       (select count(*) from posts)                                                          as total_posts,
+       (select count(*) from feedback)                                                       as total_feedback,
+       (select count(*) from queries)                                                        as total_queries,
+       (select count(*) from logins)                                                         as total_logins,
+       (select (select count(*) from answers_text) + (select count(*) from answers_selection)) as total_answers,
+       (select count(*) from files where status = 'done')                                    as processed_files,
+       (select count(*) from files where status = 'failed')                                  as failed_files,
+       (select count(*) from files where status is null or status not in ('done', 'failed')) as pending_files,
+       (select count(distinct submitted_by) from files where submitted_by is not null)       as active_users,
+       (select count(*) from files where submission_date >= current_date - interval '7 days') as files_last_week,
+       (select count(*) from files where submitted_by = $1)                                  as my_files,
+       (select count(*) from files where submitted_by = $1
+                                        and submission_date >= date_trunc('month', current_date)) as my_files_this_month,
+       (select count(*) from answers_text a join files f on f.id = a.file_id where f.submitted_by = $1)
+           + (select count(*) from answers_selection s join files f on f.id = s.file_id where f.submitted_by = $1) as my_answers
+"#;
 
-const SELECT_FILE_TYPE_STATISTICS: &'static str = "select type,
-       round(100 * count(*) /
-             Sum(count(*)) OVER (),
-             1) AS percentage
+const SELECT_FILE_TYPE_STATISTICS: &'static str = r#"
+select coalesce(type, 'unknown') as file_type,
+       count(*)                  as count
 from files
-group by type
-order by percentage DESC
-limit 5
-";
+group by coalesce(type, 'unknown')
+order by count(*) desc, file_type asc
+"#;
+
+const SELECT_TOP_TAGS: &'static str = r#"
+select tags.tag as tag,
+       count(*) as count
+from tag_file
+         join tags on tags.id = tag_file.tag_id
+group by tags.tag
+order by count(*) desc, tags.tag asc
+limit 10
+"#;
+
+const SELECT_MONTHLY_UPLOADS: &'static str = r#"
+select to_char(m.month_start, 'YYYY-MM') as month,
+       (select count(*) from files f where date_trunc('month', f.submission_date) = m.month_start) as count
+from generate_series(
+             date_trunc('month', current_date) - interval '5 months',
+             date_trunc('month', current_date),
+             interval '1 month'
+     ) as m(month_start)
+order by m.month_start
+"#;
+
+const SELECT_RECENT_UPLOADS: &'static str = r#"
+select coalesce(f.original_name, f.name) as name,
+       coalesce(f.type, 'unknown')       as file_type,
+       f.submission_date                 as date,
+       coalesce(f.status, 'uploaded')    as status,
+       u.email                           as submitted_by
+from files f
+         left join users u on u.id = f.submitted_by
+order by f.submission_date desc nulls last, f.id desc
+limit 8
+"#;
 
 const TABLES_SETUP: &'static str = r#"
 
@@ -540,4 +589,142 @@ pub struct FileInfo {
     pub original_name: String,
     pub name: String,
     pub file_type: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FileTypeStatistic {
+    pub file_type: String,
+    pub count: i64,
+    pub percentage: f64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TagStatistic {
+    pub tag: String,
+    pub count: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct MonthlyUpload {
+    pub month: String,
+    pub count: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RecentUpload {
+    pub name: String,
+    pub file_type: String,
+    pub date: Option<NaiveDate>,
+    pub status: String,
+    pub submitted_by: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Statistics {
+    pub total_files: i64,
+    pub total_users: i64,
+    pub active_users: i64,
+    pub total_tags: i64,
+    pub total_answers: i64,
+    pub total_posts: i64,
+    pub total_feedback: i64,
+    pub total_queries: i64,
+    pub total_logins: i64,
+    pub processed_files: i64,
+    pub pending_files: i64,
+    pub failed_files: i64,
+    pub files_last_week: i64,
+    pub my_files: i64,
+    pub my_files_this_month: i64,
+    pub my_answers: i64,
+    pub file_types: Vec<FileTypeStatistic>,
+    pub top_tags: Vec<TagStatistic>,
+    pub monthly_uploads: Vec<MonthlyUpload>,
+    pub recent_uploads: Vec<RecentUpload>,
+}
+
+/// Returns a percentage of `count` in `total`, rounded to one decimal place.
+fn share(count: i64, total: i64) -> f64 {
+    if total <= 0 {
+        return 0.0;
+    }
+    (count as f64 * 1000.0 / total as f64).round() / 10.0
+}
+
+/// Aggregates corpus, contribution and processing statistics for the dashboard.
+pub async fn retrieve_statistics(user_id: &i32, client: &Client) -> Result<Statistics, tokio_postgres::Error> {
+    let totals = client.query_one(SELECT_STATISTICS_TOTALS, &[user_id]).await?;
+    let total_files: i64 = totals.get("total_files");
+    let processed_files: i64 = totals.get("processed_files");
+    let failed_files: i64 = totals.get("failed_files");
+
+    let file_types = client
+        .query(SELECT_FILE_TYPE_STATISTICS, &[])
+        .await?
+        .into_iter()
+        .map(|row| {
+            let count: i64 = row.get("count");
+            FileTypeStatistic {
+                file_type: row.get("file_type"),
+                count,
+                percentage: share(count, total_files),
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let top_tags = client
+        .query(SELECT_TOP_TAGS, &[])
+        .await?
+        .into_iter()
+        .map(|row| TagStatistic {
+            tag: row.get("tag"),
+            count: row.get("count"),
+        })
+        .collect::<Vec<_>>();
+
+    let monthly_uploads = client
+        .query(SELECT_MONTHLY_UPLOADS, &[])
+        .await?
+        .into_iter()
+        .map(|row| MonthlyUpload {
+            month: row.get("month"),
+            count: row.get("count"),
+        })
+        .collect::<Vec<_>>();
+
+    let recent_uploads = client
+        .query(SELECT_RECENT_UPLOADS, &[])
+        .await?
+        .into_iter()
+        .map(|row| RecentUpload {
+            name: row.get("name"),
+            file_type: row.get("file_type"),
+            date: row.get("date"),
+            status: row.get("status"),
+            submitted_by: row.get("submitted_by"),
+        })
+        .collect::<Vec<_>>();
+
+    Ok(Statistics {
+        total_files,
+        total_users: totals.get("total_users"),
+        active_users: totals.get("active_users"),
+        total_tags: totals.get("total_tags"),
+        total_answers: totals.get("total_answers"),
+        total_posts: totals.get("total_posts"),
+        total_feedback: totals.get("total_feedback"),
+        total_queries: totals.get("total_queries"),
+        total_logins: totals.get("total_logins"),
+        processed_files,
+        pending_files: totals.get("pending_files"),
+        failed_files,
+        files_last_week: totals.get("files_last_week"),
+        my_files: totals.get("my_files"),
+        my_files_this_month: totals.get("my_files_this_month"),
+        my_answers: totals.get("my_answers"),
+        file_types,
+        top_tags,
+        monthly_uploads,
+        recent_uploads,
+    })
 }
