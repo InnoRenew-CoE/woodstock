@@ -616,7 +616,7 @@ pub struct RecentUpload {
     pub file_type: String,
     pub date: Option<NaiveDate>,
     pub status: String,
-    pub submitted_by: Option<String>,
+    pub submitted_by: Option<i32>,
 }
 
 #[derive(Debug, Serialize)]

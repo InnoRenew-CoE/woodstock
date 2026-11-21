@@ -373,7 +373,7 @@
                                         <span class="glass w-min px-2 py-0.5 rounded-full text-[10px] font-mono uppercase text-amber-600 border-amber-200 bg-amber-100/40">
                                             {upload.file_type}
                                         </span>
-                                        <span class="truncate opacity-60" title={upload.submitted_by ?? undefined}>{upload.submitted_by ?? "unknown"}</span>
+                                        <span class="truncate opacity-60" title={upload.submitted_by ?? undefined}>#{upload.submitted_by ?? "unknown"}</span>
                                         <span class="glass w-min px-2 py-0.5 rounded-full text-[10px] font-mono uppercase border {statusStyles[upload.status] ?? 'bg-primary/5 text-primary border-primary/10'}">
                                             {upload.status}
                                         </span>
