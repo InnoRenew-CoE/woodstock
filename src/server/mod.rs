@@ -249,11 +249,12 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
                             return HttpResponse::InternalServerError().finish();
                         }
 
-                        // Write metadata.json
+                        // Write metadata.json. internal_id is the file uuid, the same value
+                        // files.internal_id holds, so the worker can update the row by it.
                         let rag_file = RagProcessableFile {
                             path: PathBuf::from(&staging_file_path),
                             file_type: processable_file_type,
-                            internal_id: format!("{file_id}"),
+                            internal_id: file_uuid.clone(),
                             original_name,
                             file_description: None,
                             tags: None,

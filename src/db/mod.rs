@@ -8,7 +8,10 @@ use tokio_postgres::types::Date;
 use tokio_postgres::{Client, NoTls};
 
 const INSERT_LOGIN_STATISTIC: &'static str = r#"insert into logins (user_id) values ($1)"#;
-const INSERT_FILES_QUERY: &'static str = r#"insert into files (original_name, name, type, submitted_by) values ($1, $2, $3, $4) returning id"#;
+/// `internal_id` carries the file uuid, the same value the ingestion pipeline stores as the
+/// document id, so `update_file_status` can find the row by it.
+const INSERT_FILES_QUERY: &'static str =
+    r#"insert into files (original_name, name, type, submitted_by, internal_id) values ($1, $2, $3, $4, $2) returning id"#;
 const INSERT_SELECTION_ANSWER_QUERY: &'static str = r#"insert into answers_selection (file_id, question_id, answer_id) values ($1, $2, $3)"#;
 const INSERT_TEXT_ANSWER_QUERY: &'static str = r#"insert into answers_text (file_id, question_id, text) values ($1, $2, $3)"#;
 const SELECT_USER: &'static str = "select users.id as id, user_roles.title as role from users left join user_roles on users.role = user_roles.id where email = $1 and password = $2";
@@ -85,6 +88,10 @@ create table if not exists files
 
 alter table files add column if not exists status varchar(50) default 'uploaded';
 alter table files add column if not exists status_message text default '';
+
+-- Backfill the document id for rows created before the insert started writing it,
+-- so status updates can match them by internal_id.
+update files set internal_id = name where internal_id is null;
 
 create table if not exists answers_selection
 (
