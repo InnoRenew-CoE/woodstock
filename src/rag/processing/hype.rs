@@ -77,7 +77,6 @@ fn generate_hype_prompt_questions(file: &ChunkedFile<Chunk>) -> Vec<Question> {
         And finally the answer to each question has to be found in the passage.".to_string();
 
     let system_prompt = "You are an agent specialized to only answer in list of questions.";
-    println!("Generating hype questions prompts for {} chunks", file.chunks.len());
     file.chunks
         .iter()
         .map(|c| {

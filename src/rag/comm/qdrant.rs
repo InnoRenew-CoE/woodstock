@@ -107,9 +107,7 @@ pub async fn document_id_for_chunk(chunk_id: &str) -> Result<Option<String>> {
 }
 
 pub async fn insert_chunks_to_qdrant(embedded_chunks: Vec<EmbeddedChunk>) -> Result<()> {
-    println!("Upserting to qdrant...");
     // let client = QDRANT_CLIENT.lock().await;
-    // println!("qdrant lock acquired");
     let qdrant_server = env::var("QDRANT_SERVER").expect("QDRANT_SERVER not defined");
     let client = Qdrant::from_url(&qdrant_server).build()?;
     let qdrant_collection = env::var("QDRANT_COLLECTION").expect("QDRANT_COLLECTION not defined");
@@ -117,6 +115,5 @@ pub async fn insert_chunks_to_qdrant(embedded_chunks: Vec<EmbeddedChunk>) -> Res
     let points: Vec<PointStruct> = embedded_chunks.into_iter().map(|c| c.into()).collect();
 
     client.upsert_points(UpsertPointsBuilder::new(qdrant_collection, points)).await?;
-    println!("Upserted to qdrant");
     Ok(())
 }

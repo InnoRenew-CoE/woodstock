@@ -22,14 +22,17 @@ where
 {
     let sem = Arc::new(Semaphore::new(MAX_CONCURRENCY));
     let mut futs = FuturesUnordered::new();
-    println!("Embedding chunks");
+    let chunk_count = file.chunks.len();
     for mut c in file.chunks.into_iter() {
         let sem = sem.clone();
         futs.push(async move {
             let _permit = sem.acquire().await.expect("semaphore");
             match embedd_questions(&mut c, embeddings).await {
                 Ok(_) => Some(c),
-                Err(_) => None,
+                Err(error) => {
+                    eprintln!("[EMBED] chunk dropped: {error}");
+                    None
+                }
             }
         });
     }
@@ -41,7 +44,9 @@ where
         }
     }
 
-    println!("Embedded {} chunks", kept.len());
+    if kept.len() < chunk_count {
+        eprintln!("[EMBED] kept {} of {chunk_count} chunk(s)", kept.len());
+    }
     file.chunks = kept;
     Ok(file)
 }
@@ -50,6 +55,7 @@ async fn embedd_questions<T>(chunk: &mut T, client: &OllamaEmbeddingClient) -> R
 where
     T: Embeddable + Clone,
 {
+    let mut last_error = String::new();
     for _ in 0..MAX_ATTEMPTS {
         let req = chunk.clone().try_into_embed();
         match client.embed(req).await {
@@ -59,13 +65,13 @@ where
                 return Ok(());
             }
             Err(err) => {
-                let jitter = jitter_ms(BASE_DELAY_MS as u64 / 2);
+                last_error = err.to_string();
+                let jitter = jitter_ms(BASE_DELAY_MS / 2);
                 sleep(Duration::from_millis(BASE_DELAY_MS + jitter)).await;
-                println!("Error embedding: {:#?}", err)
             }
         }
     }
-    Err(anyhow!("Could not embedd chunk"))
+    Err(anyhow!("could not embed chunk after {MAX_ATTEMPTS} attempts: {last_error}"))
 }
 
 fn jitter_ms(max: u64) -> u64 {
