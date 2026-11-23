@@ -2,8 +2,7 @@ use crate::db::{
     build_db_client, check_login, insert_new_password, retrieve_questions, retrieve_tags, setup_db, {self},
 };
 use crate::docling;
-use crate::rag::agent;
-use crate::rag::{Rag, RagProcessableFile, RagProcessableFileType};
+use crate::rag::{agent, Rag, RagProcessableFile, RagProcessableFileType};
 use crate::worker::stage_io;
 use actix_jwt_auth_middleware::use_jwt::UseJWTOnApp;
 use actix_jwt_auth_middleware::{AuthResult, Authority, FromRequest, TokenSigner};
@@ -16,9 +15,6 @@ use actix_web::web::{
 };
 use actix_web::{get, post, App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer, Responder};
 use actix_web_lab::web::spa;
-use reagent_rs::notifications::NotificationContent;
-use serde_json::Value;
-use std::collections::HashMap;
 use ed25519_compact::KeyPair;
 use jwt_compact::alg::Ed25519;
 use lettre::message::header::ContentType;
@@ -26,16 +22,18 @@ use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 use passwords::PasswordGenerator;
+use reagent_rs::notifications::NotificationContent;
 use reqwest::Error;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashSet, VecDeque};
+use serde_json::Value;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::convert::Infallible;
 use std::env;
-use std::time::Instant;
 use std::ffi::OsStr;
 use std::fs::{create_dir_all, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 use tokio::sync::{mpsc, Mutex};
 use tokio_postgres::Client;
 use tokio_stream::wrappers::ReceiverStream;
@@ -64,11 +62,7 @@ async fn rag_image(path: web::Path<(String, String)>) -> HttpResponse {
 }
 
 fn is_safe_path_segment(value: &str) -> bool {
-    !value.is_empty()
-        && value
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
-        && !value.contains("..")
+    !value.is_empty() && value.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.')) && !value.contains("..")
 }
 
 #[derive(Serialize, Deserialize, FromRequest, Clone, Debug)]
@@ -143,6 +137,19 @@ async fn fetch_files(data: Data<AppState>, user: User) -> impl Responder {
     let mut client = data.client.lock().await;
     let files = db::retrieve_files(&user.id, &mut client).await.unwrap_or(vec![]);
     HttpResponse::Ok().json(files)
+}
+
+/// Returns aggregated statistics about the corpus and its contributors.
+#[get("/statistics")]
+async fn fetch_statistics(data: Data<AppState>, user: User) -> impl Responder {
+    let client = data.client.lock().await;
+    match db::retrieve_statistics(&user.id, &client).await {
+        Ok(statistics) => HttpResponse::Ok().json(statistics),
+        Err(error) => {
+            eprintln!("Unable to aggregate statistics: {:?}", error);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
 }
 
 /// Stores files in the env["FILES_FOLDER"] folder, submits answers for each file into the database.
@@ -233,8 +240,7 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
                         };
 
                         // Write to staging/new/{uuid} instead of processing inline
-                        let staging_dir = std::env::var("STAGING_FOLDER")
-                            .unwrap_or_else(|_| "./staging".to_string());
+                        let staging_dir = std::env::var("STAGING_FOLDER").unwrap_or_else(|_| "./staging".to_string());
                         let submission_dir = format!("{}/new/{}", staging_dir, file_uuid);
                         if let Err(e) = tokio::fs::create_dir_all(&submission_dir).await {
                             eprintln!("Failed to create staging directory: {e}");
@@ -260,10 +266,7 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
                             tags: None,
                         };
                         let metadata_path = format!("{}/metadata.json", submission_dir);
-                        if let Err(e) = stage_io::write_json(
-                            &PathBuf::from(&metadata_path),
-                            &rag_file,
-                        ).await {
+                        if let Err(e) = stage_io::write_json(&PathBuf::from(&metadata_path), &rag_file).await {
                             eprintln!("Failed to write metadata.json: {e}");
                             let _ = tokio::fs::remove_dir_all(&submission_dir).await;
                             return HttpResponse::InternalServerError().finish();
@@ -271,16 +274,12 @@ async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user
 
                         // Write answers.json
                         let answers_path = format!("{}/answers.json", submission_dir);
-                        if let Err(e) = stage_io::write_json(
-                            &PathBuf::from(&answers_path),
-                            &answers,
-                        ).await {
+                        if let Err(e) = stage_io::write_json(&PathBuf::from(&answers_path), &answers).await {
                             eprintln!("Failed to write answers.json: {e}");
                         }
 
                         println!("Staged submission {file_uuid} in {submission_dir}");
                         drop(client);
-
                     }
                     _ => (),
                 }
@@ -373,13 +372,7 @@ struct ChatMessage {
     content: String,
 }
 
-
-
-fn spawn_agent_search(
-    ndjson_tx: mpsc::Sender<Result<Bytes, Infallible>>,
-    query: String,
-    history: Vec<reagent_rs::Message>,
-) {
+fn spawn_agent_search(ndjson_tx: mpsc::Sender<Result<Bytes, Infallible>>, query: String, history: Vec<reagent_rs::Message>) {
     actix_web::rt::spawn(async move {
         let start = Instant::now();
         let (chunks_tx, mut chunks_rx) = tokio::sync::mpsc::channel::<Value>(16);
@@ -411,7 +404,10 @@ fn spawn_agent_search(
         let ndjson_tx_clone = ndjson_tx.clone();
         tokio::spawn(async move {
             while let Some(msg) = chunks_rx.recv().await {
-                println!("[SEARCH] Forwarding {} chunks message to stream", msg.get("value").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0));
+                println!(
+                    "[SEARCH] Forwarding {} chunks message to stream",
+                    msg.get("value").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0)
+                );
                 let line = serde_json::to_string(&msg).unwrap_or_default() + "\n";
                 if ndjson_tx_clone.send(Ok(Bytes::from(line))).await.is_err() {
                     break;
@@ -447,7 +443,11 @@ fn spawn_agent_search(
                         eprintln!("[SEARCH] Tool call error: {error}");
                     }
                     NotificationContent::Done(success, response) => {
-                        println!("[SEARCH] Agent done — success: {success}, token_count: {token_count}, response_len: {:?}, elapsed: {:?}", response.as_ref().map(|r| r.len()), start.elapsed());
+                        println!(
+                            "[SEARCH] Agent done — success: {success}, token_count: {token_count}, response_len: {:?}, elapsed: {:?}",
+                            response.as_ref().map(|r| r.len()),
+                            start.elapsed()
+                        );
                         let msg = serde_json::json!({"type": "done", "display": false});
                         let line = serde_json::to_string(&msg).unwrap_or_default() + "\n";
                         let _ = ndjson_tx_clone.send(Ok(Bytes::from(line))).await;
@@ -752,6 +752,7 @@ pub async fn start_server(rag: Rag) {
                     .service(verify)
                     .service(fetch_tags)
                     .service(fetch_files)
+                    .service(fetch_statistics)
                     .service(submit_feedback)
                     .service(invalidate)
                     .service(new_post),
