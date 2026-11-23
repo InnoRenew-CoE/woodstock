@@ -15,6 +15,7 @@
         { link: "/app", text: "Home" },
         { link: "/app/contribute", text: "Contribute" },
         { link: "/app/contributions", text: "Contributions" },
+        { link: "/app/public", text: "Public files" },
         { link: "/app/collaborate", text: "Submit a post" },
         { link: "/search", text: "Chat" },
         // { link: "/app/notifications", text: "Notifications" },

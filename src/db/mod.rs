@@ -89,6 +89,14 @@ order by f.submission_date desc nulls last, f.id desc
 limit 8
 "#;
 
+const SELECT_ALL_FILES: &'static str = r#"
+select id,
+       coalesce(original_name, name, 'unnamed') as name
+from files
+where submitted_by != 1
+order by lower(coalesce(original_name, name)) asc, id asc
+"#;
+
 const TABLES_SETUP: &'static str = r#"
 
 create table if not exists user_roles
@@ -734,4 +742,23 @@ pub async fn retrieve_statistics(user_id: &i32, client: &Client) -> Result<Stati
         monthly_uploads,
         recent_uploads,
     })
+}
+
+#[derive(Debug, Serialize)]
+pub struct FileListing {
+    pub id: i32,
+    pub name: String,
+}
+
+/// Retrieves every uploaded file with just the data needed to list and download it.
+pub async fn retrieve_all_files(client: &Client) -> Result<Vec<FileListing>, tokio_postgres::Error> {
+    Ok(client
+        .query(SELECT_ALL_FILES, &[])
+        .await?
+        .into_iter()
+        .map(|row| FileListing {
+            id: row.get("id"),
+            name: row.get("name"),
+        })
+        .collect())
 }

@@ -152,6 +152,19 @@ async fn fetch_statistics(data: Data<AppState>, user: User) -> impl Responder {
     }
 }
 
+/// Returns every uploaded file so it can be listed and downloaded.
+#[get("/public-files")]
+async fn fetch_public_files(data: Data<AppState>, _: User) -> impl Responder {
+    let client = data.client.lock().await;
+    match db::retrieve_all_files(&client).await {
+        Ok(files) => HttpResponse::Ok().json(files),
+        Err(error) => {
+            eprintln!("Unable to retrieve files: {:?}", error);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
 /// Stores files in the env["FILES_FOLDER"] folder, submits answers for each file into the database.
 #[post("/answers")]
 async fn submit_answers(state: web::Data<AppState>, mut payload: Multipart, user: User) -> impl Responder {
@@ -753,6 +766,7 @@ pub async fn start_server(rag: Rag) {
                     .service(fetch_tags)
                     .service(fetch_files)
                     .service(fetch_statistics)
+                    .service(fetch_public_files)
                     .service(submit_feedback)
                     .service(invalidate)
                     .service(new_post),
