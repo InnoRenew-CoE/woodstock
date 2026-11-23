@@ -10,7 +10,6 @@ use super::{
 mod dedup_embeddings;
 mod embedd_file;
 mod hype;
-mod image_hype;
 mod prepare;
 mod simple;
 mod summarize;
@@ -19,7 +18,6 @@ mod markdown_chunking;
 pub use dedup_embeddings::dedup;
 pub use embedd_file::embedd_file;
 pub use hype::hype;
-pub use image_hype::add_image_hype_questions;
 pub use prepare::prepare_for_upload;
 
 type ChunkSize = i32;

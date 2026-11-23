@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
+use futures::stream::{self, StreamExt};
 use tokio::fs;
 use tokio::task::JoinHandle;
 
@@ -14,6 +15,11 @@ use crate::rag::{Chunk, ChunkedFile, EmbeddedChunk, HypeChunk, LoadedFile, Rag, 
 
 /// How long the scheduler waits before it looks at the stages again.
 const POLL_INTERVAL: Duration = Duration::from_secs(5);
+
+/// How many submissions the hype stage works on at the same time. Their chat requests
+/// all share the pool of PARALLEL_HYPE_REQUESTS, so this only bounds how many documents
+/// sit in memory waiting for a slot.
+const CHUNKED_DOCS_AT_ONCE: usize = 8;
 
 /// One stage of the ingest pipeline. A submission sits in exactly one stage at a time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -305,66 +311,87 @@ async fn process_chunked(rag: &Rag) -> Result<StageReport> {
     }
     println!("[WORKER][chunked] {} pending submission(s)", uuids.len());
 
-    let mut report = StageReport::default();
+    let mut submissions = Vec::with_capacity(uuids.len());
     for uuid in uuids {
+        submissions.push(hype_submission(rag, uuid));
+    }
+    let outcomes = stream::iter(submissions)
+        .buffer_unordered(CHUNKED_DOCS_AT_ONCE)
+        .collect::<Vec<bool>>()
+        .await;
+
+    let mut report = StageReport::default();
+    for succeeded in outcomes {
         report.processed += 1;
-        let folder = staging_dir().join(stage.name()).join(&uuid);
-        let chunked_file = chunked_path(stage.name(), &uuid);
-        let chunked = match read_json::<ChunkedFile<Chunk>>(&chunked_file).await {
-            Ok(chunked) => chunked,
-            Err(error) => {
-                eprintln!("[WORKER][chunked] {uuid}: cannot read {}: {error:#}", chunked_file.display());
-                report.failed += 1;
-                quarantine(stage, &uuid, &folder).await;
-                continue;
-            }
-        };
-        let chunk_count = chunked.chunks.len();
-
-        let started = Instant::now();
-        match rag.insert_hype(chunked).await {
-            Ok(hyped) => {
-                let with_questions = hyped.chunks.iter().filter(|chunk| !chunk.questions.is_empty()).count();
-                let question_count: usize = hyped.chunks.iter().map(|chunk| chunk.questions.len()).sum();
-                println!(
-                    "[WORKER][chunked] {uuid}: generated {} question(s) for {with_questions}/{chunk_count} chunk(s) in {:.2}s",
-                    question_count,
-                    elapsed_secs(started)
-                );
-                if with_questions < chunk_count {
-                    eprintln!(
-                        "[WORKER][chunked] {uuid}: {} of {chunk_count} chunk(s) got no questions",
-                        chunk_count - with_questions
-                    );
-                }
-
-                let hyped_file = hyped_path(stage.name(), &uuid);
-                if let Err(error) = write_json(&hyped_file, &hyped).await {
-                    eprintln!("[WORKER][chunked] {uuid}: cannot write {}: {error:#}", hyped_file.display());
-                    report.failed += 1;
-                    quarantine(stage, &uuid, &folder).await;
-                    continue;
-                }
-                let to = staging_dir().join(Stage::Hyped.name()).join(&uuid);
-                match move_submission(&folder, &to).await {
-                    Ok(()) => println!("[WORKER][chunked] {uuid}: chunked -> hyped"),
-                    Err(error) => {
-                        eprintln!("[WORKER][chunked] {uuid}: cannot move chunked -> hyped ({}): {error:#}", to.display());
-                        report.failed += 1;
-                    }
-                }
-            }
-            Err(error) => {
-                eprintln!(
-                    "[WORKER][chunked] {uuid}: question generation failed after {:.2}s: {error:#}",
-                    elapsed_secs(started)
-                );
-                report.failed += 1;
-                quarantine(stage, &uuid, &folder).await;
-            }
+        if !succeeded {
+            report.failed += 1;
         }
     }
+
     Ok(report)
+}
+
+/// Hypes one submission and moves it on to the next stage. Returns false when the
+/// submission was written off.
+async fn hype_submission(rag: &Rag, uuid: String) -> bool {
+    let stage = Stage::Chunked;
+    let folder = staging_dir().join(stage.name()).join(&uuid);
+    let chunked_file = chunked_path(stage.name(), &uuid);
+    let chunked = match read_json::<ChunkedFile<Chunk>>(&chunked_file).await {
+        Ok(chunked) => chunked,
+        Err(error) => {
+            eprintln!("[WORKER][chunked] {uuid}: cannot read {}: {error:#}", chunked_file.display());
+            quarantine(stage, &uuid, &folder).await;
+            return false;
+        }
+    };
+    let chunk_count = chunked.chunks.len();
+
+    let started = Instant::now();
+    let hyped = match rag.insert_hype(chunked).await {
+        Ok(hyped) => hyped,
+        Err(error) => {
+            eprintln!(
+                "[WORKER][chunked] {uuid}: question generation failed after {:.2}s: {error:#}",
+                elapsed_secs(started)
+            );
+            quarantine(stage, &uuid, &folder).await;
+            return false;
+        }
+    };
+
+    let with_questions = hyped.chunks.iter().filter(|chunk| !chunk.questions.is_empty()).count();
+    let question_count: usize = hyped.chunks.iter().map(|chunk| chunk.questions.len()).sum();
+    println!(
+        "[WORKER][chunked] {uuid}: generated {} question(s) for {with_questions}/{chunk_count} chunk(s) in {:.2}s",
+        question_count,
+        elapsed_secs(started)
+    );
+    if with_questions < chunk_count {
+        eprintln!(
+            "[WORKER][chunked] {uuid}: {} of {chunk_count} chunk(s) got no questions",
+            chunk_count - with_questions
+        );
+    }
+
+    let hyped_file = hyped_path(stage.name(), &uuid);
+    if let Err(error) = write_json(&hyped_file, &hyped).await {
+        eprintln!("[WORKER][chunked] {uuid}: cannot write {}: {error:#}", hyped_file.display());
+        quarantine(stage, &uuid, &folder).await;
+        return false;
+    }
+
+    let to = staging_dir().join(Stage::Hyped.name()).join(&uuid);
+    match move_submission(&folder, &to).await {
+        Ok(()) => {
+            println!("[WORKER][chunked] {uuid}: chunked -> hyped");
+            true
+        }
+        Err(error) => {
+            eprintln!("[WORKER][chunked] {uuid}: cannot move chunked -> hyped ({}): {error:#}", to.display());
+            false
+        }
+    }
 }
 
 async fn process_hyped(rag: &Rag) -> Result<StageReport> {
