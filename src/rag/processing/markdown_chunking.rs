@@ -259,25 +259,96 @@ fn make_chunk_text(section: &[(u8, String)], body: &str) -> String {
 
 // strip leading heading lines (for merges)
 fn strip_heading_prefix(s: &str) -> &str {
-    let mut idx = 0usize;
-    let mut iter = s.lines();
-    // drop consecutive heading lines and at most one blank after them
+    let mut offset = 0usize;
     let mut consumed_heading = false;
-    while let Some(line) = iter.next() {
-        let t = line.trim();
-        let is_heading = t.starts_with('#') && t.chars().take_while(|c| *c == '#').count() >= 1;
-        if is_heading {
+    // split_inclusive keeps the line terminator, so the offsets stay inside the string
+    // for both LF and CRLF and always land on a character boundary.
+    for line in s.split_inclusive('\n') {
+        let text = line.trim();
+        if is_atx_heading(text) {
             consumed_heading = true;
-            idx += line.len();
-            idx += 1; // newline
+            offset += line.len();
             continue;
         }
-        if consumed_heading && t.is_empty() {
-            idx += line.len();
-            idx += 1;
+        if consumed_heading && text.is_empty() {
+            offset += line.len();
             continue;
         }
         break;
     }
-    &s[idx..]
+    &s[offset..]
+}
+
+/// True for a markdown ATX heading: one to six '#' followed by whitespace or end of line.
+/// A data line such as `#7P600S300` is not a heading and has to survive the merge.
+fn is_atx_heading(line: &str) -> bool {
+    let hashes = line.chars().take_while(|c| *c == '#').count();
+    if !(1..=6).contains(&hashes) {
+        return false;
+    }
+    match line[hashes..].chars().next() {
+        Some(c) => c.is_whitespace(),
+        None => true,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{split_markdown, strip_heading_prefix};
+    use crate::rag::loading::loaded_data::LoadedFile;
+    use crate::rag::RagProcessableFileType;
+
+    fn markdown_file(content: String) -> LoadedFile {
+        LoadedFile {
+            file_type: RagProcessableFileType::Markdown,
+            content,
+            original_file_description: None,
+            syntetic_file_description: None,
+            internal_id: "test".to_string(),
+            tags: None,
+            images: vec![],
+        }
+    }
+
+    // The string from the production panic. The last line has no trailing newline and
+    // starts with '#', so the old offset math ran one byte past the end.
+    #[test]
+    fn keeps_content_line_that_starts_with_hash() {
+        let text = "## Listing 1: Descripción del código\n\n#7P600S300&lt;cr&gt;";
+        assert_eq!(strip_heading_prefix(text), "#7P600S300&lt;cr&gt;");
+    }
+
+    #[test]
+    fn strips_nested_headings_and_one_blank_line() {
+        assert_eq!(strip_heading_prefix("# H1\n## H2\n\nBody"), "Body");
+    }
+
+    #[test]
+    fn keeps_plain_text_and_hashtags() {
+        assert_eq!(strip_heading_prefix("Body only"), "Body only");
+        assert_eq!(strip_heading_prefix("#hashtag stays"), "#hashtag stays");
+    }
+
+    #[test]
+    fn handles_crlf_without_skipping_bytes() {
+        assert_eq!(strip_heading_prefix("# H1\r\n\r\nCuerpo ó"), "Cuerpo ó");
+    }
+
+    #[test]
+    fn returns_empty_when_only_headings_are_present() {
+        assert_eq!(strip_heading_prefix("# H1\n## H2"), "");
+    }
+
+    // Same input through the real call path: the tiny tail chunk is merged into the
+    // previous one, which is what calls strip_heading_prefix in production.
+    #[test]
+    fn merges_tiny_tail_without_panicking() {
+        let long_paragraph = vec!["word"; 260].join(" ");
+        let content = format!("# Title\n\n{long_paragraph}\n\n## Listing 1: Descripción del código\n\n#7P600S300&lt;cr&gt;\n");
+        let chunked = split_markdown(markdown_file(content), &250);
+        assert!(
+            chunked.chunks.iter().any(|chunk| chunk.text.contains("#7P600S300")),
+            "the listing line was dropped from the merged chunk"
+        );
+    }
 }
