@@ -72,25 +72,25 @@
     ];
 
     const faq = [
-        { question: "What can I ask?", answer: "You can ask almost anything, but EWCO is especially good at providing curated knowledge about wood, wood construction, underutilized wood resources, and their use in buildings and other applications." },
-        { question: "Can it help me with other topics?", answer: "Yes. EWCO can also help you discover European initiatives, good practices, policies, and funding opportunities that support the wider use of wood and sustainable construction." },
-        { question: "Are the responses aligned with the New European Bauhaus (NEB) values?", answer: "Yes. EWCO has extensive knowledge of the New European Bauhaus principles and can suggest ways to incorporate NEB values into your project or improve its alignment with them." },
-        { question: "Can I get inaccurate information here?", answer: "Like any AI system, EWCO can occasionally make mistakes. To help you verify the information, responses include references to the underlying sources whenever possible, allowing you to fact-check the statements directly." },
+        { question: "What can I ask?", answer: "You can ask almost anything, in particular you get curated knowledge about wood, wood construction, underutilized wood resources, and their use in buildings." },
+        { question: "Can it help me with other topics?", answer: "Yes. You can discover European initiatives, good practices, policies, and funding opportunities that support the wider use of wood and sustainable construction." },
+        { question: "Are the responses aligned with the New European Bauhaus (NEB) values?", answer: "Yes. The NEB principles are incorporated and yu can get suggestions on how to include NEB values into your project or improve its alignment with them." },
+        { question: "Can I get inaccurate information here?", answer: "Like any AI, also our system can occasionally make mistakes. To help you verify the information, responses include references to the underlying sources whenever possible, allowing you to fact-check the statements directly." },
     ];
 </script>
 
 <div class="w-[80%] px-6 py-12 bg-white/60 rounded-2xl text-gray-800 m-auto shadow-sm grid gap-10">
     <section class="text-center">
-        <div class="text-xl font-bold">The European Wood Construction Observatory</div>
+        <div class="text-xl font-bold">The Wood Observatory</div>
         <div class="text-lg bg-gradient-to-b from-amber-700 via-yellow-800 to-amber-900 bg-clip-text text-transparent font-bold">Ask. Explore. Build better with wood.</div>
     </section>
     <section class="">
         <section class="bg-gradient-to-br from-amber-900 via-yellow-800 to-stone-900 text-amber-50 rounded-2xl p-10 relative">
-            <h2 class="text-3xl md:text-4xl font-bold mb-4">European Wood Construction Observatory</h2>
+            <h2 class="text-3xl md:text-4xl font-bold mb-4">Wood Observatory</h2>
             <div class="grid grid-cols-[1fr_100px]">
                 <p class="text-amber-100/90 max-w-2xl mb-6 leading-relaxed">
                     An AI-driven tool for anyone looking for information on the wood and wood construction sector. Developed within the
-                    <a href="http://www.woodstockproject.eu" class="underline decoration-amber-300 hover:text-white">Horizon Europe WoodStock project</a>, with open-source data and data from project partners.
+                    <a href="http://www.woodstockproject.eu" class="underline decoration-amber-300 hover:text-white">Horizon Europe WoodStock project</a>.
                 </p>
                 <img src="/lighthouse.png" alt="" class="rounded-xl" />
             </div>
@@ -102,11 +102,11 @@
                 </li>
                 <li class="bg-white/10 rounded-xl p-4">
                     <p class="font-semibold mb-1">Knowledge tools</p>
-                    <p class="text-sm text-amber-100/80">To expand the knowledge base in sustainable wood construction.</p>
+                    <p class="text-sm text-amber-100/80">In sustainable wood construction.</p>
                 </li>
                 <li class="bg-white/10 rounded-xl p-4">
-                    <p class="font-semibold mb-1">Shared best practices</p>
-                    <p class="text-sm text-amber-100/80">Collect, share, and exchange practices, including WoodStock results.</p>
+                    <p class="font-semibold mb-1">Best practices</p>
+                    <p class="text-sm text-amber-100/80">Collect, share, and exchange.</p>
                 </li>
             </ul>
             <div class="flex items-center justify-center p-5">
@@ -117,7 +117,7 @@
     <div class="h-[1px] bg-black/10 w-full"></div>
     <section>
         <h2 class="text-2xl font-semibold mb-6">Frequently asked questions</h2>
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {#each faq as item}
                 <div class="card bg-white/70 rounded-xl p-4 group hover:text-primary!">
                     <div class="font-semibold text-primary cursor-pointer list-none flex items-center justify-between">
@@ -144,11 +144,6 @@
             {/each}
             <a href="/about" class="p-10 bg-accent/20 rounded-lg shadow flex items-center justify-center text-amber-800 border border-accent/30 underline underline-offset-2 hover:text-amber-950">Find more</a>
         </div>
-    </section>
-
-    <div class="h-[1px] bg-black/10 w-full"></div>
-    <section>
-        <h1 class="text-3xl font-bold mb-4">Observatory as a tool</h1>
     </section>
 
     <div class="h-[1px] bg-black/10 w-full"></div>

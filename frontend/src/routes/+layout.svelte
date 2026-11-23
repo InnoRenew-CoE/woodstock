@@ -41,26 +41,29 @@
     });
 </script>
 
-<header bind:this={header_component} class="font-nunito">
-    {#key page.url.pathname}
-        <Header />
-    {/key}
-</header>
-<div id="layout" bind:this={layout_component} class="font-roboto grid h-full grid-rows-[auto_1fr_auto]">
-    <div class="flex-1 h-full relative py-5">
-        {@render children()}
-        <div class="fixed right-0 bottom-0 top-0 flex flex-col justify-end gap-5 p-10 pointer-events-none">
-            {#each $notificationsStore as notification, i}
-                <div in:slide out:slide class="{notification.class} p-2 min-w-[250px] glass">
-                    <div class="glass rounded-lg px-4 py-2 flex items-center gap-3">
-                        <MaskedIcon src="../bell.svg" class="{notification.class} size-5 bg-secondary" />
-                        <div>
-                            <div class="font-bold">{notification.title}</div>
-                            <div class="font-light">{notification.body}</div>
+<div class="grid grid-rows-[min-content_1fr] h-full min-h-screen">
+    <header bind:this={header_component} class="font-nunito">
+        {#key page.url.pathname}
+            <Header />
+        {/key}
+    </header>
+
+    <div id="layout" bind:this={layout_component} class="font-roboto h-full">
+        <div class="flex-1 h-full relative">
+            {@render children()}
+            <div class="fixed right-0 bottom-0 top-0 flex flex-col justify-end gap-5 p-10 pointer-events-none">
+                {#each $notificationsStore as notification, i}
+                    <div in:slide out:slide class="{notification.class} p-2 min-w-[250px] glass">
+                        <div class="glass rounded-lg px-4 py-2 flex items-center gap-3">
+                            <MaskedIcon src="../bell.svg" class="{notification.class} size-5 bg-secondary" />
+                            <div>
+                                <div class="font-bold">{notification.title}</div>
+                                <div class="font-light">{notification.body}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            {/each}
+                {/each}
+            </div>
         </div>
     </div>
 </div>
